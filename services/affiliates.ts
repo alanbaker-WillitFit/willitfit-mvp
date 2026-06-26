@@ -24,12 +24,14 @@ function mapRow(row: AffiliateRow): AffiliateLink {
 }
 
 export async function getAffiliateLinks(category?: string): Promise<AffiliateLink[]> {
-  const rows = await getSheetRows<AffiliateRow>("Affiliate Links");
+  const rows = await getSheetRows<AffiliateRow>("09_Affiliate_Products");
   if (!rows) return [];
 
-  let links = rows.map(mapRow).filter((l) => isLive(l.status));
+  let links = rows.map(mapRow).filter((link) => isLive(link.status));
+
   if (category) {
-    links = links.filter((l) => l.category.toLowerCase() === category.toLowerCase());
+    links = links.filter((link) => link.category.toLowerCase() === category.toLowerCase());
   }
+
   return links;
 }
