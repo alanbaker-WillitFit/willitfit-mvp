@@ -5,9 +5,6 @@ import { airlineFaq, breadcrumbSchema, faqSchema } from "@/lib/schema";
 import DimensionForm from "@/components/DimensionForm";
 import FAQSection from "@/components/FAQSection";
 
-export const runtime = "edge";
-export const revalidate = 3600;
-
 export async function generateStaticParams() {
   const slugs = await getAllAirlineSlugs();
   return slugs.map((slug) => ({ slug }));

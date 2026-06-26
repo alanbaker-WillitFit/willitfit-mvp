@@ -3,9 +3,6 @@ import { notFound } from "next/navigation";
 import { getTipBySlug, getTravelTips } from "@/services/tips";
 import { breadcrumbSchema } from "@/lib/schema";
 
-export const runtime = "edge";
-export const revalidate = 3600;
-
 export async function generateStaticParams() {
   const { tips } = await getTravelTips();
   return tips.map((tip) => ({ slug: tip.slug }));
