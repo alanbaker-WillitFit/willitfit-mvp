@@ -2,24 +2,29 @@ import { TravelTip } from "@/types";
 import { getSheetRows, isLive } from "./googleSheets";
 
 type TipRow = {
-  TipID: string;
-  Title: string;
-  Slug: string;
-  Content: string;
-  Category: string;
-  SEOKeyword: string;
-  CTA: string;
-  Status: string;
+  TipID?: string;
+  Title?: string;
+  Slug?: string;
+  Content?: string;
+  Category?: string;
+  SEOKeyword?: string;
+  CTA?: string;
+  Status?: string;
 };
+
+function clean(value: string | undefined): string {
+  return (value ?? "").trim();
+}
 
 function mapRow(row: TipRow): TravelTip {
   return {
-    tipId: row.TipID,
-    title: row.Title,
-    slug: row.Slug,
-    category: row.Category,
-    tip: row.Content,
-    status: (row.Status as TravelTip["status"]) || "Draft",
+    tipId: clean(row.TipID),
+    title: clean(row.Title),
+    slug: clean(row.Slug),
+    category: clean(row.Category),
+    content: clean(row.Content),
+    cta: clean(row.CTA),
+    status: (clean(row.Status) as TravelTip["status"]) || "Draft",
   };
 }
 
@@ -29,14 +34,16 @@ export async function getTravelTips(): Promise<{ tips: TravelTip[] }> {
 
   const tips = rows
     .map(mapRow)
-    .filter((tip) => tip.slug && isLive(tip.status));
+    .filter((tip) => tip.slug && tip.title && isLive(tip.status));
 
   return { tips };
 }
 
-export async function getTravelTipBySlug(slug: string): Promise<TravelTip | null> {
+export async function getTipBySlug(slug: string): Promise<{ tip: TravelTip | null }> {
   const { tips } = await getTravelTips();
-  return tips.find((tip) => tip.slug === slug) ?? null;
+  const tip = tips.find((item) => item.slug === slug) ?? null;
+
+  return { tip };
 }
 
 export async function getAllTravelTipSlugs(): Promise<string[]> {
