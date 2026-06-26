@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getTipBySlug, getTravelTips } from "@/services/tips";
 import { breadcrumbSchema } from "@/lib/schema";
 
+export const runtime = "edge";
 export const revalidate = 3600;
 
 export async function generateStaticParams() {
@@ -10,17 +11,28 @@ export async function generateStaticParams() {
   return tips.map((tip) => ({ slug: tip.slug }));
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string };
+}): Promise<Metadata> {
   const { tip } = await getTipBySlug(params.slug);
+
   if (!tip) return {};
+
   return {
     title: tip.title,
     description: tip.content.slice(0, 155),
   };
 }
 
-export default async function TipPage({ params }: { params: { slug: string } }) {
+export default async function TipPage({
+  params,
+}: {
+  params: { slug: string };
+}) {
   const { tip } = await getTipBySlug(params.slug);
+
   if (!tip) notFound();
 
   return (
@@ -40,11 +52,19 @@ export default async function TipPage({ params }: { params: { slug: string } }) 
       />
 
       <nav className="font-body text-sm text-navy-300">
-        <a href="/tips" className="hover:text-green-600">Travel tips</a> / {tip.category}
+        <a href="/tips" className="hover:text-green-600">
+          Travel tips
+        </a>{" "}
+        / {tip.category}
       </nav>
 
-      <h1 className="mt-3 font-heading text-3xl font-semibold text-navy-700">{tip.title}</h1>
-      <p className="mt-6 font-body text-lg leading-relaxed text-navy-600">{tip.content}</p>
+      <h1 className="mt-3 font-heading text-3xl font-semibold text-navy-700">
+        {tip.title}
+      </h1>
+
+      <p className="mt-6 font-body text-lg leading-relaxed text-navy-600">
+        {tip.content}
+      </p>
 
       {tip.cta && (
         <a

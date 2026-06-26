@@ -5,6 +5,7 @@ import { airlineFaq, breadcrumbSchema, faqSchema } from "@/lib/schema";
 import DimensionForm from "@/components/DimensionForm";
 import FAQSection from "@/components/FAQSection";
 
+export const runtime = "edge";
 export const revalidate = 3600;
 
 export async function generateStaticParams() {
@@ -53,16 +54,25 @@ export default async function AirlinePage({ params }: { params: { slug: string }
       />
 
       <nav className="font-body text-sm text-navy-300">
-        <a href="/airlines" className="hover:text-green-600">Airlines</a> / {airline.airlineName}
+        <a href="/airlines" className="hover:text-green-600">
+          Airlines
+        </a>{" "}
+        / {airline.airlineName}
       </nav>
 
       <h1 className="mt-3 font-heading text-3xl font-semibold text-navy-700">
         {airline.airlineName} cabin bag size limit
       </h1>
+
       <p className="mt-3 font-body text-navy-500">
         Here&apos;s {airline.airlineName}&apos;s current baggage allowance — checked against their
         published policy. Allowances change, so always confirm on{" "}
-        <a href={airline.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-green-600 underline">
+        <a
+          href={airline.websiteUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-green-600 underline"
+        >
           {airline.airlineName}&apos;s own site
         </a>{" "}
         before you fly.
@@ -72,16 +82,21 @@ export default async function AirlinePage({ params }: { params: { slug: string }
         <div className="rounded-card border border-navy-100 bg-white p-5">
           <h2 className="font-heading text-base font-semibold text-navy-700">Cabin bag</h2>
           <p className="mt-2 font-mono text-lg text-navy-700">
-            {airline.cabinBag.heightCm} × {airline.cabinBag.widthCm} × {airline.cabinBag.depthCm} cm
+            {airline.cabinBag.heightCm} × {airline.cabinBag.widthCm} ×{" "}
+            {airline.cabinBag.depthCm} cm
           </p>
           {airline.weightLimitKg && (
-            <p className="mt-1 font-body text-sm text-navy-400">Max weight: {airline.weightLimitKg} kg</p>
+            <p className="mt-1 font-body text-sm text-navy-400">
+              Max weight: {airline.weightLimitKg} kg
+            </p>
           )}
         </div>
+
         <div className="rounded-card border border-navy-100 bg-white p-5">
           <h2 className="font-heading text-base font-semibold text-navy-700">Personal item</h2>
           <p className="mt-2 font-mono text-lg text-navy-700">
-            {airline.personalItem.heightCm} × {airline.personalItem.widthCm} × {airline.personalItem.depthCm} cm
+            {airline.personalItem.heightCm} × {airline.personalItem.widthCm} ×{" "}
+            {airline.personalItem.depthCm} cm
           </p>
         </div>
       </div>
