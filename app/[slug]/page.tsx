@@ -4,12 +4,13 @@ import { getSeoPageBySlug, getAllSeoPages } from "@/services/seoPages";
 import { breadcrumbSchema, faqSchema } from "@/lib/schema";
 import FAQSection from "@/components/FAQSection";
 
+export const runtime = "edge";
+export const dynamic = "force-static";
+export const dynamicParams = false;
+
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
-
-export const dynamic = "force-static";
-export const dynamicParams = false;
 
 export async function generateStaticParams() {
   const pages = await getAllSeoPages();
