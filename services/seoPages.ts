@@ -13,14 +13,25 @@ type SeoPageRow = {
 
 function parseFaq(raw: string): FaqItem[] {
   if (!raw || !raw.trim()) return [];
+
   try {
     const parsed = JSON.parse(raw);
+
     if (!Array.isArray(parsed)) return [];
+
     return parsed
-      .filter((item) => item && typeof item.question === "string" && typeof item.answer === "string")
-      .map((item) => ({ question: item.question, answer: item.answer }));
+      .filter(
+        (item) =>
+          item &&
+          typeof item.question === "string" &&
+          typeof item.answer === "string"
+      )
+      .map((item) => ({
+        question: item.question,
+        answer: item.answer,
+      }));
   } catch {
-    console.error("[seoPages] malformed FAQJSON, skipping FAQ block for this page");
+    console.error("[seoPages] malformed FAQJSON");
     return [];
   }
 }
@@ -37,10 +48,20 @@ function mapRow(row: SeoPageRow): SeoPage {
   };
 }
 
-export async function getSeoPageBySlug(slug: string): Promise<SeoPage | null> {
+export async function getAllSeoPages(): Promise<SeoPage[]> {
   const rows = await getSheetRows<SeoPageRow>("SEO Pages");
-  if (!rows) return null;
 
-  const page = rows.map(mapRow).find((p) => isLive(p.status) && p.pageSlug === slug);
-  return page ?? null;
+  if (!rows) return [];
+
+  return rows
+    .map(mapRow)
+    .filter((page) => isLive(page.status));
+}
+
+export async function getSeoPageBySlug(
+  slug: string
+): Promise<SeoPage | null> {
+  const pages = await getAllSeoPages();
+
+  return pages.find((page) => page.pageSlug === slug) ?? null;
 }
