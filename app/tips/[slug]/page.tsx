@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { getTipBySlug, getTravelTips } from "@/services/tips";
 import { breadcrumbSchema } from "@/lib/schema";
 
-export const runtime = "edge";
+
 export const dynamic = "force-static";
 export const dynamicParams = false;
 
