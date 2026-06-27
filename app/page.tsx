@@ -35,6 +35,8 @@ export default async function HomePage() {
     getAffiliateLinks(),
   ]);
 
+  console.log("HOME PAGE RECEIVED:", airlines.length);
+
   return (
     <>
       <section className="relative overflow-hidden bg-navy-700">

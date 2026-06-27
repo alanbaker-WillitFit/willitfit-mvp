@@ -16,9 +16,13 @@ export default function AirlineSelector({ airlines, value, onChange }: AirlineSe
 
   const filtered = useMemo(() => {
     if (!query.trim()) return airlines;
+
     const q = query.toLowerCase();
+
     return airlines.filter(
-      (a) => a.airlineName.toLowerCase().includes(q) || a.country.toLowerCase().includes(q)
+      (a) =>
+        a.airlineName.toLowerCase().includes(q) ||
+        a.country.toLowerCase().includes(q)
     );
   }, [airlines, query]);
 
@@ -27,6 +31,11 @@ export default function AirlineSelector({ airlines, value, onChange }: AirlineSe
       <label htmlFor="airline-input" className="font-body text-sm font-medium text-navy-700">
         Airline
       </label>
+
+      <p className="mt-1 font-body text-xs text-navy-300">
+        Debug: {airlines.length} airlines loaded, {filtered.length} shown
+      </p>
+
       <div className="relative mt-1.5">
         <input
           id="airline-input"
@@ -43,24 +52,15 @@ export default function AirlineSelector({ airlines, value, onChange }: AirlineSe
             setOpen(true);
             if (value) onChange(null);
           }}
-          onBlur={() => setTimeout(() => setOpen(false), 100)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
         />
-        <svg
-          className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-navy-300"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
       </div>
 
       {open && filtered.length > 0 && (
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-10 mt-2 max-h-64 w-full overflow-auto rounded-xl border border-navy-100 bg-white shadow-liftedh"
+          className="absolute z-10 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-navy-100 bg-white shadow-soft"
         >
           {filtered.map((airline) => (
             <li key={airline.airlineId}>
@@ -69,6 +69,7 @@ export default function AirlineSelector({ airlines, value, onChange }: AirlineSe
                 role="option"
                 aria-selected={value?.airlineId === airline.airlineId}
                 className="flex w-full items-center justify-between px-4 py-3 text-left font-body text-sm text-navy-700 hover:bg-green-50"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   onChange(airline);
                   setQuery("");

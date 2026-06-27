@@ -1,20 +1,31 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTipBySlug, getTravelTips } from "@/services/tips";
 import { breadcrumbSchema } from "@/lib/schema";
 
-export const runtime = "edge";
+type PageProps = {
+  params: Promise<{ slug: string }>;
+};
+
 export const dynamic = "force-static";
 export const dynamicParams = false;
 
 export async function generateStaticParams() {
   const { tips } = await getTravelTips();
-  return tips.map((tip) => ({ slug: tip.slug }));
+
+  return tips.map((tip) => ({
+    slug: tip.slug,
+  }));
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const { tip } = await getTipBySlug(params.slug);
-  if (!tip) return {};
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const { tip } = await getTipBySlug(slug);
+
+  if (!tip) {
+    return {};
+  }
 
   return {
     title: tip.title,
@@ -22,9 +33,13 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default async function TipPage({ params }: { params: { slug: string } }) {
-  const { tip } = await getTipBySlug(params.slug);
-  if (!tip) notFound();
+export default async function TipPage({ params }: PageProps) {
+  const { slug } = await params;
+  const { tip } = await getTipBySlug(slug);
+
+  if (!tip) {
+    notFound();
+  }
 
   return (
     <article className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
@@ -42,19 +57,27 @@ export default async function TipPage({ params }: { params: { slug: string } }) 
       />
 
       <nav className="font-body text-sm text-navy-300">
-        <a href="/tips" className="hover:text-green-600">Travel tips</a> / {tip.category}
+        <Link href="/tips" className="hover:text-green-600">
+          Travel tips
+        </Link>{" "}
+        / {tip.category}
       </nav>
 
-      <h1 className="mt-3 font-heading text-3xl font-semibold text-navy-700">{tip.title}</h1>
-      <p className="mt-6 font-body text-lg leading-relaxed text-navy-600">{tip.content}</p>
+      <h1 className="mt-3 font-heading text-3xl font-semibold text-navy-700">
+        {tip.title}
+      </h1>
+
+      <p className="mt-6 font-body text-lg leading-relaxed text-navy-600">
+        {tip.content}
+      </p>
 
       {tip.cta && (
-        <a
+        <Link
           href="/#checker"
           className="mt-8 inline-flex rounded-full bg-green-500 px-6 py-3 font-body text-sm font-semibold text-white shadow-soft hover:bg-green-600"
         >
           {tip.cta}
-        </a>
+        </Link>
       )}
     </article>
   );
