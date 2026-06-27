@@ -49,7 +49,7 @@ function mapRow(row: SeoPageRow): SeoPage {
 }
 
 export async function getAllSeoPages(): Promise<SeoPage[]> {
-  const rows = await getSheetRows<SeoPageRow>("SEO Pages");
+  const rows = await getSheetRows<SeoPageRow>("08_SEO_Pages");
 
   if (!rows) return [];
 
