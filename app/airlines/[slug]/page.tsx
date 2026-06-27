@@ -5,6 +5,7 @@ import { airlineFaq, breadcrumbSchema, faqSchema } from "@/lib/schema";
 import DimensionForm from "@/components/DimensionForm";
 import FAQSection from "@/components/FAQSection";
 
+export const runtime = "edge";
 export const dynamic = "force-static";
 export const dynamicParams = false;
 
