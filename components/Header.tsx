@@ -22,7 +22,7 @@ export default function Header() {
           onClick={() => setOpen(false)}
         >
           <Image
-            src="/assets/branding/logo-master.svg"
+            src="/assets/logo/logo.svg"
             alt="WillItFit — Know Before You Go"
             width={240}
             height={73}
