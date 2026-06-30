@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">WillItFit I002 Personal Bag Icon</title>
+  <desc id="desc">Locked WillItFit personal bag icon with navy outline, green measurement arrows, and centered green checkmark.</desc>
+
+  <defs>
+    <marker id="arrow-green" viewBox="0 0 24 24" refX="12" refY="12" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+      <path d="M6 4 L18 12 L6 20" fill="none" stroke="#20C55A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- Bag body -->
+  <rect x="72" y="168" width="368" height="232" rx="48" ry="48"
+        fill="#FFFFFF" stroke="#062A56" stroke-width="18"/>
+
+  <!-- Handle outer -->
+  <path d="M184 168 V132 C184 102 208 84 238 84 H274 C304 84 328 102 328 132 V168"
+        fill="none" stroke="#062A56" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Handle inner cut line -->
+  <path d="M212 168 V138 C212 122 224 112 240 112 H272 C288 112 300 122 300 138 V168"
+        fill="none" stroke="#062A56" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Horizontal measurement arrow inside bag -->
+  <line x1="124" y1="360" x2="356" y2="360"
+        stroke="#20C55A" stroke-width="16" stroke-linecap="round"
+        marker-start="url(#arrow-green)" marker-end="url(#arrow-green)"/>
+
+  <!-- Vertical measurement arrow inside right side of bag -->
+  <line x1="386" y1="212" x2="386" y2="352"
+        stroke="#20C55A" stroke-width="16" stroke-linecap="round"
+        marker-start="url(#arrow-green)" marker-end="url(#arrow-green)"/>
+
+  <!-- Center approval tick circle -->
+  <circle cx="256" cy="264" r="52"
+          fill="none" stroke="#20C55A" stroke-width="14"/>
+  <path d="M232 264 L252 284 L286 244"
+        fill="none" stroke="#20C55A" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

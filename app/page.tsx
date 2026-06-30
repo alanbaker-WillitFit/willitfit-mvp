@@ -6,7 +6,8 @@ import TravelTipCard from "@/components/TravelTipCard";
 import AffiliateCard from "@/components/AffiliateCard";
 import FAQSection from "@/components/FAQSection";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const DATA_REVIEWED_DATE = "26 Jun 2026";
 

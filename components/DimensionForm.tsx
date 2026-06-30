@@ -17,13 +17,13 @@ const FIELDS: { key: "heightCm" | "widthCm" | "depthCm"; label: string }[] = [
 const BAG_TYPES = [
   {
     type: "cabinBag" as const,
-    icon: "🧳",
+    icon: "/assets/icons/cabin-bag.svg",
     title: "Cabin Bag",
     description: "Stored in the overhead locker",
   },
   {
     type: "personalItem" as const,
-    icon: "🎒",
+    icon: "/assets/icons/personal-bag.svg",
     title: "Personal Item",
     description: "Stored under the seat — handbag, laptop bag or small backpack",
   },
@@ -34,7 +34,10 @@ interface DimensionFormProps {
   initialAirline?: Airline | null;
 }
 
-export default function DimensionForm({ airlines, initialAirline = null }: DimensionFormProps) {
+export default function DimensionForm({
+  airlines,
+  initialAirline = null,
+}: DimensionFormProps) {
   const {
     bagType,
     setBagType,
@@ -84,7 +87,13 @@ export default function DimensionForm({ airlines, initialAirline = null }: Dimen
 
     if (!airline || !isValid) return;
 
-    setResult(checkFit(dimensions as Required<typeof dimensions>, airline, bagType));
+    setResult(
+      checkFit(
+        dimensions as Required<typeof dimensions>,
+        airline,
+        bagType
+      )
+    );
   }
 
   return (
@@ -111,14 +120,24 @@ export default function DimensionForm({ airlines, initialAirline = null }: Dimen
                     : "border-navy-100 bg-white hover:bg-navy-50"
                 )}
               >
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl" aria-hidden="true">
-                    {item.icon}
-                  </span>
+                <div className="flex items-start gap-4">
+
+                  <img
+                    src={item.icon}
+                    alt=""
+                    aria-hidden="true"
+                    className={
+                      item.type === "cabinBag"
+                        ? "h-20 w-20 shrink-0"
+                        : "h-11 w-11 shrink-0"
+                    }
+                  />
+
                   <div>
                     <div className="font-body text-sm font-bold text-navy-700">
                       {item.title}
                     </div>
+
                     <div className="mt-1 font-body text-xs leading-relaxed text-navy-400">
                       {item.description}
                     </div>
@@ -131,14 +150,22 @@ export default function DimensionForm({ airlines, initialAirline = null }: Dimen
 
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <AirlineSelector airlines={airlines} value={airline} onChange={handleAirlineChange} />
+            <AirlineSelector
+              airlines={airlines}
+              value={airline}
+              onChange={handleAirlineChange}
+            />
           </div>
 
           {FIELDS.map((field) => (
             <div key={field.key}>
-              <label htmlFor={field.key} className="font-body text-sm font-medium text-navy-700">
+              <label
+                htmlFor={field.key}
+                className="font-body text-sm font-medium text-navy-700"
+              >
                 {field.label}
               </label>
+
               <input
                 id={field.key}
                 inputMode="decimal"
@@ -174,15 +201,20 @@ export default function DimensionForm({ airlines, initialAirline = null }: Dimen
               <h4 className="font-heading text-base font-semibold text-navy-700">
                 Your bag fits these airlines instead
               </h4>
+
               <ul className="mt-3 space-y-2">
                 {alternatives.map((alt) => (
-                  <li key={alt.airline.airlineId} className="font-body text-sm text-navy-600">
+                  <li
+                    key={alt.airline.airlineId}
+                    className="font-body text-sm text-navy-600"
+                  >
                     <span className="font-semibold text-green-600">
                       {alt.airline.airlineName}
                     </span>
                     {" — "}
                     <span className="font-mono text-xs text-navy-400">
-                      {alt.airline.cabinBag.heightCm}×{alt.airline.cabinBag.widthCm}×
+                      {alt.airline.cabinBag.heightCm}×
+                      {alt.airline.cabinBag.widthCm}×
                       {alt.airline.cabinBag.depthCm} cm
                     </span>
                   </li>

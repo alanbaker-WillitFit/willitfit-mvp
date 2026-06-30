@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <style>
+      .bg{fill:#fff}.navy{stroke:#08275c}.green{stroke:#10a94f}.greenFill{fill:#10a94f}.navyFill{fill:#08275c}.txt{font-family:Arial,Helvetica,sans-serif;fill:#08275c}.gtxt{font-family:Arial,Helvetica,sans-serif;fill:#10a94f}.panel{fill:#fff;stroke:#10a94f;stroke-width:2;rx:18}.small{font-size:18px}.med{font-size:24px;font-weight:700}.big{font-size:44px;font-weight:800}.dash{stroke:#10a94f;stroke-width:5;stroke-linecap:round;stroke-dasharray:14 12;fill:none}.outline{stroke:#08275c;stroke-width:8;stroke-linecap:round;stroke-linejoin:round;fill:#fff}.thin{stroke:#10a94f;stroke-width:4;fill:none}.lockbar{fill:#08275c}.muted{fill:#606a7b;font-family:Arial,Helvetica,sans-serif}.note{font-size:16px}.assetTitle{font-size:22px;font-weight:800;fill:#10a94f;font-family:Arial,Helvetica,sans-serif}.assetSub{font-size:18px;font-weight:700;fill:#08275c;font-family:Arial,Helvetica,sans-serif}
+    </style>
+    <marker id="arrowG" markerWidth="12" markerHeight="12" refX="6" refY="6" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L12,6 L0,12 Z" fill="#10a94f"/></marker>
+    <marker id="arrowGStart" markerWidth="12" markerHeight="12" refX="6" refY="6" orient="auto" markerUnits="strokeWidth"><path d="M12,0 L0,6 L12,12 Z" fill="#10a94f"/></marker>
+    <g id="validation">
+      <circle cx="0" cy="0" r="54" class="thin" stroke-width="8"/>
+      <path d="M-28,-2 L-9,18 L31,-25" stroke="#10a94f" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </g>
+    <g id="measurement">
+      <line x1="-100" y1="90" x2="80" y2="90" class="dash" marker-start="url(#arrowGStart)" marker-end="url(#arrowG)"/>
+      <line x1="115" y1="-120" x2="115" y2="72" class="dash" marker-start="url(#arrowGStart)" marker-end="url(#arrowG)"/>
+    </g>
+    <g id="cabinBag">
+      <path d="M-70,-160 V-230 Q-70,-245 -55,-245 H55 Q70,-245 70,-230 V-160" class="outline"/>
+      <rect x="-165" y="-160" width="330" height="430" rx="42" class="outline"/>
+      <circle cx="-115" cy="300" r="25" class="navyFill"/>
+      <circle cx="115" cy="300" r="25" class="navyFill"/>
+    </g>
+    <g id="personalBag">
+      <path d="M-55,-120 V-145 Q-55,-160 -40,-160 H40 Q55,-160 55,-145 V-120" class="outline"/>
+      <rect x="-150" y="-120" width="300" height="220" rx="38" class="outline"/>
+    </g>
+    <g id="logoIcon">
+      <path d="M-26,-20 V-45 Q-26,-55 -16,-55 H16 Q26,-55 26,-45 V-20" stroke="#10a94f" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="-46" y="-22" width="92" height="78" rx="12" stroke="#10a94f" stroke-width="8" fill="none"/>
+      <path d="M-23,17 L-6,34 L28,-5" stroke="#10a94f" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </g>
+  </defs>
+  <rect class="bg" width="1600" height="1000"/>
+  <text x="800" y="58" text-anchor="middle" class="big txt">WillItFit — LOCKED MASTER VECTOR ASSETS</text>
+  <text x="800" y="92" text-anchor="middle" class="muted" font-size="24">CCE-MIS-002 • B001 / I001 / I002 / M001 / V001</text>
+
+  <rect x="40" y="130" width="280" height="360" class="panel"/>
+  <text x="180" y="165" text-anchor="middle" class="assetTitle">B001</text><text x="180" y="190" text-anchor="middle" class="assetSub">MASTER LOGO</text>
+  <g transform="translate(96 300) scale(1.25)"><use href="#logoIcon"/></g>
+  <text x="150" y="318" class="gtxt" font-size="54" font-weight="800">Will</text><text x="256" y="318" class="txt" font-size="54" font-weight="800">It</text><text x="296" y="318" class="gtxt" font-size="54" font-weight="800">Fit</text>
+  <text x="180" y="455" text-anchor="middle" class="gtxt" font-size="20" font-weight="800">LOCKED</text>
+
+  <rect x="345" y="130" width="280" height="360" class="panel"/>
+  <text x="485" y="165" text-anchor="middle" class="assetTitle">I001</text><text x="485" y="190" text-anchor="middle" class="assetSub">MASTER CABIN BAG</text>
+  <g transform="translate(485 335) scale(.45)"><use href="#cabinBag"/><use href="#measurement" transform="translate(0 20) scale(1.05)"/><use href="#validation" transform="translate(0 -10) scale(.9)"/></g>
+  <text x="485" y="455" text-anchor="middle" class="gtxt" font-size="20" font-weight="800">LOCKED</text>
+
+  <rect x="650" y="130" width="280" height="360" class="panel"/>
+  <text x="790" y="165" text-anchor="middle" class="assetTitle">I002</text><text x="790" y="190" text-anchor="middle" class="assetSub">UNDERSEAT / PERSONAL BAG</text>
+  <g transform="translate(790 335) scale(.55)"><use href="#personalBag"/><use href="#measurement" transform="translate(0 -15) scale(.82,.78)"/><use href="#validation" transform="translate(0 -35) scale(.75)"/></g>
+  <text x="790" y="455" text-anchor="middle" class="gtxt" font-size="20" font-weight="800">LOCKED</text>
+
+  <rect x="955" y="130" width="280" height="360" class="panel"/>
+  <text x="1095" y="165" text-anchor="middle" class="assetTitle">M001</text><text x="1095" y="190" text-anchor="middle" class="assetSub">MEASUREMENT LANGUAGE</text>
+  <g transform="translate(1095 315) scale(.85)"><use href="#measurement"/></g>
+  <text x="1010" y="405" class="txt small">• WillIt Green</text><text x="1010" y="430" class="txt small">• Dashed 14 / 6 rhythm</text><text x="1010" y="455" class="txt small">• Arrows align optically, never touching</text>
+
+  <rect x="1260" y="130" width="280" height="360" class="panel"/>
+  <text x="1400" y="165" text-anchor="middle" class="assetTitle">V001</text><text x="1400" y="190" text-anchor="middle" class="assetSub">VALIDATION LAYER</text>
+  <g transform="translate(1400 310) scale(1.35)"><use href="#validation"/></g>
+  <text x="1400" y="455" text-anchor="middle" class="gtxt" font-size="20" font-weight="800">LOCKED</text>
+
+  <rect x="40" y="525" width="730" height="330" class="panel"/>
+  <text x="65" y="560" class="assetTitle">SYSTEM ARCHITECTURE</text>
+  <g transform="translate(135 710) scale(.32)"><use href="#cabinBag"/></g><text x="135" y="815" text-anchor="middle" class="assetSub">Object Layer</text>
+  <text x="245" y="715" class="gtxt" font-size="54" font-weight="800">+</text>
+  <g transform="translate(370 710) scale(.55)"><use href="#measurement"/></g><text x="370" y="815" text-anchor="middle" class="assetSub">M001</text>
+  <text x="485" y="715" class="gtxt" font-size="54" font-weight="800">+</text>
+  <g transform="translate(590 705) scale(.95)"><use href="#validation"/></g><text x="590" y="815" text-anchor="middle" class="assetSub">V001</text>
+  <text x="690" y="715" class="gtxt" font-size="54" font-weight="800">=</text>
+  <text x="65" y="840" class="txt note">Future icons change only the object geometry. Measurement and validation layers are inherited.</text>
+
+  <rect x="795" y="525" width="365" height="330" class="panel"/>
+  <text x="820" y="560" class="assetTitle">LOCKED RULES</text>
+  <text x="825" y="600" class="txt small">• Navy outline</text><text x="825" y="630" class="txt small">• Rounded corners</text><text x="825" y="660" class="txt small">• Green dashed arrows</text><text x="825" y="690" class="txt small">• Horizontal arrow stops before vertical head</text><text x="825" y="720" class="txt small">• Vertical arrow runs full height</text><text x="825" y="750" class="txt small">• Check sits cleanly inside ring</text><text x="825" y="780" class="txt small">• No redesign without explicit instruction</text>
+
+  <rect x="1185" y="525" width="355" height="330" class="panel"/>
+  <text x="1210" y="560" class="assetTitle">ASSET PATHS</text>
+  <text x="1210" y="605" class="txt small">B001  public/assets/branding/logo-master.svg</text>
+  <text x="1210" y="640" class="txt small">I001  public/assets/icons/cabin-bag.svg</text>
+  <text x="1210" y="675" class="txt small">I002  public/assets/icons/personal-bag.svg</text>
+  <text x="1210" y="720" class="txt small">M001  Shared measurement component</text>
+  <text x="1210" y="755" class="txt small">V001  Shared validation component</text>
+
+  <rect x="40" y="900" width="1500" height="60" class="lockbar" rx="12"/>
+  <text x="800" y="938" text-anchor="middle" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="22" font-weight="700">LOCKED STANDARD — MASTER ASSET PRINCIPLE: inherit from approved assets; do not recreate or redesign.</text>
+</svg>
