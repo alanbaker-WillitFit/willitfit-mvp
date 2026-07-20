@@ -1,0 +1,49 @@
+{
+  "sourceWorkbook": "WillItFit_Content_Engine_RC15.5_Question_Engine_Aligned.xlsx",
+  "generatedAt": "2026-07-15",
+  "release": "RC15.5 \u00d7 RC2.59",
+  "summary": {
+    "answers": 27,
+    "routes": 27,
+    "triggers": 18,
+    "relationships": 102,
+    "blockedAnswers": 9,
+    "duplicateAnswerIds": 0,
+    "duplicateQuestionIds": 0,
+    "orphanRoutes": 0,
+    "orphanTriggerQuestionIds": 0,
+    "releaseDecision": "CONDITIONAL PASS"
+  },
+  "checks": [
+    {
+      "id": "QE-001",
+      "check": "Counts match contract",
+      "result": "PASS",
+      "evidence": "27 answers / 27 routes / 18 triggers / 102 relationships"
+    },
+    {
+      "id": "QE-002",
+      "check": "Blocked answers remain excluded",
+      "result": "PASS",
+      "evidence": "9 blocked answers; Direct_Landing_Enabled corrected to No in workbook"
+    },
+    {
+      "id": "QE-003",
+      "check": "Trigger evaluator implemented",
+      "result": "PASS",
+      "evidence": "services/knowledge.ts consumes questionEngine.triggers"
+    },
+    {
+      "id": "QE-004",
+      "check": "Relationship graph consumed",
+      "result": "PASS",
+      "evidence": "services/knowledge.ts consumes questionEngine.relationships"
+    },
+    {
+      "id": "QE-005",
+      "check": "Exact-package npm verification",
+      "result": "OPEN",
+      "evidence": "Run npm run verify locally before KU/deployment"
+    }
+  ]
+}

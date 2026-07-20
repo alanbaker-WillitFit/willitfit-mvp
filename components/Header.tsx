@@ -1,99 +1,68 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import NavDropdown from "./NavDropdown";
+import BrandWordmark from "./BrandWordmark";
 
-const NAV_LINKS = [
-  { href: "/airlines", label: "Airlines" },
-  { href: "/tips", label: "Travel tips" },
-];
+interface HeaderProps { tipCategories: string[] }
 
-export default function Header() {
+const LINKS = [
+  ["WillitFit", "/"], ["Airlines", "/airlines"], ["Ask WillitFit", "/ask"],
+  ["Travel Essentials", "/products"], ["About", "/about"], ["FAQs", "/ask"],
+] as const;
+
+function Brand() {
+  return (
+    <span className="wf-brand" data-recovery-asset="temporary-coded-wordmark">
+      <svg viewBox="0 0 34 42" aria-hidden="true"><path d="M10 9V6a7 7 0 0 1 14 0v3M5 9h24v29H5z" /><path className="wf-brand__tick" d="m10 23 5 5 10-13" /></svg>
+      <span><strong><BrandWordmark /></strong><small>Know Before You <i>Go.</i></small></span>
+    </span>
+  );
+}
+
+export default function Header({ tipCategories }: HeaderProps) {
   const [open, setOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+        requestAnimationFrame(() => menuButton.current?.focus());
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
 
   return (
-    <header className="sticky top-0 z-50 bg-white">
-      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-        <Link
-          href="/"
-          className="flex items-center"
-          aria-label="WillItFit home"
-          onClick={() => setOpen(false)}
-        >
-          <Image
-            src="/assets/logo/logo.svg"
-            alt="WillItFit — Know Before You Go"
-            width={240}
-            height={73}
-            priority
-            className="h-auto w-[185px] sm:w-[240px]"
-          />
-        </Link>
-
-        <nav className="hidden items-center gap-8 sm:flex">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="font-body text-sm font-semibold text-navy-600 transition hover:text-green-600"
-            >
-              {link.label}
-            </Link>
-          ))}
-
-          <Link
-            href="/#checker"
-            className="rounded-full bg-green-500 px-4 py-2 font-body text-sm font-semibold text-white shadow-soft transition hover:bg-green-600"
-          >
-            Check my bag
-          </Link>
+    <header className="wf-header">
+      <div className="wf-container wf-header__inner">
+        <Link href="/" aria-label="WillitFit home" onClick={() => setOpen(false)}><Brand /></Link>
+        <nav aria-label="Primary navigation" className="wf-desktop-nav">
+          <Link href="/" aria-current="page"><BrandWordmark /></Link>
+          {LINKS.slice(1, 3).map(([label, href]) => <Link key={label} href={href}>{label}</Link>)}
+          <NavDropdown label="Travel Tips" baseHref="/tips" categories={tipCategories} />
+          {LINKS.slice(3).map(([label, href]) => <Link key={label} href={href}>{label}</Link>)}
         </nav>
-
-        <button
-          type="button"
-          aria-label={open ? "Close menu" : "Open menu"}
-          aria-expanded={open}
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-navy-700 sm:hidden"
-          onClick={() => setOpen((v) => !v)}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            className="h-6 w-6"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            aria-hidden="true"
-          >
-            {open ? (
-              <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
-            ) : (
-              <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
-            )}
-          </svg>
+        <button ref={menuButton} type="button" className="wf-menu-button" aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open} aria-controls="mobile-navigation" onClick={() => setOpen(value => !value)}>
+          <span /><span /><span />
         </button>
       </div>
-
       {open && (
-        <nav className="border-t border-navy-100 bg-white px-4 py-3 sm:hidden">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="block py-2 font-body text-sm font-semibold text-navy-700"
-              onClick={() => setOpen(false)}
-            >
-              {link.label}
-            </Link>
-          ))}
-
-          <Link
-            href="/#checker"
-            className="mt-2 block rounded-full bg-green-500 px-4 py-2 text-center font-body text-sm font-semibold text-white"
-            onClick={() => setOpen(false)}
-          >
-            Check my bag
-          </Link>
+        <nav id="mobile-navigation" className="wf-mobile-menu" aria-label="Mobile navigation">
+          <Link href="/" onClick={() => setOpen(false)}><BrandWordmark /></Link>
+          {LINKS.slice(1, 3).map(([label, href]) => <Link key={label} href={href} onClick={() => setOpen(false)}>{label}</Link>)}
+          <Link href="/tips" onClick={() => setOpen(false)}>Travel Tips</Link>
+          {LINKS.slice(3).map(([label, href]) => <Link key={label} href={href} onClick={() => setOpen(false)}>{label}</Link>)}
+          <Link href="/lab" onClick={() => setOpen(false)}>WillIt Lab</Link>
         </nav>
       )}
     </header>

@@ -1,24 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getTipBySlug, getTravelTips } from "@/services/tips";
+import { getTipBySlug } from "@/services/tips";
 import { breadcrumbSchema } from "@/lib/schema";
+import { safeJsonLd } from "@/lib/jsonLd";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 
-export const dynamic = "force-static";
-export const dynamicParams = false;
+export const revalidate = 3600;
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
-
-export async function generateStaticParams() {
-  const { tips } = await getTravelTips();
-
-  return tips.map((tip) => ({
-    slug: tip.slug,
-  }));
-}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
@@ -39,45 +32,42 @@ export default async function TipPage({ params }: PageProps) {
   const { tip } = await getTipBySlug(slug);
 
   if (!tip) {
-    notFound();
+    return notFound();
   }
 
+  const current = tip;
+
   return (
-    <article className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
+    <article className="wf-container wf-container--narrow wf-section">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(
+          __html: safeJsonLd(
             breadcrumbSchema([
               { name: "Home", path: "/" },
               { name: "Travel tips", path: "/tips" },
-              { name: tip.title, path: `/tips/${tip.slug}` },
+              { name: current.title, path: `/tips/${current.slug}` },
             ])
           ),
         }}
       />
 
-      <nav className="font-body text-sm text-navy-300">
-        <Link href="/tips" className="hover:text-green-600">
-          Travel tips
-        </Link>{" "}
-        / {tip.category}
-      </nav>
+      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Travel tips", href: "/tips" }, { label: current.title }]} />
 
       <h1 className="mt-3 font-heading text-3xl font-semibold text-navy-700">
-        {tip.title}
+        {current.title}
       </h1>
 
       <p className="mt-6 font-body text-lg leading-relaxed text-navy-600">
-        {tip.content}
+        {current.content}
       </p>
 
-      {tip.cta && (
+      {current.cta && (
         <Link
           href="/#checker"
-          className="mt-8 inline-flex rounded-full bg-green-500 px-6 py-3 font-body text-sm font-semibold text-white shadow-soft hover:bg-green-600"
+          className="wf-btn-cta mt-8 inline-flex px-6 py-3 font-body text-sm"
         >
-          {tip.cta}
+          {current.cta}
         </Link>
       )}
     </article>

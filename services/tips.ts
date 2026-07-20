@@ -1,58 +1,107 @@
-import { TravelTip } from "@/types";
-import { getSheetRows } from "./googleSheets";
+import { TravelTip, SheetStatus } from "@/types";
+import { cache } from "react";
+import { FALLBACK_TIPS } from "@/data/fallback";
+import { getSheetRows, slugify, toNumber } from "./googleSheets";
 
 type TipRow = {
-  TipID?: string;
-  Title?: string;
-  Slug?: string;
-  Content?: string;
-  Category?: string;
-  SEOKeyword?: string;
-  CTA?: string;
-  Status?: string;
+  TipID?: string; "Tip ID"?: string; Title?: string; Slug?: string;
+  Content?: string; Tip?: string; Category?: string; SEOKeyword?: string;
+  "SEO Primary Keyword"?: string; CTA?: string; Status?: string;
+  "Content Status"?: string; FocusAirline?: string; "Focus Airline"?: string;
+  Airline?: string; "Journey Stage"?: string; "Result Context"?: string;
+  "Affiliate Category"?: string; Priority?: string;
 };
 
-function clean(value: string | undefined): string {
-  return (value ?? "").trim();
-}
+function clean(value: string | undefined): string { return (value ?? "").trim(); }
 
-function isActive(status: string | undefined): boolean {
+export function parseTipStatus(status: string | undefined): SheetStatus {
   const s = clean(status).toLowerCase();
-  return s === "active" || s === "live";
+  if (["active", "live", "approved", "published"].includes(s)) return "Live";
+  if (["archived", "inactive", "retired"].includes(s)) return "Archived";
+  return "Draft";
 }
 
-function mapRow(row: TipRow): TravelTip {
+function makeTitle(content: string, airline: string, category: string): string {
+  if (!content) return `${airline || "Travel"} tip`;
+  const firstSentence = content.split(/[.!?]/)[0]?.trim();
+  if (firstSentence && firstSentence.length <= 70) return firstSentence;
+  if (category && airline) return `${airline} ${category.toLowerCase()} tip`;
+  return content.slice(0, 68).trim();
+}
+
+function mapRow(row: TipRow, index: number): TravelTip {
+  const content = clean(row.Content) || clean(row.Tip);
+  const focusAirline = clean(row.FocusAirline) || clean(row["Focus Airline"]) || clean(row.Airline);
+  const category = clean(row.Category) || "Travel Tips";
+  const title = clean(row.Title) || makeTitle(content, focusAirline, category);
+  const slug = slugify(clean(row.Slug) || `${focusAirline || "travel"}-${title || index}`);
   return {
-    tipId: clean(row.TipID),
-    title: clean(row.Title),
-    slug: clean(row.Slug),
-    content: clean(row.Content),
-    category: clean(row.Category),
-    seoKeyword: clean(row.SEOKeyword),
-    cta: clean(row.CTA),
-    status: clean(row.Status) as TravelTip["status"],
+    tipId: clean(row.TipID) || clean(row["Tip ID"]) || `tip-${index + 1}`,
+    title, slug, content, category,
+    seoKeyword: clean(row.SEOKeyword) || clean(row["SEO Primary Keyword"]),
+    cta: clean(row.CTA) || "Check your bag size",
+    status: parseTipStatus(clean(row.Status) || clean(row["Content Status"])),
+    focusAirline,
+    journeyStage: clean(row["Journey Stage"]),
+    resultContext: clean(row["Result Context"]),
+    affiliateCategory: clean(row["Affiliate Category"]),
+    priority: toNumber(row.Priority, 3),
   };
 }
 
+function duplicateValues(values: string[]): Set<string> {
+  const seen = new Set<string>(); const duplicates = new Set<string>();
+  values.forEach((value) => { if (seen.has(value)) duplicates.add(value); else seen.add(value); });
+  return duplicates;
+}
+
+async function readTipRows(): Promise<TipRow[] | null> {
+  const contentEngineRows = await getSheetRows<TipRow>("Content Engine");
+  if (contentEngineRows && contentEngineRows.length > 0) return contentEngineRows;
+  return getSheetRows<TipRow>("06_Travel_Tips");
+}
+
 export async function getTravelTips(): Promise<{ tips: TravelTip[] }> {
-  const rows = await getSheetRows<TipRow>("06_Travel_Tips");
-  if (!rows) return { tips: [] };
+  const rows = await readTipRows();
+  if (!rows) return { tips: FALLBACK_TIPS };
 
-  const tips = rows
-    .map(mapRow)
-    .filter((tip) => tip.slug && tip.title && tip.content && isActive(tip.status));
+  const live = rows.map(mapRow).filter((tip) => tip.slug && tip.title && tip.content && tip.status === "Live");
+  const duplicateIds = duplicateValues(live.map((tip) => tip.tipId));
+  const duplicateSlugs = duplicateValues(live.map((tip) => tip.slug));
+  if (duplicateIds.size || duplicateSlugs.size) {
+    console.error("[tips] Duplicate published tip data", {
+      ids: Array.from(duplicateIds), slugs: Array.from(duplicateSlugs),
+    });
+  }
 
-  return { tips };
+  const tips = live
+    .filter((tip) => !duplicateIds.has(tip.tipId) && !duplicateSlugs.has(tip.slug))
+    .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+  return { tips: tips.length > 0 ? tips : FALLBACK_TIPS };
+}
+
+export const getCachedTravelTips = cache(getTravelTips);
+
+export async function getTipsForAirline(airlineName: string, limit = 6): Promise<{ tips: TravelTip[] }> {
+  const { tips } = await getCachedTravelTips();
+  const target = clean(airlineName).toLowerCase();
+  const merged = [
+    ...tips.filter((tip) => [target, "all", "universal"].includes(clean(tip.focusAirline).toLowerCase())),
+    ...tips.filter((tip) => !clean(tip.focusAirline)),
+  ];
+  const unique = Array.from(new Map(merged.map((tip) => [tip.tipId || tip.slug, tip])).values());
+  return { tips: unique.slice(0, limit) };
 }
 
 export async function getTipBySlug(slug: string): Promise<{ tip: TravelTip | null }> {
-  const { tips } = await getTravelTips();
-  const tip = tips.find((item) => item.slug === slug) ?? null;
-
-  return { tip };
+  const { tips } = await getCachedTravelTips();
+  return { tip: tips.find((item) => item.slug === slugify(slug)) ?? null };
 }
-
 export async function getAllTravelTipSlugs(): Promise<string[]> {
-  const { tips } = await getTravelTips();
-  return tips.map((tip) => tip.slug).filter(Boolean);
+  const { tips } = await getCachedTravelTips();
+  return Array.from(new Set(tips.map((tip) => tip.slug).filter(Boolean)));
+}
+export async function getTipCategories(): Promise<string[]> {
+  const { tips } = await getCachedTravelTips();
+  return Array.from(new Set(tips.map((tip) => tip.category?.trim()).filter(Boolean) as string[])).sort();
 }

@@ -1,65 +1,125 @@
 import { Dimensions, FitVerdict } from "@/types";
+import { SuccessTick, ErrorCross, WarningExclamation } from "./StatusIcon";
+import { colours } from "@/tokens/designTokens";
 
 interface BagVisualizerProps {
-  userDimensions: Dimensions;
-  limit: Dimensions;
+  bagType: "cabinBag" | "personalItem";
   verdict: FitVerdict;
+  dimensions?: Dimensions;
 }
 
-const TONE_STROKE: Record<FitVerdict, string> = {
-  fits: "#179A72",
-  close: "#F0A93B",
-  "no-fit": "#E15B4F",
+// WillIt Engineering Register — M001 (cabin bag) / I002 (personal item) Master
+// Measurement Language v1.0. LOCKED. Do not alter. Do not re-engineer.
+// - Bag outline: WillIt Navy, 4px stroke (scaled from the 5px master), rounded
+//   corners, centred single handle, wheels solid circles (M001 only — I002 has
+//   none), no interior grey lines.
+// - Measurement arrows: WillIt Green, dashed (7 3, scaled from 14 6), round
+//   caps, filled arrowheads, bidirectional. Horizontal arrow sits inside the
+//   bottom margin; vertical arrow runs the full inside-right height. Their
+//   inner tips are optically aligned on the same reference line but must not
+//   touch — a one-stroke-width gap is enforced below (corner alignment rule).
+// - Status badge: S001/S002/S003 primitives only, centred over the body.
+const NAVY = colours.navy[700];
+const GREEN = colours.green[500];
+
+const VERDICT_ICON: Record<FitVerdict, typeof SuccessTick> = {
+  fits: SuccessTick,
+  close: WarningExclamation,
+  "no-fit": ErrorCross,
 };
 
-export default function BagVisualizer({ userDimensions, limit, verdict }: BagVisualizerProps) {
-  // Use height × width as the silhouette (the two dimensions a sizer cage's
-  // front opening actually constrains) — depth is communicated as a label
-  // since it can't be shown in a 2D side-on view.
-  const VIEW = 160;
-  const PADDING = 16;
-  const maxSpan = Math.max(limit.heightCm, limit.widthCm, userDimensions.heightCm, userDimensions.widthCm, 1);
-  const scale = (VIEW - PADDING * 2) / maxSpan;
-
-  const limitW = limit.widthCm * scale;
-  const limitH = limit.heightCm * scale;
-  const bagW = userDimensions.widthCm * scale;
-  const bagH = userDimensions.heightCm * scale;
-
-  const limitX = (VIEW - limitW) / 2;
-  const limitY = VIEW - PADDING - limitH;
-  const bagX = (VIEW - bagW) / 2;
-  const bagY = VIEW - PADDING - bagH;
-
-  const stroke = TONE_STROKE[verdict];
+export default function BagVisualizer({ bagType, verdict, dimensions }: BagVisualizerProps) {
+  const Icon = VERDICT_ICON[verdict];
+  const hasWheels = bagType === "cabinBag";
 
   return (
-    <svg viewBox={`0 0 ${VIEW} ${VIEW}`} className="h-44 w-44" role="img" aria-label="Bag size compared to airline sizer">
-      {/* Sizer cage / allowance outline */}
-      <rect
-        x={limitX}
-        y={limitY}
-        width={limitW}
-        height={limitH}
-        rx={4}
-        fill="none"
-        stroke="#B2C3D9"
-        strokeWidth={2}
-        strokeDasharray="4 4"
-      />
-      {/* User's bag */}
-      <rect
-        x={bagX}
-        y={bagY}
-        width={bagW}
-        height={bagH}
-        rx={6}
-        fill={`${stroke}1A`}
-        stroke={stroke}
-        strokeWidth={2.5}
-      />
-      {/* Baseline */}
-      <line x1={PADDING / 2} y1={VIEW - PADDING} x2={VIEW - PADDING / 2} y2={VIEW - PADDING} stroke="#D8E1EC" strokeWidth={1.5} />
-    </svg>
+    <figure className="wf-bag-visual">
+      <svg viewBox="0 0 220 200" role="img" aria-label={`${bagType === "cabinBag" ? "Cabin bag" : "Personal item"} with entered height, width and depth measurements`}>
+        <defs>
+          <marker
+            id="wf-arrow-head"
+            viewBox="0 0 10 10"
+            refX="5"
+            refY="5"
+            markerWidth="4.5"
+            markerHeight="4.5"
+            orient="auto-start-reverse"
+          >
+            <path d="M0 0L10 5L0 10Z" fill={GREEN} />
+          </marker>
+        </defs>
+
+        {/* M001/I002 — bag body */}
+        <rect x="43" y={hasWheels ? "31" : "55"} width="88" height={hasWheels ? "108" : "76"} rx="14" fill="white" stroke={NAVY} strokeWidth="4" />
+        <path d={hasWheels ? "M51 62h72M51 82h72" : "M51 79h72M51 98h72"} fill="none" stroke={NAVY} strokeWidth="1.5" opacity=".35" />
+
+        {/* Centred single handle */}
+        <path d={hasWheels ? "M76 31v-11a11 11 0 0 1 22 0v11" : "M72 55v-8a15 15 0 0 1 30 0v8"} fill="none" stroke={NAVY} strokeWidth="4" strokeLinecap="round" />
+
+        {/* Wheels — solid circles, M001 (cabin bag) only */}
+        {hasWheels && (
+          <>
+            <circle cx="58" cy="145" r="6" fill={NAVY} />
+            <circle cx="116" cy="145" r="6" fill={NAVY} />
+          </>
+        )}
+
+        {/* Horizontal measurement arrow — inside bottom, does not touch vertical arrow */}
+        <line
+          x1="43" y1="169" x2="131" y2="169"
+          stroke={GREEN}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeDasharray="7 3"
+          markerStart="url(#wf-arrow-head)"
+          markerEnd="url(#wf-arrow-head)"
+        />
+
+        {/* Vertical measurement arrow — full inside-right height */}
+        <line
+          x1="24" y1={hasWheels ? "31" : "55"} x2="24" y2={hasWheels ? "139" : "131"}
+          stroke={GREEN}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeDasharray="7 3"
+          markerStart="url(#wf-arrow-head)"
+          markerEnd="url(#wf-arrow-head)"
+        />
+
+        {/* Dimension labels — real user figures, only rendered when provided */}
+        {dimensions && (
+          <>
+            <text
+              x="87" y="190"
+              textAnchor="middle"
+              fontSize="10"
+              fontWeight="600"
+              fill={NAVY}
+              fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+            >
+              Width {dimensions.widthCm} cm
+            </text>
+            <text
+              x="12" y="88"
+              textAnchor="middle"
+              fontSize="10"
+              fontWeight="600"
+              fill={NAVY}
+              fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+              transform="rotate(-90 12 88)"
+            >
+              Height {dimensions.heightCm} cm
+            </text>
+            <line x1="143" y1="55" x2="178" y2="78" stroke={GREEN} strokeWidth="3" strokeLinecap="round" markerStart="url(#wf-arrow-head)" markerEnd="url(#wf-arrow-head)" />
+            <text x="178" y="48" textAnchor="middle" fontSize="10" fontWeight="600" fill={NAVY} fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace">Depth {dimensions.depthCm} cm</text>
+          </>
+        )}
+      </svg>
+
+      {/* Status badge — centred over the bag body */}
+      <div className="wf-bag-visual__status">
+        <Icon size={44} />
+      </div>
+    </figure>
   );
 }

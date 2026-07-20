@@ -1,6 +1,6 @@
 {
   "name": "willitfit",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "private": true,
   "description": "WillItFit — Know Before You Go. Free cabin baggage size-checker.",
   "scripts": {
@@ -10,27 +10,36 @@
     "deploy": "opennextjs-cloudflare build && wrangler deploy",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run --configLoader runner",
+    "verify": "npm run type-check && npm run lint && npm test && npm run build",
+    "build:cloudflare": "opennextjs-cloudflare build",
+    "deploy:dry-run": "opennextjs-cloudflare build && wrangler deploy --dry-run",
+    "validate-build-content": "node scripts/content-automation/validate-build-content.mjs",
+    "validate:content": "npm run validate-build-content",
+    "check-airline-policies": "node scripts/content-automation/check-airline-policies.mjs",
+    "check:airlines": "npm run check-airline-policies",
+    "export-runtime": "node scripts/content-automation/export-runtime.mjs"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.20.1",
-    "google-auth-library": "^9.11.0",
-    "google-spreadsheet": "^4.1.4",
     "next": "^15.5.18",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   },
   "devDependencies": {
     "@types/node": "^20.14.10",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.19",
     "eslint": "^8.57.0",
     "eslint-config-next": "^15.5.18",
     "postcss": "^8.4.39",
     "tailwindcss": "^3.4.6",
     "typescript": "^5.5.3",
-    "wrangler": "^4.106.0"
+    "vitest": "^3.2.7",
+    "wrangler": "^4.106.0",
+    "xlsx": "^0.18.5"
   },
   "engines": {
     "node": ">=18.17.0"

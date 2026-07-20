@@ -1,0 +1,28 @@
+export type TravelEssentialStatus = "ComingSoon" | "Live" | "Hidden";
+
+export interface TravelEssentialCategory {
+  id: string;
+  slug: string;
+  title: string;
+  supportingLine: string;
+  imagePath: string;
+  displayOrder: number;
+  status: TravelEssentialStatus;
+}
+
+export const TRAVEL_ESSENTIAL_CATEGORIES: readonly TravelEssentialCategory[] = [
+  { id: "TE001", slug: "packing-cubes", title: "Packing Cubes", supportingLine: "Organise more. Pack smarter.", imagePath: "/assets/travel-essentials/categories/packing-cubes.png", displayOrder: 1, status: "ComingSoon" },
+  { id: "TE002", slug: "power-banks", title: "Power Banks", supportingLine: "Power up. Keep moving.", imagePath: "/assets/travel-essentials/categories/power-banks.png", displayOrder: 2, status: "ComingSoon" },
+  { id: "TE003", slug: "travel-adapters", title: "Travel Adapters", supportingLine: "Plug in. Explore anywhere.", imagePath: "/assets/travel-essentials/categories/travel-adapters.png", displayOrder: 3, status: "ComingSoon" },
+  { id: "TE004", slug: "luggage-scales", title: "Luggage Scales", supportingLine: "Weigh smart. Travel light.", imagePath: "/assets/travel-essentials/categories/luggage-scales.png", displayOrder: 4, status: "ComingSoon" },
+  { id: "TE005", slug: "travel-comfort", title: "Travel Comfort", supportingLine: "Rest well. Arrive ready.", imagePath: "/assets/travel-essentials/categories/travel-comfort.png", displayOrder: 5, status: "ComingSoon" },
+  { id: "TE006", slug: "esim-connectivity", title: "eSIM & Connectivity", supportingLine: "Stay connected. Anywhere in the world.", imagePath: "/assets/travel-essentials/categories/esim-connectivity.png", displayOrder: 6, status: "ComingSoon" },
+] as const;
+
+export const visibleTravelEssentialCategories = TRAVEL_ESSENTIAL_CATEGORIES
+  .filter((category) => category.status !== "Hidden")
+  .sort((a, b) => a.displayOrder - b.displayOrder);
+
+export function getTravelEssentialCategory(id: string) {
+  return visibleTravelEssentialCategories.find((category) => category.id === id) ?? null;
+}

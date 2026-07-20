@@ -5,9 +5,9 @@ export default function TravelTipCard({ tip }: { tip: TravelTip }) {
   return (
     <Link
       href={`/tips/${tip.slug}`}
-      className="group flex flex-col rounded-card border border-navy-100 bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:shadow-liftedh"
+      className="wf-card wf-card--compact group p-5"
     >
-      <span className="font-body text-xs font-semibold uppercase tracking-wide text-green-600">
+      <span className="font-body text-xs font-semibold uppercase tracking-wide text-green-700">
         {tip.category}
       </span>
       <h3 className="mt-2 font-heading text-base font-semibold text-navy-700 group-hover:text-green-600">

@@ -1,0 +1,6 @@
+﻿id,check,result,evidence
+QE-001,Counts match contract,PASS,27 answers / 27 routes / 18 triggers / 102 relationships
+QE-002,Blocked answers remain excluded,PASS,9 blocked answers; Direct_Landing_Enabled corrected to No in workbook
+QE-003,Trigger evaluator implemented,PASS,services/knowledge.ts consumes questionEngine.triggers
+QE-004,Relationship graph consumed,PASS,services/knowledge.ts consumes questionEngine.relationships
+QE-005,Exact-package npm verification,OPEN,Run npm run verify locally before KU/deployment
