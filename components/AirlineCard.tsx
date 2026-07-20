@@ -4,11 +4,11 @@ import { Airline } from "@/types";
 export default function AirlineCard({ airline }: { airline: Airline }) {
   return (
     <Link
-      href={`/airlines/${airline.slug}`}
-      className="group flex flex-col rounded-card border border-navy-100 bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:shadow-liftedh"
+      href={`/${airline.slug}`}
+      className="wf-card wf-allowance-card group p-5 hover:-translate-y-0.5"
     >
       <div className="flex items-center justify-between">
-        <h3 className="font-heading text-base font-semibold text-navy-700 group-hover:text-green-600">
+        <h3 className="wf-airline-name font-heading text-base font-semibold group-hover:text-green-600">
           {airline.airlineName}
         </h3>
         <span className="font-body text-xs text-navy-300">{airline.country}</span>

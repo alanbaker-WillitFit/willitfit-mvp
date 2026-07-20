@@ -1,0 +1,44 @@
+{
+  "sourceWorkbook": "WillItFit_Content_Engine_RC15.3_Canonical_Production_Mother.xlsx",
+  "sourceWorkbookSha256": "7A36CFDA84AFF259B10992351A010B07D26EDF1E71EC5C1CDCC87078C7934A09",
+  "generatedAt": "2026-07-19",
+  "release": "RC15.3 Canonical x RC2.59 Delta",
+  "files": [
+    {
+      "sheet": "01_Airlines",
+      "file": "01_Airlines.csv",
+      "rows": 23,
+      "columns": 13
+    },
+    {
+      "sheet": "02_Baggage_Rules",
+      "file": "02_Baggage_Rules.csv",
+      "rows": 16,
+      "columns": 18
+    },
+    {
+      "sheet": "06_Travel_Tips",
+      "file": "06_Travel_Tips.csv",
+      "rows": 200,
+      "columns": 21
+    },
+    {
+      "sheet": "07_Poll_Questions",
+      "file": "07_Poll_Questions.csv",
+      "rows": 0,
+      "columns": 7
+    },
+    {
+      "sheet": "08_SEO_Pages",
+      "file": "08_SEO_Pages.csv",
+      "rows": 1,
+      "columns": 14
+    },
+    {
+      "sheet": "09_Affiliate_Products",
+      "file": "09_Affiliate_Products.csv",
+      "rows": 5,
+      "columns": 18
+    }
+  ]
+}

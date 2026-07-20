@@ -1,4 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { validateSheetHeaders } from "./sheetSchemas";
 
 type SheetRow = Record<string, string>;
 
@@ -7,10 +8,34 @@ type TokenCache = {
   expiresAt: number;
 };
 
-const SCOPES = "https://www.googleapis.com/auth/spreadsheets.readonly";
+type RowsCacheEntry = {
+  promise: Promise<SheetRow[] | null>;
+  expiresAt: number;
+};
 
-const rowsCache = new Map<string, Promise<SheetRow[] | null>>();
+export type SheetDiagnostic = {
+  tabName: string;
+  state: "fresh" | "cached" | "failed" | "empty";
+  rowCount: number;
+  fetchedAt: string | null;
+  error: string | null;
+  schemaValid: boolean;
+  missingHeaders: string[];
+  duplicateHeaders: string[];
+};
+
+const SCOPES = "https://www.googleapis.com/auth/spreadsheets.readonly";
+const DEFAULT_REVALIDATE_SECONDS = 3600;
+// A failed read (network blip, rate limit, bad token) is cached only briefly
+// so the next request retries soon instead of being stuck on fallback data
+// for the full revalidate window.
+const FAILED_READ_RETRY_SECONDS = 60;
+const REQUEST_TIMEOUT_MS = 8000;
+
+const rowsCache = new Map<string, RowsCacheEntry>();
+const sheetDiagnostics = new Map<string, SheetDiagnostic>();
 let tokenCache: TokenCache | null = null;
+let tokenRequest: Promise<string | null> | null = null;
 
 function getRuntimeEnv(): Record<string, string | undefined> {
   try {
@@ -29,6 +54,15 @@ function getEnvValue(names: string[]): string | null {
   }
 
   return null;
+}
+
+function getSheetRevalidateSeconds(): number {
+  const raw = getEnvValue(["SHEET_REVALIDATE_SECONDS"]);
+  const seconds = Number(raw);
+
+  return Number.isFinite(seconds) && seconds > 0
+    ? seconds
+    : DEFAULT_REVALIDATE_SECONDS;
 }
 
 function base64UrlEncode(input: string | ArrayBuffer): string {
@@ -90,13 +124,8 @@ async function signJwt(unsignedJwt: string, privateKey: string): Promise<string>
   return `${unsignedJwt}.${base64UrlEncode(signature)}`;
 }
 
-async function getAccessToken(): Promise<string | null> {
+async function requestAccessToken(): Promise<string | null> {
   const now = Math.floor(Date.now() / 1000);
-
-  if (tokenCache && tokenCache.expiresAt > now + 60) {
-    return tokenCache.accessToken;
-  }
-
   const email = getEnvValue(["GOOGLE_SERVICE_ACCOUNT_EMAIL"]);
   const privateKey = getEnvValue(["GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY"]);
 
@@ -105,11 +134,7 @@ async function getAccessToken(): Promise<string | null> {
     return null;
   }
 
-  const header = {
-    alg: "RS256",
-    typ: "JWT",
-  };
-
+  const header = { alg: "RS256", typ: "JWT" };
   const claimSet = {
     iss: email,
     scope: SCOPES,
@@ -121,14 +146,12 @@ async function getAccessToken(): Promise<string | null> {
   const unsignedJwt = `${base64UrlEncode(JSON.stringify(header))}.${base64UrlEncode(
     JSON.stringify(claimSet)
   )}`;
-
   const signedJwt = await signJwt(unsignedJwt, privateKey);
 
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
       assertion: signedJwt,
@@ -137,46 +160,69 @@ async function getAccessToken(): Promise<string | null> {
 
   if (!response.ok) {
     const errorText = await response.text();
-
     console.error(
       `[googleSheets] Failed to obtain Google access token: ${response.status} ${errorText}`
     );
-
     return null;
   }
 
   const data = (await response.json()) as {
-    access_token: string;
-    expires_in: number;
+    access_token?: string;
+    expires_in?: number;
   };
+
+  if (!data.access_token || !Number.isFinite(data.expires_in) || Number(data.expires_in) <= 0) {
+    console.error("[googleSheets] Google token response was incomplete");
+    return null;
+  }
 
   tokenCache = {
     accessToken: data.access_token,
-    expiresAt: now + data.expires_in,
+    expiresAt: now + Number(data.expires_in),
   };
-
   return data.access_token;
 }
 
-function valuesToRows(values: string[][]): SheetRow[] {
-  if (!values || values.length < 2) return [];
+async function getAccessToken(): Promise<string | null> {
+  const now = Math.floor(Date.now() / 1000);
+  if (tokenCache && tokenCache.expiresAt > now + 60) return tokenCache.accessToken;
 
-  const headerRow = values[0];
+  if (!tokenRequest) {
+    tokenRequest = requestAccessToken().finally(() => {
+      tokenRequest = null;
+    });
+  }
 
+  return tokenRequest;
+}
+
+function findHeaderRowIndex(tabName: string, values: string[][]): number {
+  const scanLimit = Math.min(values.length, 12);
+  for (let index = 0; index < scanLimit; index += 1) {
+    if (validateSheetHeaders(tabName, values[index] || []).valid) return index;
+  }
+  return 0;
+}
+
+function valuesToRows(values: string[][], headerRowIndex = 0): SheetRow[] {
+  if (!values || values.length <= headerRowIndex + 1) return [];
+
+  const headerRow = values[headerRowIndex];
   if (!headerRow) return [];
 
   const headers = headerRow.map((header) => String(header || "").trim());
 
-  return values.slice(1).map((row) => {
-    const record: SheetRow = {};
+  return values.slice(headerRowIndex + 1).flatMap((row) => {
+    const hasData = row.some((cell) => String(cell ?? "").trim().length > 0);
+    if (!hasData) return [];
 
+    const record: SheetRow = {};
     headers.forEach((header, index) => {
-      if (header) {
+      if (header && !(header in record)) {
         record[header] = String(row[index] || "").trim();
       }
     });
-
-    return record;
+    return [record];
   });
 }
 
@@ -199,7 +245,7 @@ async function readSheetRows(tabName: string): Promise<SheetRow[] | null> {
       return null;
     }
 
-    const range = encodeURIComponent(`${tabName}!A:Z`);
+    const range = encodeURIComponent(`${tabName}!A:ZZ`);
 
     const response = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`,
@@ -207,6 +253,7 @@ async function readSheetRows(tabName: string): Promise<SheetRow[] | null> {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       }
     );
 
@@ -224,12 +271,54 @@ async function readSheetRows(tabName: string): Promise<SheetRow[] | null> {
       values?: string[][];
     };
 
-    const rows = valuesToRows(data.values || []);
+    const values = data.values || [];
+    const headerRowIndex = findHeaderRowIndex(tabName, values);
+    const headerValidation = validateSheetHeaders(tabName, values[headerRowIndex] || []);
 
-    console.log(`[googleSheets] Read ${rows.length} rows from "${tabName}"`);
+    if (!headerValidation.valid) {
+      const error = headerValidation.missingHeaders.length > 0
+        ? "Required Sheet columns are missing"
+        : "Duplicate Sheet columns were found";
+
+      sheetDiagnostics.set(tabName, {
+        tabName,
+        state: "failed",
+        rowCount: 0,
+        fetchedAt: new Date().toISOString(),
+        error,
+        schemaValid: false,
+        missingHeaders: headerValidation.missingHeaders,
+        duplicateHeaders: headerValidation.duplicateHeaders,
+      });
+      console.error(`[googleSheets] Invalid schema for tab "${tabName}"`, headerValidation);
+      return null;
+    }
+
+    const rows = valuesToRows(values, headerRowIndex);
+    sheetDiagnostics.set(tabName, {
+      tabName,
+      state: rows.length > 0 ? "fresh" : "empty",
+      rowCount: rows.length,
+      fetchedAt: new Date().toISOString(),
+      error: null,
+      schemaValid: true,
+      missingHeaders: [],
+      duplicateHeaders: [],
+    });
 
     return rows;
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    sheetDiagnostics.set(tabName, {
+      tabName,
+      state: "failed",
+      rowCount: 0,
+      fetchedAt: new Date().toISOString(),
+      error: message.includes("timeout") ? "Sheet request timed out" : "Sheet request failed",
+      schemaValid: false,
+      missingHeaders: [],
+      duplicateHeaders: [],
+    });
     console.error(`[googleSheets] failed to read tab "${tabName}":`, err);
     return null;
   }
@@ -238,13 +327,33 @@ async function readSheetRows(tabName: string): Promise<SheetRow[] | null> {
 export async function getSheetRows<T extends Record<string, string>>(
   tabName: string
 ): Promise<T[] | null> {
-  if (!rowsCache.has(tabName)) {
-    rowsCache.set(tabName, readSheetRows(tabName));
-  } else {
-    console.log(`[googleSheets] Using cached rows for "${tabName}"`);
+  const now = Date.now();
+  const cached = rowsCache.get(tabName);
+
+  if (!cached || cached.expiresAt <= now) {
+    const revalidateMs = getSheetRevalidateSeconds() * 1000;
+
+    rowsCache.set(tabName, {
+      promise: readSheetRows(tabName),
+      expiresAt: now + revalidateMs,
+    });
   }
 
-  const rows = await rowsCache.get(tabName);
+  const entry = rowsCache.get(tabName);
+  const rows = await entry?.promise;
+  const diagnostic = sheetDiagnostics.get(tabName);
+  if (cached && cached.expiresAt > now && diagnostic && diagnostic.state === "fresh") {
+    sheetDiagnostics.set(tabName, { ...diagnostic, state: "cached" });
+  }
+
+  // If this read failed, shorten the cached entry's lifetime so the next
+  // request retries soon rather than waiting out the full revalidate window
+  // on fallback data. Only touch the entry if it's still the one we just
+  // awaited (a concurrent request may have already refreshed it).
+  if (rows === null && entry && rowsCache.get(tabName) === entry) {
+    const retryMs = FAILED_READ_RETRY_SECONDS * 1000;
+    rowsCache.set(tabName, { ...entry, expiresAt: now + retryMs });
+  }
 
   return rows as T[] | null;
 }
@@ -267,4 +376,14 @@ export function slugify(value: string): string {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+
+export function getSheetDiagnostics(): SheetDiagnostic[] {
+  return Array.from(sheetDiagnostics.values()).sort((a, b) => a.tabName.localeCompare(b.tabName));
+}
+
+export function clearSheetCaches(): void {
+  rowsCache.clear();
+  sheetDiagnostics.clear();
 }

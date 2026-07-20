@@ -4,18 +4,27 @@
 
 export type SheetStatus = "Live" | "Draft" | "Archived";
 
+export interface FareClassAllowance {
+  fareClass: string;
+  cabinBag: Dimensions | null;
+  personalItem: Dimensions | null;
+  weightLimitKg: number | null;
+}
+
 export interface Airline {
   airlineId: string;
   airlineName: string;
   slug: string;
   country: string;
   logoUrl: string;
-  personalItem: Dimensions;
-  cabinBag: Dimensions;
-  weightLimitKg: number | null;
+  personalItem: Dimensions; // conservative minimum across all fare classes
+  cabinBag: Dimensions; // conservative minimum across all fare classes
+  weightLimitKg: number | null; // conservative minimum across all fare classes
+  fareClasses: FareClassAllowance[]; // empty if this airline doesn't vary by fare class
   websiteUrl: string;
   lastUpdated: string;
   status: SheetStatus;
+  notes?: string;
 }
 
 export interface Dimensions {
@@ -33,6 +42,11 @@ export interface TravelTip {
   seoKeyword: string;
   cta: string;
   status: SheetStatus;
+  focusAirline?: string;
+  journeyStage?: string;
+  resultContext?: string;
+  affiliateCategory?: string;
+  priority?: number;
 }
 
 export interface SeoPage {
@@ -76,7 +90,11 @@ export interface FitResult {
   airline: Airline;
   bagType: "cabinBag" | "personalItem";
   userDimensions: Dimensions;
+  limit: Dimensions; // the actual allowance checked against (fare-class-specific, or conservative minimum)
+  weightLimitKg: number | null; // weight limit matching the resolved limit above
+  fareClass: string | null; // null means the conservative minimum was used, not a specific fare class
   overBy: Partial<Dimensions>; // cm over the limit per axis, only present if exceeded
+  spareCm: Partial<Dimensions>; // cm of headroom per axis, only present when under the limit
   withinCm: number | null; // how close to the limit, only set for "close"
   orientationUsed: Dimensions; // the best-fit orientation actually compared
 }

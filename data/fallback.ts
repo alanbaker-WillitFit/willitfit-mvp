@@ -18,9 +18,11 @@ export const FALLBACK_AIRLINES: Airline[] = [
     personalItem: { heightCm: 40, widthCm: 20, depthCm: 25 },
     cabinBag: { heightCm: 55, widthCm: 40, depthCm: 20 },
     weightLimitKg: 10,
+    fareClasses: [],
     websiteUrl: "https://www.ryanair.com",
     lastUpdated: "fallback",
     status: "Live",
+    notes: "Your booking option determines whether the larger cabin bag is included. Check the allowance shown on your reservation.",
   },
   {
     airlineId: "fallback-2",
@@ -31,9 +33,11 @@ export const FALLBACK_AIRLINES: Airline[] = [
     personalItem: { heightCm: 45, widthCm: 36, depthCm: 20 },
     cabinBag: { heightCm: 56, widthCm: 45, depthCm: 25 },
     weightLimitKg: 15,
+    fareClasses: [],
     websiteUrl: "https://www.easyjet.com",
     lastUpdated: "fallback",
     status: "Live",
+    notes: "A larger cabin bag may require an eligible fare, membership benefit or purchased option.",
   },
   {
     airlineId: "fallback-3",
@@ -41,12 +45,28 @@ export const FALLBACK_AIRLINES: Airline[] = [
     slug: "british-airways",
     country: "United Kingdom",
     logoUrl: "",
+    // Conservative minimum across fare classes below (Economy is smallest).
     personalItem: { heightCm: 40, widthCm: 30, depthCm: 15 },
     cabinBag: { heightCm: 56, widthCm: 45, depthCm: 25 },
     weightLimitKg: 23,
+    fareClasses: [
+      {
+        fareClass: "Economy",
+        cabinBag: { heightCm: 56, widthCm: 45, depthCm: 25 },
+        personalItem: { heightCm: 40, widthCm: 30, depthCm: 15 },
+        weightLimitKg: 23,
+      },
+      {
+        fareClass: "Club/Business",
+        cabinBag: { heightCm: 56, widthCm: 45, depthCm: 25 },
+        personalItem: { heightCm: 45, widthCm: 36, depthCm: 20 },
+        weightLimitKg: 32,
+      },
+    ],
     websiteUrl: "https://www.britishairways.com",
     lastUpdated: "fallback",
     status: "Live",
+    notes: "Allowances can vary by cabin and route. Use the option that matches your booking.",
   },
 ];
 

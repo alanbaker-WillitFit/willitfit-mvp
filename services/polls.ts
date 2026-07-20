@@ -28,7 +28,7 @@ function mapRow(row: PollRow): PollQuestion {
  * schema migration. See README → Future roadmap.
  */
 export async function getPollQuestions(category?: string): Promise<PollQuestion[]> {
-  const rows = await getSheetRows<PollRow>("Poll Questions");
+  const rows = await getSheetRows<PollRow>("07_Poll_Questions");
   if (!rows) return [];
 
   let polls = rows.map(mapRow).filter((p) => isLive(p.status) && p.question && p.options.length >= 2);

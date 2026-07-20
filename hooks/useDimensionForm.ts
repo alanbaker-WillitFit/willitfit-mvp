@@ -2,40 +2,62 @@
 
 import { useMemo, useState } from "react";
 import { Dimensions } from "@/types";
-import { isValidDimensions } from "@/lib/fitCalculator";
+import {
+  DimensionField,
+  dimensionError,
+  normaliseDimensionOnBlur,
+  sanitiseDimensionInput,
+} from "@/lib/dimensions";
 
 export type BagType = "cabinBag" | "personalItem";
-
-interface RawInputs {
-  heightCm: string;
-  widthCm: string;
-  depthCm: string;
-}
+export type RawInputs = Record<DimensionField, string>;
+export type TouchedFields = Record<DimensionField, boolean>;
 
 const EMPTY: RawInputs = { heightCm: "", widthCm: "", depthCm: "" };
+const UNTOUCHED: TouchedFields = {
+  heightCm: false,
+  widthCm: false,
+  depthCm: false,
+};
 
 export function useDimensionForm(initialBagType: BagType = "cabinBag") {
   const [bagType, setBagType] = useState<BagType>(initialBagType);
   const [raw, setRaw] = useState<RawInputs>(EMPTY);
-  const [touched, setTouched] = useState(false);
+  const [touchedFields, setTouchedFields] = useState<TouchedFields>(UNTOUCHED);
+  const [submitted, setSubmitted] = useState(false);
 
-  function setField(field: keyof RawInputs, value: string) {
-    const cleaned = value.replace(/[^0-9.]/g, "");
+  function setField(field: DimensionField, value: string) {
+    const cleaned = sanitiseDimensionInput(value);
     setRaw((prev) => ({ ...prev, [field]: cleaned }));
   }
 
-  function setDimensions(values: Dimensions) {
-    setRaw({
-      heightCm: String(values.heightCm),
-      widthCm: String(values.widthCm),
-      depthCm: String(values.depthCm),
-    });
-    setTouched(false);
+  function markFieldTouched(field: DimensionField) {
+    setTouchedFields((prev) => ({ ...prev, [field]: true }));
+  }
+
+  function blurField(field: DimensionField) {
+    markFieldTouched(field);
+    setRaw((prev) => ({
+      ...prev,
+      [field]: normaliseDimensionOnBlur(prev[field]),
+    }));
+  }
+
+  function markAllTouched() {
+    setSubmitted(true);
+    setTouchedFields({ heightCm: true, widthCm: true, depthCm: true });
   }
 
   function reset() {
     setRaw(EMPTY);
-    setTouched(false);
+    setTouchedFields(UNTOUCHED);
+    setSubmitted(false);
+  }
+
+  function loadDimensions(dimensions: Dimensions) {
+    setRaw({ heightCm: String(dimensions.heightCm), widthCm: String(dimensions.widthCm), depthCm: String(dimensions.depthCm) });
+    setTouchedFields(UNTOUCHED);
+    setSubmitted(false);
   }
 
   const dimensions: Partial<Dimensions> = useMemo(
@@ -47,20 +69,32 @@ export function useDimensionForm(initialBagType: BagType = "cabinBag") {
     [raw]
   );
 
-  const isComplete = raw.heightCm !== "" && raw.widthCm !== "" && raw.depthCm !== "";
-  const isValid = isComplete && isValidDimensions(dimensions);
+  const errors = useMemo(
+    () => ({
+      heightCm: dimensionError(raw.heightCm),
+      widthCm: dimensionError(raw.widthCm),
+      depthCm: dimensionError(raw.depthCm),
+    }),
+    [raw]
+  );
+
+  const isComplete = Object.values(raw).every((value) => value !== "");
+  const isValid = isComplete && Object.values(errors).every((error) => error === null);
 
   return {
     bagType,
     setBagType,
     raw,
     setField,
-    setDimensions,
+    blurField,
     dimensions,
+    errors,
     isComplete,
     isValid,
-    touched,
-    markTouched: () => setTouched(true),
+    touchedFields,
+    submitted,
+    markAllTouched,
     reset,
+    loadDimensions,
   };
 }

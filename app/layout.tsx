@@ -1,64 +1,49 @@
 import type { Metadata } from "next";
-import { Poppins, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { siteUrl } from "@/lib/utils";
 import { organizationSchema } from "@/lib/schema";
-
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-poppins",
-  display: "swap",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-plex-mono",
-  display: "swap",
-});
+import { getTipCategories } from "@/services/tips";
+import { safeJsonLd } from "@/lib/jsonLd";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
   title: {
-    default: "WillItFit — Know Before You Go",
-    template: "%s | WillItFit",
+    default: "WillitFit — Know Before You Go",
+    template: "%s | WillitFit",
   },
   description:
     "Check whether your cabin bag, backpack, or personal item meets airline baggage size limits in seconds — free, no sign-up.",
+  icons: { icon: "/assets/logo/logo.svg" },
   openGraph: {
     type: "website",
-    siteName: "WillItFit",
-    title: "WillItFit — Know Before You Go",
+    siteName: "WillitFit",
+    title: "WillitFit — Know Before You Go",
     description:
       "Check whether your cabin bag, backpack, or personal item meets airline baggage size limits in seconds.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "WillItFit — Know Before You Go",
+    title: "WillitFit — Know Before You Go",
     description: "Check airline cabin baggage size limits in seconds.",
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const tipCategories = await getTipCategories();
+
   return (
-    <html lang="en" className={`${poppins.variable} ${inter.variable} ${plexMono.variable}`}>
+    <html lang="en">
       <body>
+        <a href="#main-content" className="wf-skip-link">Skip to main content</a>
         <script
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema()) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(organizationSchema()) }}
         />
-        <Header />
-        <main>{children}</main>
+        <Header tipCategories={tipCategories} />
+        <main id="main-content">{children}</main>
         <Footer />
       </body>
     </html>

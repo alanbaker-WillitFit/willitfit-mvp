@@ -3,6 +3,6 @@ export function cn(...classes: Array<string | false | null | undefined>): string
 }
 
 export function siteUrl(path = ""): string {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://willitfit.com";
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://will-it-fit.net";
   return `${base.replace(/\/$/, "")}${path}`;
 }

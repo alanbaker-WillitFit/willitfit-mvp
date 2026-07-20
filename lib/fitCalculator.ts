@@ -1,4 +1,5 @@
 import { Airline, Dimensions, FitResult, FitVerdict } from "@/types";
+import { hasValidDimensions } from "@/lib/dimensions";
 
 const CLOSE_FIT_THRESHOLD_CM = 2;
 
@@ -47,19 +48,48 @@ function gradeOrientation(user: Dimensions, limit: Dimensions): { diff: Dimensio
   return { diff, score: maxOverage(diff) };
 }
 
+/**
+ * Resolves which allowance to check against. If a fareClass is given and the
+ * airline actually has data for it, use that fare class's specific figures.
+ * Otherwise fall back to the airline's conservative minimum (the smallest
+ * allowance across all its fare classes) — this is also what's used when the
+ * person hasn't picked a seat type at all.
+ */
+export function resolveLimit(
+  airline: Airline,
+  bagType: "cabinBag" | "personalItem",
+  fareClass?: string | null
+): { limit: Dimensions; weightLimitKg: number | null; fareClass: string | null } {
+  if (fareClass) {
+    const match = airline.fareClasses.find(
+      (fc) => fc.fareClass.toLowerCase() === fareClass.toLowerCase()
+    );
+    const selectedLimit = match?.[bagType] ?? null;
+    if (match && selectedLimit && hasValidDimensions(selectedLimit)) {
+      return { limit: selectedLimit, weightLimitKg: match.weightLimitKg, fareClass: match.fareClass };
+    }
+  }
+
+  return { limit: airline[bagType], weightLimitKg: airline.weightLimitKg, fareClass: null };
+}
+
 export function checkFit(
   userDimensions: Dimensions,
   airline: Airline,
-  bagType: "cabinBag" | "personalItem"
+  bagType: "cabinBag" | "personalItem",
+  fareClass?: string | null
 ): FitResult {
-  const limit = bagType === "cabinBag" ? airline.cabinBag : airline.personalItem;
+  const { limit, weightLimitKg, fareClass: resolvedFareClass } = resolveLimit(airline, bagType, fareClass);
 
-  let best = gradeOrientation(orientations(userDimensions)[0]!, limit);
-  let bestOrientation = orientations(userDimensions)[0]!;
+  const candidateOrientations = orientations(userDimensions);
+  let best = gradeOrientation(candidateOrientations[0]!, limit);
+  let bestOrientation = candidateOrientations[0]!;
 
-  for (const orientation of orientations(userDimensions)) {
+  for (const orientation of candidateOrientations.slice(1)) {
     const candidate = gradeOrientation(orientation, limit);
-    if (candidate.score < best.score) {
+    const candidatePositiveTotal = Object.values(candidate.diff).reduce((sum, value) => sum + Math.max(0, value), 0);
+    const bestPositiveTotal = Object.values(best.diff).reduce((sum, value) => sum + Math.max(0, value), 0);
+    if (candidate.score < best.score || (candidate.score === best.score && candidatePositiveTotal < bestPositiveTotal)) {
       best = candidate;
       bestOrientation = orientation;
     }
@@ -67,10 +97,18 @@ export function checkFit(
 
   let verdict: FitVerdict;
   let overBy: Partial<Dimensions> = {};
+  let spareCm: Partial<Dimensions> = {};
   let withinCm: number | null = null;
 
   if (best.score <= 0) {
     verdict = "fits";
+    // Headroom per axis (limit minus bag) — this is the "Allowance Remaining"
+    // figure shown to the user, so it should always be >= 0 here by definition.
+    spareCm = {
+      heightCm: round1(-best.diff.heightCm),
+      widthCm: round1(-best.diff.widthCm),
+      depthCm: round1(-best.diff.depthCm),
+    };
   } else if (best.score <= CLOSE_FIT_THRESHOLD_CM) {
     verdict = "close";
     withinCm = Math.round(best.score * 10) / 10;
@@ -88,7 +126,11 @@ export function checkFit(
     airline,
     bagType,
     userDimensions,
+    limit,
+    weightLimitKg,
+    fareClass: resolvedFareClass,
     overBy,
+    spareCm,
     withinCm,
     orientationUsed: bestOrientation,
   };
@@ -99,16 +141,12 @@ function round1(n: number): number {
 }
 
 export function isValidDimensions(d: Partial<Dimensions>): d is Dimensions {
-  return (
-    typeof d.heightCm === "number" &&
-    typeof d.widthCm === "number" &&
-    typeof d.depthCm === "number" &&
-    [d.heightCm, d.widthCm, d.depthCm].every((n) => Number.isFinite(n) && n > 0 && n <= 300)
-  );
+  return hasValidDimensions(d);
 }
 
+
 export const VERDICT_COPY: Record<FitVerdict, { label: string; tone: "good" | "warn" | "bad" }> = {
-  fits: { label: "Fits", tone: "good" },
-  close: { label: "Close fit — check carefully", tone: "warn" },
-  "no-fit": { label: "Does not fit", tone: "bad" },
+  fits: { label: "Good to Go", tone: "good" },
+  close: { label: "Close to the Limit", tone: "warn" },
+  "no-fit": { label: "Too Large", tone: "bad" },
 };

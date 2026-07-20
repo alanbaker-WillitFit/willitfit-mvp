@@ -1,6 +1,15 @@
+@import "../styles/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ==========================================================================
+   WillIt Design System — application layer
+   Source: WillIt Engineering Register RC2.37
+   Includes: D010 Base Card Primitive, D015 Interaction CSS, D016-D027 Motion,
+   Spatial Flow, State and Responsive Standards.
+   ========================================================================== */
 
 @layer base {
   html {
@@ -16,8 +25,12 @@
   }
 
   :focus-visible {
-    outline: 2px solid #179a72;
+    outline: var(--wf-focus-ring);
     outline-offset: 2px;
+  }
+
+  p, li, td, th {
+    overflow-wrap: anywhere;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -26,6 +39,549 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Phase 2A controlled visual recovery. The authoritative mobile and desktop
+   references govern this layer; existing route and data contracts remain intact. */
+@layer components {
+  .wf-wordmark { color: #0D1B3D; white-space: nowrap; }
+  .wf-wordmark > span { color: #22C55E; }
+  .wf-brand small i { color: #22C55E; font-style: normal; }
+  .wf-desktop-nav > div { display: flex; align-items: stretch; }
+  .wf-desktop-nav > div > button { height: 100%; margin: 0; }
+  .wf-header { position: sticky; top: 0; z-index: 50; height: 106px; border-bottom: 1px solid #e8edf5; background: rgba(255,255,255,.98); }
+  .wf-header__inner { height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  .wf-brand { display: flex; align-items: center; gap: 12px; color: var(--wf-navy); }
+  .wf-brand svg { width: 44px; height: 54px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .wf-brand .wf-brand__tick { stroke: var(--wf-green); stroke-width: 3; }
+  .wf-brand > span { display: flex; flex-direction: column; }
+  .wf-brand strong { font-family: var(--font-heading, inherit); font-size: 34px; line-height: .96; letter-spacing: -1.5px; }
+  .wf-brand strong .wf-wordmark { color: #0D1B3D; }
+  .wf-brand strong .wf-wordmark > span { color: #22C55E; }
+  .wf-brand small { margin-top: 7px; font-size: 12px; font-weight: 700; }
+  .wf-desktop-nav { display: flex; align-items: stretch; align-self: stretch; gap: 26px; }
+  .wf-desktop-nav > a, .wf-desktop-nav > div > button { display: flex; align-items: center; color: var(--wf-navy); font-size: 13px; font-weight: 700; white-space: nowrap; }
+  .wf-desktop-nav > a:first-child { color: #168b2c; border-bottom: 2px solid #168b2c; }
+  .wf-menu-button { display: none; width: 48px; height: 48px; align-items: center; justify-content: center; flex-direction: column; gap: 6px; color: var(--wf-navy); }
+  .wf-menu-button span { width: 27px; height: 2px; background: currentColor; transition: .2s ease; }
+  .wf-mobile-menu { position: fixed; inset: 106px 0 0; z-index: 45; overflow: auto; background: white; padding: 18px 28px 40px; }
+  .wf-mobile-menu a { display: block; min-height: 52px; border-bottom: 1px solid #e8edf5; padding: 16px 4px; color: var(--wf-navy); font-weight: 700; }
+
+  .wf-home-hero { position: relative; min-height: 560px; overflow: hidden; background: #dcecf7; }
+  .wf-home-hero__image { position: absolute; inset: 0; background: url('/assets/hero/airport-luggage.png') center center / cover no-repeat; }
+  .wf-home-hero__content { position: relative; z-index: 1; padding-top: 108px; }
+  .wf-home-hero h1 { max-width: 720px; color: var(--wf-navy); font-size: clamp(54px, 4.8vw, 72px); font-weight: 800; line-height: .98; letter-spacing: -3px; }
+  .wf-home-hero h1 span { color: #269b31; }
+  .wf-home-hero p { max-width: 430px; margin-top: 24px; color: var(--wf-navy); font-size: 20px; font-weight: 650; line-height: 1.55; }
+  .wf-home-main { position: relative; z-index: 2; margin-top: -52px; padding-bottom: 72px; }
+
+  .wf-decision-module { width: min(100%, 720px); margin-inline: auto; display: grid; overflow: visible; border: 2px solid transparent; border-radius: 20px; background: white; box-shadow: 0 18px 55px rgba(13,27,61,.16); transition: width .25s ease, border-color .25s ease; }
+  .wf-decision-module.is-success, .wf-decision-module.is-warning, .wf-decision-module.is-error { width: 100%; grid-template-columns: minmax(0, 1fr) minmax(0, .9fr); }
+  .wf-decision-module.is-success { border-color: #229b2d; }
+  .wf-decision-module.is-warning { border-color: var(--wf-amber); }
+  .wf-decision-module.is-error { border-color: var(--wf-red); }
+  .wf-checker-panel { padding: 28px; }
+  .wf-result-panel { min-width: 0; border-left: 1px solid #e3e8f0; padding: 28px; outline: none; }
+  .wf-checker-title { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; color: var(--wf-navy); }
+  .wf-checker-title h2 { font-size: 25px; font-weight: 750; }
+  .wf-checker-title__icon { display: grid; width: 29px; height: 34px; place-items: center; border: 2px solid var(--wf-navy); border-radius: 4px; color: var(--wf-green); font-weight: 900; }
+  .wf-reset-button { margin-left: auto; color: #52617d; font-size: 12px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+  .wf-checker-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 16px; }
+  .wf-checker-step { min-width: 0; border: 0; padding: 0; }
+  .wf-checker-step > p, .wf-checker-step > legend { margin-bottom: 9px; color: var(--wf-navy); font-size: 12px; font-weight: 700; }
+  .wf-checker-step b { display: inline-grid; width: 17px; height: 17px; margin-right: 7px; place-items: center; border-radius: 50%; background: var(--wf-navy); color: white; font-size: 10px; }
+  .wf-checker-step--airline { grid-column: 1 / -1; }
+  .wf-checker-step--dimensions { grid-column: 1 / -1; }
+  .wf-checker-step--airline label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+  .wf-checker-step--airline input, .wf-fare-field select { width: 100%; min-height: 48px; border: 1px solid #ccd6e5; border-radius: 9px; padding: 0 14px; color: var(--wf-navy); font-weight: 700; }
+  .wf-bag-types { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .wf-bag-type { display: flex; min-height: 48px; align-items: center; justify-content: center; gap: 8px; border: 1px solid #ccd6e5; border-radius: 9px; color: var(--wf-navy); font-size: 12px; font-weight: 700; }
+  .wf-bag-type img { width: 24px; height: 24px; object-fit: contain; }
+  .wf-bag-type.is-selected { border: 2px solid #279f37; background: #fbfffb; }
+  .wf-fare-field { align-self: end; }
+  .wf-fare-field label { display: block; margin-bottom: 9px; color: var(--wf-navy); font-size: 12px; font-weight: 700; }
+  .wf-dimensions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .wf-dimensions label { position: relative; color: var(--wf-navy); font-size: 12px; font-weight: 700; }
+  .wf-dimensions label > span { display: flex; align-items: center; min-height: 48px; margin-top: 8px; border: 1px solid #ccd6e5; border-radius: 9px; background: white; }
+  .wf-dimensions input { min-width: 0; width: 100%; padding-left: 14px; color: var(--wf-navy); font-family: var(--font-mono, monospace); font-size: 20px; font-weight: 700; outline: 0; }
+  .wf-dimensions i { padding-right: 10px; font-style: normal; font-size: 10px; }
+  .wf-dimensions small { display: none; }
+  .wf-dimensions em { display: block; margin-top: 4px; color: var(--wf-red); font-size: 10px; font-style: normal; font-weight: 500; }
+  .wf-check-button { display: flex; width: 100%; min-height: 50px; align-items: center; justify-content: center; gap: 14px; margin-top: 20px; border-radius: 8px; background: linear-gradient(90deg,#229827,#25a932); color: white; font-size: 16px; font-weight: 800; box-shadow: 0 7px 18px rgba(34,152,39,.2); }
+  .wf-check-button span { position: absolute; margin-left: min(80%, 500px); font-size: 24px; font-weight: 400; }
+  .wf-form-error { margin-top: 10px; color: var(--wf-red); font-size: 12px; font-weight: 700; }
+
+  .wf-result-card { color: var(--wf-navy); }
+  .wf-result-status { display: flex; align-items: center; gap: 18px; }
+  .wf-result-status > svg { width: 72px; height: 72px; flex: 0 0 auto; }
+  .wf-result-status p { color: #299b34; font-size: 34px; font-weight: 850; line-height: 1; }
+  .is-warning .wf-result-status p { color: #c67c00; }
+  .is-error .wf-result-status p { color: #ce2e2e; }
+  .wf-result-status h3 { margin-top: 7px; font-size: 20px; font-weight: 750; }
+  .wf-result-copy { margin-top: 32px; }
+  .wf-result-copy strong { font-size: 17px; }
+  .wf-result-copy p { margin-top: 8px; color: #259b31; font-size: 14px; font-weight: 700; }
+  .is-warning .wf-result-copy p { color: #a96800; }
+  .is-error .wf-result-copy p { color: #b92e2e; }
+  .wf-result-facts { display: grid; gap: 16px; margin-top: 20px; padding-top: 18px; border-top: 1px solid #e3e8f0; }
+  .wf-result-facts dt { color: #52617d; font-size: 11px; }
+  .wf-result-facts dd { margin-top: 5px; color: #101826; font-size: 16px; font-weight: 750; }
+  .wf-result-notice { display: flex; align-items: center; gap: 10px; margin-top: 20px; border: 1px solid #ccd6e5; border-radius: 9px; padding: 13px; font-size: 12px; font-weight: 650; }
+  .wf-result-notice span { display: grid; width: 22px; height: 22px; flex: 0 0 auto; place-items: center; border: 2px solid var(--wf-navy); border-radius: 50%; font-weight: 850; }
+  .wf-result-questions { margin-top: 18px; }
+
+  .wf-bag-visual { position: relative; width: min(100%, 270px); margin: 16px auto 4px; }
+  .wf-bag-visual > svg { display: block; width: 100%; height: auto; }
+  .wf-bag-visual__status { position: absolute; left: 46%; top: 48%; transform: translate(-50%,-50%); }
+
+  .wf-next-steps { width: min(100%, 1000px); margin: 30px auto 0; }
+  .wf-next-steps h2 { color: var(--wf-navy); font-size: 22px; font-weight: 750; }
+  .wf-next-steps__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+  .wf-next-card { display: grid; grid-template-columns: 42px 1fr auto; align-items: center; gap: 11px; min-height: 92px; border: 1px solid #e1e6ef; border-radius: 12px; background: white; padding: 14px; color: var(--wf-navy); box-shadow: 0 8px 24px rgba(13,27,61,.06); }
+  .wf-next-card__icon { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 50%; background: #eef8ef; color: #239b31; font-size: 22px; font-weight: 800; }
+  .wf-next-card__icon svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+  .wf-next-card strong, .wf-next-card small { display: block; }
+  .wf-next-card strong { font-size: 14px; }
+  .wf-next-card small { margin-top: 4px; color: #52617d; font-size: 11px; line-height: 1.35; }
+
+  .wf-home-workspace { display: grid; width: min(100%,1118px); grid-template-columns: minmax(0,1fr) 230px; gap: 18px; align-items: start; margin-inline: auto; }
+  .wf-home-workspace__main { min-width: 0; }
+  .wf-primary-journey { width: 100%; }
+  .wf-home-workspace__main .wf-decision-module { width: 100%; transition: border-color .25s ease; }
+  .wf-affiliate-rail { border: 1px solid #dce3ee; border-radius: 16px; background: white; padding: 18px; box-shadow: 0 12px 32px rgba(13,27,61,.08); }
+  .wf-affiliate-rail h2 { color: var(--wf-navy); font-size: 17px; font-weight: 750; }
+  .wf-affiliate-rail > p { margin-top: 14px; color: #52617d; font-size: 10px; line-height: 1.45; }
+  .wf-affiliate-fixture { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; border: 1px dashed #9aa8bb; border-radius: 10px; padding: 14px; color: var(--wf-navy); }
+  .wf-affiliate-fixture span { color: #52617d; font-size: 12px; }
+  .wf-affiliate-fixture small { color: #168b2c; font-weight: 700; }
+
+  .wf-travel-essentials h2 { color: var(--wf-navy); font-size: 19px; font-weight: 750; }
+  .wf-travel-essentials__cards { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin-top: 14px; }
+  .wf-essential-card { min-width: 0; overflow: hidden; gap: 0; padding: 0; text-align: left; cursor: pointer; }
+  .wf-essential-card__image { position: relative; display: block; width: 100%; aspect-ratio: 1.35; overflow: hidden; background: #f4f6f9; }
+  .wf-essential-card__image img { object-fit: cover; }
+  .wf-essential-card__copy { display: block; min-height: 88px; padding: 12px; }
+  .wf-essential-card__copy strong, .wf-essential-card__copy small { display: block; }
+  .wf-essential-card__copy strong { color: var(--wf-navy); font-size: 14px; }
+  .wf-essential-card__copy small { margin-top: 5px; color: #52617d; font-size: 11px; line-height: 1.35; }
+  .wf-travel-essentials--rail .wf-travel-essentials__cards { grid-template-columns: 1fr; gap: 10px; }
+  .wf-travel-essentials--rail .wf-essential-card__image { aspect-ratio: 2.1; }
+  .wf-travel-essentials--rail .wf-essential-card__copy { min-height: 67px; padding: 10px; }
+  .wf-travel-essentials-mobile { display: none; }
+  .wf-essentials-overlay { position: fixed; inset: 0; z-index: 100; display: flex; justify-content: flex-end; background: rgba(5,15,36,.58); }
+  .wf-essentials-sheet { width: min(100%,520px); height: 100dvh; overflow: hidden; background: white; color: var(--wf-navy); box-shadow: -18px 0 55px rgba(5,15,36,.24); outline: none; }
+  .wf-essentials-sheet__header { position: sticky; top: 0; z-index: 1; display: flex; min-height: 104px; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid #dce3ee; background: white; padding: 22px 26px; }
+  .wf-essentials-sheet__header strong, .wf-essentials-sheet__header small { display: block; }
+  .wf-essentials-sheet__header strong { font-size: 26px; }
+  .wf-essentials-sheet__header small { margin-top: 3px; color: #52617d; font-size: 11px; font-weight: 700; }
+  .wf-essentials-sheet__header small span { color: var(--wf-green); }
+  .wf-essentials-sheet__header button { display: grid; width: 44px; height: 44px; flex: 0 0 auto; place-items: center; border: 1px solid #ccd6e5; border-radius: 50%; font-size: 29px; line-height: 1; }
+  .wf-essentials-sheet__content { height: calc(100dvh - 104px); overflow-y: auto; padding: 34px 26px; }
+  .wf-essentials-sheet__content h2 { font-size: 30px; font-weight: 800; }
+  .wf-essentials-sheet__content > strong { display: block; margin-top: 30px; font-size: 22px; }
+  .wf-essentials-sheet__content p { margin-top: 8px; color: #52617d; line-height: 1.55; }
+
+  .wf-top-airlines { width: min(100%,1000px); margin: 24px auto 0; display: flex; align-items: center; gap: 22px; border: 1px solid #dce3ee; border-radius: 14px; background: white; padding: 18px 22px; }
+  .wf-top-airlines > div { display: flex; align-items: center; gap: 11px; min-width: 190px; }
+  .wf-top-airlines svg { width: 28px; height: 28px; fill: none; stroke: #229b31; stroke-width: 1.8; }
+  .wf-top-airlines h2 { color: var(--wf-navy); font-size: 15px; font-weight: 750; }
+  .wf-top-airlines p { color: #52617d; font-size: 11px; }
+  .wf-top-airlines nav { display: flex; flex: 1; flex-wrap: wrap; gap: 8px; }
+  .wf-top-airlines nav a { border: 1px solid #dce3ee; border-radius: 8px; padding: 10px 12px; color: var(--wf-navy); font-size: 12px; font-weight: 700; }
+
+  .wf-home-tips { width: 100%; margin: 24px auto 0; }
+  .wf-home-workspace__main > .wf-next-steps, .wf-home-workspace__main > .wf-top-airlines, .wf-home-workspace__main > .wf-trust-strip, .wf-home-workspace__main > .wf-runtime-source { width: 100%; }
+  .wf-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .wf-section-heading h2 { color: var(--wf-navy); font-size: 22px; font-weight: 750; }
+  .wf-section-heading a { color: #168b2c; font-size: 12px; font-weight: 750; }
+  .wf-home-tips__grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 14px; }
+  .wf-home-tips__grid:has(> :only-child) { grid-template-columns: 1fr; }
+  .wf-home-tips__grid:has(> :nth-child(2):last-child) { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .wf-home-tips__grid .wf-card { box-shadow: 0 8px 24px rgba(13,27,61,.06); }
+  .wf-mobile-recommendation { display: none; }
+
+  .wf-trust-strip { width: min(100%,1000px); margin: 26px auto 0; display: grid; grid-template-columns: repeat(3,1fr); border: 1px solid #dce3ee; border-radius: 14px; background: white; }
+  .wf-trust-strip > div { display: flex; align-items: center; gap: 14px; padding: 20px; border-right: 1px solid #dce3ee; }
+  .wf-trust-strip > div:last-child { border-right: 0; }
+  .wf-trust-strip svg, .wf-trust-people { width: 32px; height: 32px; color: var(--wf-navy); }
+  .wf-trust-strip strong, .wf-trust-strip small { display: block; }
+  .wf-trust-strip strong { color: var(--wf-navy); font-size: 13px; }
+  .wf-trust-strip small { margin-top: 3px; color: #52617d; font-size: 11px; }
+  .wf-runtime-source { width: min(100%,1000px); margin: 10px auto 0; color: #68758b; font-size: 10px; text-align: right; }
+
+  .wf-compact-footer { border-top: 4px solid #22C55E; background: #0D1B3D; color: white; }
+  .wf-compact-footer .wf-container { min-height: 92px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-block: 20px; }
+  .wf-footer-tagline { font-size: 20px; font-weight: 750; }
+  .wf-footer-tagline span { color: #22C55E; }
+  .wf-compact-footer nav { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; }
+  .wf-compact-footer nav a:hover { color: #22C55E; }
+  .wf-compact-footer .wf-container > p:last-child { max-width: 300px; color: #ccd6e5; font-size: 10px; text-align: right; }
+
+  @media (max-width: 1023px) {
+    .wf-header { height: 88px; }
+    .wf-brand svg { width: 36px; height: 44px; }
+    .wf-brand strong { font-size: 29px; }
+    .wf-brand small { margin-top: 5px; font-size: 10px; }
+    .wf-desktop-nav { display: none; }
+    .wf-menu-button { display: flex; }
+    .wf-mobile-menu { inset-block-start: 88px; }
+    .wf-home-hero { min-height: 520px; }
+    .wf-home-hero__content { padding-top: 78px; }
+    .wf-home-hero h1 { font-size: 58px; }
+    .wf-next-steps__grid { grid-template-columns: repeat(2, 1fr); }
+    .wf-home-workspace { display: block; width: 100%; }
+    .wf-affiliate-rail { display: none; }
+    .wf-top-airlines { align-items: flex-start; flex-direction: column; }
+  }
+
+  @media (max-width: 767px) {
+    .wf-container { padding-inline: 24px; }
+    .wf-header { height: 104px; }
+    .wf-header__inner { padding-inline: 27px; }
+    .wf-brand svg { width: 39px; height: 49px; }
+    .wf-brand strong { font-size: 31px; }
+    .wf-mobile-menu { inset-block-start: 104px; }
+    .wf-home-hero { min-height: 560px; }
+    .wf-home-hero__image { background-position: 58% center; }
+    .wf-home-hero__content { padding-top: 42px; }
+    .wf-home-hero h1 { max-width: 230px; font-size: 45px; line-height: 1.02; letter-spacing: -2px; }
+    .wf-home-hero p { max-width: 220px; margin-top: 18px; font-size: 14px; line-height: 1.55; }
+    .wf-home-main { margin-top: -32px; padding-inline: 24px; }
+    .wf-decision-module, .wf-decision-module.is-success, .wf-decision-module.is-warning, .wf-decision-module.is-error { width: 100%; grid-template-columns: 1fr; border-radius: 18px; }
+    .wf-checker-panel, .wf-result-panel { padding: 20px 17px; }
+    .wf-result-panel { border-top: 1px solid #e3e8f0; border-left: 0; }
+    .wf-checker-title h2 { font-size: 21px; }
+    .wf-checker-fields { grid-template-columns: 1fr; gap: 17px; }
+    .wf-checker-step--airline, .wf-checker-step--dimensions { grid-column: auto; }
+    .wf-fare-field { grid-row: auto; }
+    .wf-dimensions { gap: 8px; }
+    .wf-dimensions label { font-size: 11px; }
+    .wf-dimensions input { padding-left: 9px; font-size: 18px; }
+    .wf-dimensions i { padding-right: 7px; font-size: 9px; }
+    .wf-check-button span { position: static; margin-left: 12px; }
+    .wf-result-status > svg { width: 60px; height: 60px; }
+    .wf-result-status p { font-size: 28px; }
+    .wf-result-copy { margin-top: 24px; }
+    .wf-travel-essentials-mobile { display: block; grid-column: 1 / -1; margin-top: 24px; }
+    .wf-travel-essentials__cards { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+    .wf-essential-card__copy { min-height: 94px; padding: 10px; }
+    .wf-essential-card__copy strong { font-size: 13px; }
+    .wf-essential-card__copy small { font-size: 10px; }
+    .wf-essentials-sheet { width: min(92vw,520px); }
+    .wf-next-steps { margin-top: 25px; }
+    .wf-next-steps h2 { font-size: 20px; }
+    .wf-next-steps__grid { grid-template-columns: 1fr; gap: 8px; }
+    .wf-next-card { min-height: 70px; padding: 10px 12px; }
+    .wf-top-airlines { padding: 16px; }
+    .wf-top-airlines nav { display: grid; width: 100%; grid-template-columns: repeat(2,1fr); }
+    .wf-home-tips { display: none; }
+    .wf-home-tips__grid { grid-template-columns: 1fr; }
+    .wf-mobile-recommendation { display: block; margin-top: 14px; }
+    .wf-trust-strip { grid-template-columns: 1fr; }
+    .wf-trust-strip > div { border-right: 0; border-bottom: 1px solid #dce3ee; padding: 14px 16px; }
+    .wf-trust-strip > div:last-child { border-bottom: 0; }
+    .wf-runtime-source { text-align: left; }
+    .wf-compact-footer .wf-container { min-height: 120px; flex-direction: column; align-items: flex-start; gap: 14px; padding-block: 18px; }
+    .wf-compact-footer nav { gap: 12px; }
+    .wf-compact-footer .wf-container > p:last-child { text-align: left; }
+  }
+}
+
+@layer components {
+  /* D019 — Page flow primitives. */
+  .wf-container {
+    width: 100%;
+    max-width: var(--wf-container);
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  .wf-skip-link {
+    position: fixed;
+    top: var(--wf-space-card-compact);
+    left: var(--wf-space-card-compact);
+    z-index: 100;
+    transform: translateY(-200%);
+    border-radius: var(--wf-radius-control);
+    background: var(--wf-white);
+    color: var(--wf-navy);
+    padding: 12px 16px;
+    font-weight: 700;
+    box-shadow: var(--wf-card-shadow-hover);
+  }
+
+  .wf-skip-link:focus { transform: translateY(0); }
+
+  .wf-container--narrow {
+    max-width: var(--wf-container-narrow);
+  }
+
+  .wf-section {
+    padding-block: var(--wf-section-y);
+  }
+
+  .wf-section--compact {
+    padding-block: var(--wf-section-y-compact);
+  }
+
+  .wf-section-title {
+    @apply font-heading text-2xl font-semibold text-navy-700;
+  }
+
+  .wf-grid-3 {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .wf-container { padding-inline: 1.5rem; }
+    .wf-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  /* D010 — Base Card Primitive. All page cards inherit from wf-card. */
+  .wf-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: var(--wf-white);
+    border: 1px solid var(--wf-border);
+    border-radius: var(--wf-card-radius);
+    padding: var(--wf-space-card);
+    box-shadow: var(--wf-card-shadow);
+    transition: var(--wf-transition-standard);
+  }
+
+  .wf-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--wf-card-shadow-hover);
+  }
+
+  .wf-card--compact { padding: var(--wf-space-card-compact); }
+  .wf-card--large { padding: var(--wf-space-card-large); }
+
+  /* Do not change these colours without an engineering-register amendment. */
+  .wf-card--success { border-left: 6px solid var(--wf-green); }
+  .wf-card--warning { border-left: 6px solid var(--wf-amber); }
+  .wf-card--error { border-left: 6px solid var(--wf-red); }
+
+  /* D015/D021 — Interaction primitives. */
+  .wf-interactive {
+    transition: var(--wf-transition-standard);
+  }
+
+  .wf-interactive:hover {
+    transform: translateY(-1px);
+  }
+
+  .wf-btn-cta {
+    background-color: var(--wf-green);
+    color: var(--wf-navy);
+    border: none;
+    border-radius: var(--wf-radius-pill);
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: var(--wf-shadow-control);
+    transition: var(--wf-transition-standard);
+  }
+
+  .wf-btn-cta:hover {
+    background-color: var(--wf-green-hover);
+    transform: translateY(-1px);
+  }
+
+  .wf-btn-cta:active {
+    transform: translateY(1px); /* D018 — press-down feedback, not a hover-cancel */
+  }
+
+  .wf-btn-cta:focus-visible {
+    outline: var(--wf-focus-ring);
+    outline-offset: 2px;
+  }
+
+  .wf-btn-cta:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .wf-input {
+    border-radius: var(--wf-radius-control);
+    transition: var(--wf-transition-standard);
+  }
+
+  .wf-input.is-error {
+    border-color: var(--wf-red); /* D026.07 */
+  }
+
+  /* D013 / D007 — Margin Display. Semantic state classes per register D015.10. */
+  .wf-margin-box {
+    background-color: var(--wf-success-surface);
+    border-radius: 6px;
+    padding: 14px;
+    transition: var(--wf-transition-standard);
+  }
+
+  .wf-margin-box.is-warning { background-color: var(--wf-warning-surface); }
+  .wf-margin-box.is-error { background-color: var(--wf-error-surface); }
+
+  /* D015.08 — Airline name: text-only, neutral navy, no airline brand colours. */
+  .wf-airline-name { color: var(--wf-navy); }
+
+  /* D019/D020/D026.10-12 — Result card state machine. Inherits .wf-card (D010, D026.08);
+     is-success/is-warning/is-error/is-visible are the register's approved, state-driven
+     modifiers specific to the result card (distinct from the generic wf-card--variant
+     modifiers, which remain available for other cards e.g. advice/warning cards). */
+  .wf-result {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity var(--wf-duration-standard) var(--wf-ease-standard),
+                transform var(--wf-duration-standard) var(--wf-ease-standard);
+  }
+
+  .wf-result.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .wf-decision-module {
+    border-left-width: 6px;
+    border-left-color: transparent;
+  }
+
+  .wf-decision-module.is-success { border-left-color: var(--wf-green); }
+  .wf-decision-module.is-warning { border-left-color: var(--wf-amber); }
+  .wf-decision-module.is-error { border-left-color: var(--wf-red); }
+
+  .wf-window-sky {
+    background: linear-gradient(to bottom, var(--wf-window-sky), var(--wf-window-sky-pale));
+  }
+
+  @media (min-width: 1024px) {
+    .wf-layout-home { grid-template-columns: minmax(0, 1fr) 320px; }
+    .wf-layout-hero { grid-template-columns: minmax(0, 1fr) 380px; }
+    .wf-layout-checker { grid-template-columns: minmax(0, 1fr) 260px; }
+    .wf-layout-airline { grid-template-columns: 1.25fr 0.75fr; }
+  }
+
+  .wf-mobile-nav {
+    max-height: calc(100dvh - 5rem);
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+
+  .wf-hero-illustration { height: 360px; }
+  .wf-hero-window { width: 250px; height: 286px; border-radius: 36px; }
+  .wf-hero-window-sky { inset: 18px; border-radius: 26px; }
+  .wf-hero-cloud-one { left: 58px; top: 56px; }
+  .wf-hero-cloud-two { right: 42px; top: 104px; }
+  .wf-hero-cloud-three { left: 80px; top: 154px; }
+  .wf-hero-cabin-bag { width: 190px; }
+  .wf-hero-personal-bag { width: 150px; }
+
+  /* D016 — Page-level reveal only. Kept separate from result state machine. */
+  .wf-page-reveal {
+    animation: wf-fade-up var(--wf-duration-slow) var(--wf-ease-standard) both;
+  }
+}
+
+@layer utilities {
+  @keyframes wf-fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* RC2.53 — Mobile and interaction hardening. */
+@layer components {
+  .wf-mobile-action-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    margin-inline: -0.5rem;
+    padding: 0.75rem 0.5rem calc(0.75rem + env(safe-area-inset-bottom));
+    background: linear-gradient(to bottom, var(--wf-white-translucent), var(--wf-white) 30%);
+    backdrop-filter: blur(10px);
+  }
+
+  .wf-responsive-table {
+    width: 100%;
+  }
+
+  @media (max-width: 639px) {
+    .wf-card {
+      padding: var(--wf-space-card-compact);
+    }
+
+    .wf-checker-card {
+      gap: 14px;
+    }
+
+    .wf-responsive-table thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .wf-responsive-table,
+    .wf-responsive-table tbody,
+    .wf-responsive-table tr,
+    .wf-responsive-table th,
+    .wf-responsive-table td {
+      display: block;
+      width: 100%;
+    }
+
+    .wf-responsive-table tbody tr {
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--wf-border);
+    }
+
+    .wf-responsive-table tbody tr:last-child {
+      border-bottom: 0;
+    }
+
+    .wf-responsive-table tbody th {
+      padding: 0 0 0.5rem;
+      text-align: left;
+    }
+
+    .wf-responsive-table tbody td {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.35rem 0;
+      text-align: right;
+    }
+
+    .wf-responsive-table tbody td::before {
+      content: attr(data-label);
+      flex: 1;
+      text-align: left;
+      font-family: inherit;
+      font-weight: 600;
+      color: var(--wf-navy);
+    }
+
+    .wf-result-card {
+      scroll-margin-top: 6rem;
+    }
+  }
+
+  @media (min-width: 640px) {
+    .wf-mobile-action-bar {
+      position: static;
+      margin-inline: 0;
+      padding: 0;
+      background: transparent;
+      backdrop-filter: none;
     }
   }
 }

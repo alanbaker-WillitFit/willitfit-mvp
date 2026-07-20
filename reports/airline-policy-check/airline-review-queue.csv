@@ -1,0 +1,24 @@
+﻿AirlineID,Airline,Status,Last Reviewed,Next Review Due,Official Source URL,Last Source Check,Reviewer,Confidence,Change Detected,Website Updated,Publish Eligible
+RYR,Ryanair,Current,46213,46303,https://help.ryanair.com/hc/en-gb/categories/12489112419089-Bag-Rules,46213,Alan Baker,High,No,No,No
+EZY,EasyJet,Current,46213,46303,https://www.easyjet.com/en/help/baggage/cabin-bags,46213,Alan Baker,High,No,No,No
+JET2,Jet2,Current,46209,46393,https://www.jet2.com,46209,Alan Baker,Medium,No,No,No
+WZZ,Wizz Air,Current,46213,46303,https://www.wizzair.com/en-gb/help-centre/booking-information-and-services/baggage/baggage-allowance,46213,Alan Baker,High,No,No,No
+BAW,British Airways,Current,46209,46393,https://www.britishairways.com,46209,Alan Baker,Medium,No,No,No
+VLG,Vueling,Current,46213,46303,https://help.vueling.com/hc/en-gb/articles/19798835176081-Hand-Luggage-Allowance-Cabin-bags-allowance,46213,Alan Baker,High,No,No,No
+TUI,TUI Airways,Current,46209,46393,https://www.tui.co.uk,46209,Alan Baker,Medium,No,No,No
+KLM,KLM,Review,46209,46393,,46209,Alan Baker,Low,No,No,No
+AFR,Air France,Review,46209,46393,,46209,Alan Baker,Low,No,No,No
+DLH,Lufthansa,Review,46209,46393,,46209,Alan Baker,Low,No,No,No
+EIN,Aer Lingus,Review,46209,46393,,46209,Alan Baker,Low,No,No,No
+EJU,Eurowings,Review,46209,46393,,46209,Alan Baker,Low,No,No,No
+NAX,Norwegian,Review,46209,46393,,46209,Alan Baker,Low,No,No,No
+TAP,TAP Air Portugal,Review,46209,46393,,46209,Alan Baker,Low,No,No,No
+EZS,Swiss,Review,46209,46393,,46209,Alan Baker,Low,No,No,No
+AME,American,Current,46209,46393,https://www.aa.com,46209,Alan Baker,Medium,No,No,No
+QA,Qatar Airways,Review,46209,46393,,46209,Alan Baker,Low,No,No,No
+UNI,United,Current,46209,46393,https://www.united.com,46209,Alan Baker,Medium,No,No,No
+VA,Virgin Atlantic,Review,46209,46393,,46209,Alan Baker,Low,No,No,No
+EMI,Emirates,Current,46209,46393,https://www.emirates.com,46209,Alan Baker,Medium,No,No,No
+SA,Singapore Airlines,Current,46209,46393,https://www.singaporeair.com,46209,Alan Baker,Medium,No,No,No
+CP,Cathay Pacific,Review,46209,46393,,46209,Alan Baker,Low,No,No,No
+DEL,Delta,Current,46209,46393,https://www.delta.com,46209,Alan Baker,Medium,No,No,No
