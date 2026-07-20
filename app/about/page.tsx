@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Our data",
@@ -22,11 +21,6 @@ export default function AboutPage() {
           the dimensions you enter into the checker are never saved or shared.
         </p>
       </div>
-      <section id="willit-lab" className="mt-10 scroll-mt-24 border-t border-navy-100 pt-8">
-        <h2 className="font-heading text-2xl font-semibold text-navy-700">WillIt Lab</h2>
-        <p className="mt-3 font-body leading-relaxed text-navy-600">WillIt Lab is our optional space for small travel experiments. It is kept separate from the cabin bag checker, so experiments can never change baggage results or airline data.</p>
-        <Link href="/lab" className="mt-4 inline-flex min-h-11 items-center font-body text-sm font-semibold text-green-700 underline">Visit WillIt Lab</Link>
-      </section>
     </section>
   );
 }

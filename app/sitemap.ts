@@ -14,7 +14,7 @@ function reviewedDate(value: string): Date | undefined {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [{ airlines }, { tips }, seoPages] = await Promise.all([getCachedAirlines(), getCachedTravelTips(), getCachedSeoPages()]);
 
-  const staticRoutes = ["", "/airlines", "/tips", "/about", "/contact", "/products", "/ask", "/privacy", "/accessibility", "/legal", "/lab"].map((path) => ({
+  const staticRoutes = ["", "/airlines", "/tips", "/about", "/contact", "/products", "/ask", "/privacy", "/accessibility", "/legal"].map((path) => ({
     url: siteUrl(path),
   }));
 

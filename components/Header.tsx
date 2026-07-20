@@ -62,7 +62,6 @@ export default function Header({ tipCategories }: HeaderProps) {
           {LINKS.slice(1, 3).map(([label, href]) => <Link key={label} href={href} onClick={() => setOpen(false)}>{label}</Link>)}
           <Link href="/tips" onClick={() => setOpen(false)}>Travel Tips</Link>
           {LINKS.slice(3).map(([label, href]) => <Link key={label} href={href} onClick={() => setOpen(false)}>{label}</Link>)}
-          <Link href="/lab" onClick={() => setOpen(false)}>WillIt Lab</Link>
         </nav>
       )}
     </header>
