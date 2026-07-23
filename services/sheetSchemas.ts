@@ -17,6 +17,14 @@ export const REQUIRED_SHEET_HEADERS: Record<string, readonly string[]> = {
   "09_Affiliate_Products": [
     "AffiliateID", "Brand", "Product", "Category", "AffiliateURL", "Status",
   ],
+  "90_Site_Content": [
+    "ContentID", "Module", "Page", "Section", "Content Type", "Title", "Content",
+    "Priority", "Active", "Review Status", "Publish",
+  ],
+  "91_Lab_Config": [
+    "ConfigID", "GameID", "Game Name", "Game Path", "Trigger Date",
+    "Active", "Review Status", "Publish",
+  ],
 
   "73_QE_Canonical_Map": [
     "Question_ID", "Canonical_Question", "Answer_Object_ID", "Destination_URL", "Pass_3_Status", "Pass_4_Status",

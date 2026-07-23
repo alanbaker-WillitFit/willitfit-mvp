@@ -1,7 +1,8 @@
 import { TravelTip, SheetStatus } from "@/types";
 import { cache } from "react";
 import { FALLBACK_TIPS } from "@/data/fallback";
-import { getSheetRows, slugify, toNumber } from "./googleSheets";
+import { slugify, toNumber } from "./googleSheets";
+import { readFirstAvailableRuntimeTab } from "./runtimeContent";
 
 type TipRow = {
   TipID?: string; "Tip ID"?: string; Title?: string; Slug?: string;
@@ -56,9 +57,8 @@ function duplicateValues(values: string[]): Set<string> {
 }
 
 async function readTipRows(): Promise<TipRow[] | null> {
-  const contentEngineRows = await getSheetRows<TipRow>("Content Engine");
-  if (contentEngineRows && contentEngineRows.length > 0) return contentEngineRows;
-  return getSheetRows<TipRow>("06_Travel_Tips");
+  const { rows } = await readFirstAvailableRuntimeTab<TipRow>(["06_Travel_Tips", "Content Engine"]);
+  return rows;
 }
 
 export async function getTravelTips(): Promise<{ tips: TravelTip[] }> {

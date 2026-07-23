@@ -116,20 +116,25 @@ function mapRows(airline: AirlineRow, baggageRows: BaggageRuleRow[]): Airline {
   const cabinRules = airlineRules.filter(isCabinBag);
   const personalRules = airlineRules.filter(isPersonalItem);
 
+  const personalItem = selectBaseline(personalRules);
+  const cabinBag = selectBaseline(cabinRules);
+
   return {
     airlineId,
     airlineName: airline.AirlineName.trim(),
     slug: slugify(airline.Slug || airline.AirlineName),
     country: airline.Country?.trim() || "",
     logoUrl: "",
-    personalItem: selectBaseline(personalRules),
-    cabinBag: selectBaseline(cabinRules),
+    personalItem,
+    cabinBag,
     weightLimitKg: minWeight(cabinRules),
     fareClasses: buildFareClasses(airlineRules),
     websiteUrl: isHttpsUrl(airline.OfficialBaggageURL) ? airline.OfficialBaggageURL.trim() : "",
     lastUpdated: airline.LastChecked?.trim() || "",
     status: parseStatus(airline.Status),
     notes: airline.Notes?.trim() || "",
+    hasCabinBag: hasValidDimensions(cabinBag),
+    hasPersonalItem: hasValidDimensions(personalItem),
   };
 }
 
@@ -156,7 +161,7 @@ export async function getAirlines(): Promise<{ airlines: Airline[]; source: "she
   const airlines = liveRows
     .filter((a) => !duplicateIds.has(a.AirlineID.trim()) && !duplicateSlugs.has(slugify(a.Slug || a.AirlineName)))
     .map((a) => mapRows(a, baggageRows))
-    .filter((a) => a.slug && hasValidDimensions(a.cabinBag) && hasValidDimensions(a.personalItem));
+    .filter((a) => a.slug && (a.hasCabinBag || a.hasPersonalItem));
 
   return airlines.length > 0 ? { airlines, source: "sheet" } : { airlines: FALLBACK_AIRLINES, source: "fallback" };
 }

@@ -1,3 +1,5 @@
+import type { AffiliateSlot } from "@/types";
+
 export type TravelEssentialStatus = "ComingSoon" | "Live" | "Hidden";
 
 export interface TravelEssentialCategory {
@@ -25,4 +27,26 @@ export const visibleTravelEssentialCategories = TRAVEL_ESSENTIAL_CATEGORIES
 
 export function getTravelEssentialCategory(id: string) {
   return visibleTravelEssentialCategories.find((category) => category.id === id) ?? null;
+}
+
+export function affiliatePlaceholdersForCategory(category: string): AffiliateSlot[] {
+  return Array.from({ length: 10 }, (_, index) => ({
+    slotId: `${category}-${String(index + 1).padStart(2, "0")}`,
+    category,
+    position: index + 1,
+    title: "Recommendation coming soon",
+    description: "This governed recommendation slot is ready for a verified product.",
+    merchant: "",
+    imageUrl: "",
+    affiliateUrl: "",
+    cta: "",
+    priceText: "",
+    disclosure: "Affiliate placeholder — no product or link has been published.",
+    active: true,
+    reviewStatus: "Published",
+    published: true,
+    lastReviewed: "",
+    notes: "",
+    placeholder: true,
+  }));
 }

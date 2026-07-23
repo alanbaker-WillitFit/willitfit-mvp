@@ -1,0 +1,117 @@
+import { cache } from "react";
+import type { RuntimeContentRecord } from "@/types";
+import { FALLBACK_RUNTIME_CONTENT } from "@/data/runtimeContent";
+import { getSheetRows, toNumber } from "./googleSheets";
+
+export const SITE_CONTENT_TABS = ["90_Site_Content", "Site Content", "10_Site_Content"] as const;
+
+type RuntimeRow = Record<string, string>;
+
+function clean(value: unknown): string {
+  return value == null ? "" : String(value).trim();
+}
+
+function value(row: RuntimeRow, ...names: string[]): string {
+  for (const name of names) {
+    const candidate = clean(row[name]);
+    if (candidate) return candidate;
+  }
+  return "";
+}
+
+export function runtimeBoolean(input: unknown): boolean {
+  return ["1", "active", "yes", "true", "live", "published"].includes(clean(input).toLowerCase());
+}
+
+export function runtimePublished(row: RuntimeRow): boolean {
+  const activeValue = value(row, "Active", "Lifecycle Status");
+  const publishValue = value(row, "Publish", "Runtime Publish Status", "Published", "Publish Status");
+  const reviewValue = value(row, "Review Status", "ReviewStatus", "Workflow Status");
+  const active = activeValue ? runtimeBoolean(activeValue) : true;
+  const approved = publishValue
+    ? runtimeBoolean(publishValue)
+    : ["approved", "published", "live"].includes(reviewValue.toLowerCase());
+  return active && approved;
+}
+
+export function mapRuntimeContentRow(row: RuntimeRow, index: number): RuntimeContentRecord {
+  return {
+    contentId: value(row, "ContentID", "Content ID", "Content_ID") || `runtime-content-${index + 1}`,
+    module: value(row, "Module") || "General",
+    page: value(row, "Page"),
+    section: value(row, "Section"),
+    contentType: value(row, "Content Type", "ContentType") || "Section",
+    title: value(row, "Title"),
+    body: value(row, "Content", "Body"),
+    supportingText: value(row, "Supporting Text", "SupportingText"),
+    displayOrder: toNumber(value(row, "Priority", "Display Order", "DisplayOrder", "Order"), 999),
+    active: value(row, "Active", "Lifecycle Status") ? runtimeBoolean(value(row, "Active", "Lifecycle Status")) : true,
+    reviewStatus: value(row, "Review Status", "ReviewStatus", "Workflow Status"),
+    published: runtimePublished(row),
+    notes: value(row, "Notes"),
+    source: "sheet",
+  };
+}
+
+export async function readFirstAvailableRuntimeTab<T extends RuntimeRow>(
+  tabNames: readonly string[]
+): Promise<{ rows: T[] | null; tabName: string | null }> {
+  for (const tabName of tabNames) {
+    const rows = await getSheetRows<T>(tabName);
+    if (rows && rows.length > 0) return { rows, tabName };
+  }
+  return { rows: null, tabName: null };
+}
+
+function uniquePublished(records: RuntimeContentRecord[]): RuntimeContentRecord[] {
+  const counts = new Map<string, number>();
+  records.forEach((record) => counts.set(record.contentId, (counts.get(record.contentId) ?? 0) + 1));
+  const duplicateIds = new Set(Array.from(counts).filter(([, count]) => count > 1).map(([id]) => id));
+  if (duplicateIds.size) console.error("[runtimeContent] Duplicate published content IDs", Array.from(duplicateIds));
+  return records.filter((record) => !duplicateIds.has(record.contentId));
+}
+
+export async function getAllRuntimeContent(): Promise<{
+  content: RuntimeContentRecord[];
+  source: "sheet" | "fallback";
+}> {
+  const { rows } = await readFirstAvailableRuntimeTab<RuntimeRow>(SITE_CONTENT_TABS);
+  if (!rows) return { content: FALLBACK_RUNTIME_CONTENT, source: "fallback" };
+
+  const content = uniquePublished(rows.map(mapRuntimeContentRow).filter((record) =>
+    record.published && record.contentId && record.module && (record.title || record.body)
+  )).sort((a, b) => a.displayOrder - b.displayOrder || a.contentId.localeCompare(b.contentId));
+
+  return content.length > 0
+    ? { content, source: "sheet" }
+    : { content: FALLBACK_RUNTIME_CONTENT, source: "fallback" };
+}
+
+export const getCachedRuntimeContent = cache(getAllRuntimeContent);
+
+export async function getRuntimeContent(query: {
+  module: string;
+  page?: string;
+  section?: string;
+}): Promise<{ content: RuntimeContentRecord[]; source: "sheet" | "fallback" }> {
+  const loaded = await getCachedRuntimeContent();
+  const normalise = (item: string) => item.trim().toLowerCase();
+  const moduleName = (item: string) => {
+    const name = normalise(item);
+    return name === "affiliate content" ? "affiliate products" : name;
+  };
+  const matches = loaded.content.filter((record) =>
+    moduleName(record.module) === moduleName(query.module) &&
+    (!query.page || normalise(record.page) === normalise(query.page)) &&
+    (!query.section || normalise(record.section) === normalise(query.section))
+  );
+
+  if (matches.length > 0) return { content: matches, source: loaded.source };
+
+  const fallback = FALLBACK_RUNTIME_CONTENT.filter((record) =>
+    moduleName(record.module) === moduleName(query.module) &&
+    (!query.page || normalise(record.page) === normalise(query.page)) &&
+    (!query.section || normalise(record.section) === normalise(query.section))
+  );
+  return { content: fallback, source: "fallback" };
+}

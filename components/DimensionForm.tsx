@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
-import { Airline, FitResult } from "@/types";
+import React, { useEffect, useRef, useState } from "react";
+import { Airline, AffiliateSlot, FitResult, LabConfiguration } from "@/types";
 import { checkFit } from "@/lib/fitCalculator";
 import { checkerPreset } from "@/lib/checkerPreset";
 import { useDimensionForm } from "@/hooks/useDimensionForm";
@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import AirlineSelector from "./AirlineSelector";
 import FitResultCard from "./FitResultCard";
 import TravelEssentials from "./TravelEssentials";
+import { airlineHasBagType } from "@/lib/dimensions";
+import type { RuntimeContentRecord } from "@/types";
 
 const FIELDS = [
   { key: "heightCm" as const, label: "Height", short: "H" },
@@ -18,11 +20,25 @@ const FIELDS = [
 ];
 
 const BAG_TYPES = [
-  { type: "cabinBag" as const, icon: "/assets/icons/cabin-bag.svg", title: "Cabin Bag" },
-  { type: "personalItem" as const, icon: "/assets/icons/personal-bag.svg", title: "Personal Item" },
+  { type: "cabinBag" as const, icon: "/assets/icons/cabin-bag-photo-rc4.jpg", title: "Cabin Bag" },
+  { type: "personalItem" as const, icon: "/assets/icons/personal-item-photo-rc4.jpg", title: "Personal Item" },
 ];
 
-export default function DimensionForm({ airlines, initialAirline = null }: { airlines: Airline[]; initialAirline?: Airline | null }) {
+export default function DimensionForm({
+  airlines,
+  initialAirline = null,
+  notices = [],
+  hints = [],
+  affiliateSlots = [],
+  labConfigs,
+}: {
+  airlines: Airline[];
+  initialAirline?: Airline | null;
+  notices?: RuntimeContentRecord[];
+  hints?: RuntimeContentRecord[];
+  affiliateSlots?: AffiliateSlot[];
+  labConfigs?: LabConfiguration[];
+}) {
   const { bagType, setBagType, raw, setField, dimensions, errors, isValid, touchedFields, submitted, blurField, markAllTouched, reset, loadDimensions } = useDimensionForm();
   const [airline, setAirline] = useState<Airline | null>(initialAirline);
   const [fareClass, setFareClass] = useState<string | null>(null);
@@ -30,6 +46,13 @@ export default function DimensionForm({ airlines, initialAirline = null }: { air
   const [resultKey, setResultKey] = useState(0);
   const resultRef = useRef<HTMLDivElement>(null);
   const fieldRefs = useRef<Record<typeof FIELDS[number]["key"], HTMLInputElement | null>>({ heightCm: null, widthCm: null, depthCm: null });
+
+  useEffect(() => {
+    if (!initialAirline || airlineHasBagType(initialAirline, bagType)) return;
+    const availableType = airlineHasBagType(initialAirline, "cabinBag") ? "cabinBag" : "personalItem";
+    setBagType(availableType);
+    loadDimensions(checkerPreset(initialAirline, availableType, null));
+  }, [bagType, initialAirline, loadDimensions, setBagType]);
 
   useEffect(() => {
     if (!result) return;
@@ -40,7 +63,9 @@ export default function DimensionForm({ airlines, initialAirline = null }: { air
   function invalidate() { setResult(null); }
   function applySelection(selectedAirline: Airline | null, selectedBagType: typeof bagType, selectedFare: string | null) {
     setResult(null);
-    if (selectedAirline) loadDimensions(checkerPreset(selectedAirline, selectedBagType, selectedFare));
+    if (selectedAirline && airlineHasBagType(selectedAirline, selectedBagType)) {
+      loadDimensions(checkerPreset(selectedAirline, selectedBagType, selectedFare));
+    }
   }
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -50,7 +75,7 @@ export default function DimensionForm({ airlines, initialAirline = null }: { air
       if (first) fieldRefs.current[first.key]?.focus();
       return;
     }
-    if (!airline) return;
+    if (!airline || !airlineHasBagType(airline, bagType)) return;
     setResult(checkFit(dimensions as Required<typeof dimensions>, airline, bagType, fareClass));
     setResultKey(key => key + 1);
   }
@@ -74,19 +99,34 @@ export default function DimensionForm({ airlines, initialAirline = null }: { air
         <div className="wf-checker-fields">
           <div className="wf-checker-step wf-checker-step--airline">
             <p><b>1</b> Select airline</p>
-            <AirlineSelector airlines={airlines} value={airline} onChange={selected => { setAirline(selected); setFareClass(null); applySelection(selected, bagType, null); }} />
+            <AirlineSelector airlines={airlines} value={airline} onChange={selected => {
+              setAirline(selected);
+              setFareClass(null);
+              if (selected && !airlineHasBagType(selected, bagType)) {
+                const availableType = airlineHasBagType(selected, "cabinBag") ? "cabinBag" : "personalItem";
+                setBagType(availableType);
+                applySelection(selected, availableType, null);
+              } else {
+                applySelection(selected, bagType, null);
+              }
+            }} />
           </div>
 
           <fieldset className="wf-checker-step wf-checker-step--bag">
             <legend><b>2</b> Choose bag type</legend>
             <div className="wf-bag-types">
               {BAG_TYPES.map(item => (
-                <button key={item.type} type="button" aria-pressed={bagType === item.type} className={cn("wf-bag-type", bagType === item.type && "is-selected")} onClick={() => { setBagType(item.type); setFareClass(null); applySelection(airline, item.type, null); }}>
-                  <Image src={item.icon} alt="" width={24} height={24} /> {item.title}
+                <button key={item.type} type="button" disabled={Boolean(airline && !airlineHasBagType(airline, item.type))} aria-pressed={bagType === item.type} className={cn("wf-bag-type", bagType === item.type && "is-selected")} onClick={() => { setBagType(item.type); setFareClass(null); applySelection(airline, item.type, null); }}>
+                  <Image className="wf-bag-type__icon" src={item.icon} alt="" width={44} height={44} priority /> {item.title}
                 </button>
               ))}
             </div>
           </fieldset>
+
+          {airline && !airlineHasBagType(airline, bagType) && (() => {
+            const notice = notices.find((item) => item.section === `${bagType}-unavailable`);
+            return notice ? <div className="wf-form-error" role="status"><strong>{notice.title}</strong><p>{notice.body}</p></div> : null;
+          })()}
 
           {airline && airline.fareClasses.length > 0 && (
             <div className="wf-fare-field">
@@ -117,11 +157,16 @@ export default function DimensionForm({ airlines, initialAirline = null }: { air
 
         <button type="submit" className="wf-check-button">Check my bag <span aria-hidden="true">→</span></button>
         {submitted && !airline && <p className="wf-form-error" role="alert">Select an airline before checking your bag.</p>}
+        {!result && hints.length > 0 && (
+          <aside className="wf-card wf-card--compact mt-4 p-4" aria-label="Before you check">
+            {hints.map((hint) => <p key={hint.contentId}><strong>{hint.title}:</strong> {hint.body}</p>)}
+          </aside>
+        )}
       </form>
 
-      {result && <div ref={resultRef} tabIndex={-1} className="wf-result-panel"><FitResultCard key={resultKey} result={result} /></div>}
+      {result && <div ref={resultRef} tabIndex={-1} className="wf-result-panel"><FitResultCard key={resultKey} result={result} labConfigs={labConfigs} /></div>}
     </section>
-    {result && <div className="wf-travel-essentials-mobile"><TravelEssentials /></div>}
+    {result && <div className="wf-travel-essentials-mobile"><TravelEssentials slots={affiliateSlots} /></div>}
     </div>
   );
 }

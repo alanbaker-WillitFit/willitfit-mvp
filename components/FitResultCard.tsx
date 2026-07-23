@@ -3,6 +3,9 @@
 import { FitResult } from "@/types";
 import { SuccessTick, ErrorCross, WarningExclamation } from "./StatusIcon";
 import BagVisualizer from "./BagVisualizer";
+import Link from "next/link";
+import type { LabConfiguration } from "@/types";
+import { isLabInvitationActive } from "@/lib/lab";
 
 const PRESENTATION = {
   fits: { eyebrow: "PASS", title: "Good to go", lead: "Your bag fits", Icon: SuccessTick },
@@ -20,7 +23,7 @@ function resultDetail(result: FitResult) {
   return `${over} cm over the allowance`;
 }
 
-export default function FitResultCard({ result }: { result: FitResult }) {
+export default function FitResultCard({ result, labConfigs = [] }: { result: FitResult; labConfigs?: LabConfiguration[] }) {
   const view = PRESENTATION[result.verdict];
   const { Icon } = view;
   return (
@@ -40,6 +43,13 @@ export default function FitResultCard({ result }: { result: FitResult }) {
         {result.weightLimitKg && <div><dt>Maximum published weight</dt><dd>{result.weightLimitKg} kg</dd></div>}
       </dl>
       <p className="wf-result-notice"><span aria-hidden="true">i</span> Always check {result.airline.airlineName}&apos;s latest rules before you fly.</p>
+      {labConfigs.filter((labConfig) => isLabInvitationActive(labConfig)).map((labConfig) => (
+        <aside className="wf-lab-invitation" key={labConfig.configId}>
+          <strong>{labConfig.invitationTitle}</strong>
+          <p>{labConfig.invitationBody}</p>
+          <Link href={labConfig.gamePath}>{labConfig.cta} &rarr;</Link>
+        </aside>
+      ))}
     </section>
   );
 }

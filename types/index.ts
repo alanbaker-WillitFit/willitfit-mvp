@@ -25,6 +25,8 @@ export interface Airline {
   lastUpdated: string;
   status: SheetStatus;
   notes?: string;
+  hasCabinBag?: boolean;
+  hasPersonalItem?: boolean;
 }
 
 export interface Dimensions {
@@ -79,6 +81,69 @@ export interface AffiliateLink {
   affiliateUrl: string;
   imageUrl: string;
   status: SheetStatus;
+}
+
+export type RuntimeContentModule =
+  | "About"
+  | "Travel Tips"
+  | "Hints"
+  | "FAQs"
+  | "Affiliate Products"
+  | "Affiliate Content"
+  | "Recommendation Cards"
+  | "Notices"
+  | string;
+
+export interface RuntimeContentRecord {
+  contentId: string;
+  module: RuntimeContentModule;
+  page: string;
+  section: string;
+  contentType: string;
+  title: string;
+  body: string;
+  supportingText: string;
+  displayOrder: number;
+  active: boolean;
+  reviewStatus: string;
+  published: boolean;
+  notes: string;
+  source: "sheet" | "fallback";
+}
+
+export interface AffiliateSlot {
+  slotId: string;
+  category: string;
+  position: number;
+  title: string;
+  description: string;
+  merchant: string;
+  imageUrl: string;
+  affiliateUrl: string;
+  cta: string;
+  priceText: string;
+  disclosure: string;
+  active: boolean;
+  reviewStatus: string;
+  published: boolean;
+  lastReviewed: string;
+  notes: string;
+  placeholder: boolean;
+}
+
+export interface LabConfiguration {
+  configId: string;
+  gameId: string;
+  gameName: string;
+  gamePath: string;
+  triggerDate: string;
+  invitationTitle: string;
+  invitationBody: string;
+  cta: string;
+  active: boolean;
+  reviewStatus: string;
+  published: boolean;
+  source: "sheet" | "fallback";
 }
 
 // ── Fit calculation ─────────────────────────────────────────────────────────
