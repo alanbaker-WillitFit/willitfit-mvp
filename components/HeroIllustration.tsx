@@ -20,7 +20,7 @@ export default function HeroIllustration() {
       {/* Locked I001 cabin bag */}
       <div className="relative z-10 -mr-4 flex items-end" aria-hidden="true">
         <Image
-          src="/assets/icons/cabin-bag.svg"
+          src="/assets/icons/cabin-bag-photo-rc4.jpg"
           alt=""
           width={190}
           height={238}
@@ -32,7 +32,7 @@ export default function HeroIllustration() {
       {/* Locked I002 personal/underseat bag */}
       <div className="relative z-20 -ml-8 mb-1 flex items-end" aria-hidden="true">
         <Image
-          src="/assets/icons/personal-bag.svg"
+          src="/assets/icons/personal-item-photo-rc4.jpg"
           alt=""
           width={150}
           height={132}

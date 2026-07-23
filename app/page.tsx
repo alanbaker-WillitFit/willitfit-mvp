@@ -7,6 +7,9 @@ import { getAirlines } from "@/services/airlines";
 import { getTravelTips } from "@/services/tips";
 import { InfoIcon, PlaneIcon } from "@/components/HomeIcons";
 import { ShieldCheckIcon, LockIcon, GlobeIcon } from "@/components/icons";
+import { getRuntimeContent } from "@/services/runtimeContent";
+import { getAffiliateSlots } from "@/services/runtimeAffiliates";
+import { getLabConfigurations } from "@/services/labConfig";
 
 export const revalidate = 3600;
 
@@ -20,8 +23,14 @@ const NEXT_STEPS = [
 ] as const;
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ airline?: string }> }) {
-  const [{ airlines, source }, { tips }, { airline: airlineParam }] = await Promise.all([
-    getAirlines(), getTravelTips(), searchParams,
+  const [{ airlines, source }, { tips }, { airline: airlineParam }, { content: notices }, { content: hints }, { slots: affiliateSlots }, labConfigs] = await Promise.all([
+    getAirlines(),
+    getTravelTips(),
+    searchParams,
+    getRuntimeContent({ module: "Notices", page: "checker" }),
+    getRuntimeContent({ module: "Hints", page: "checker", section: "pre-check" }),
+    getAffiliateSlots(),
+    getLabConfigurations(),
   ]);
   const preselectedAirline = airlineParam ? airlines.find(airline => airline.slug === airlineParam) ?? null : null;
   const priorityAirlines = airlines.slice(0, 5);
@@ -40,7 +49,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <div className="wf-home-main wf-container">
         <div className="wf-home-workspace">
           <main className="wf-home-workspace__main">
-            <DimensionForm airlines={airlines} initialAirline={preselectedAirline} />
+            <DimensionForm airlines={airlines} initialAirline={preselectedAirline} notices={notices} hints={hints} affiliateSlots={affiliateSlots} labConfigs={labConfigs} />
 
             <section className="wf-home-tips" aria-labelledby="home-tips-heading">
               <div className="wf-section-heading"><h2 id="home-tips-heading">Travel Tips</h2><Link href="/tips">View all tips →</Link></div>
@@ -57,12 +66,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             {NEXT_STEPS.map(([label, href, description, icon]) => (
               label === "Check Another Bag" ? (
                 <a key={label} href={href} className="wf-next-card">
-                  <span className="wf-next-card__icon" aria-hidden="true"><Image src="/assets/icons/cabin-bag.svg" alt="" width={24} height={24} /></span>
+                  <span className="wf-next-card__icon" aria-hidden="true"><Image src="/assets/icons/cabin-bag-photo-rc4.jpg" alt="" width={24} height={24} /></span>
                   <span><strong>{label}</strong><small>{description}</small></span><span aria-hidden="true">&rarr;</span>
                 </a>
               ) : (
                 <Link key={label} href={href} className="wf-next-card">
-                  <span className="wf-next-card__icon" aria-hidden="true">{icon === "plane" ? <PlaneIcon /> : icon === "info" ? <InfoIcon /> : icon === "personal" ? <Image src="/assets/icons/personal-bag.svg" alt="" width={24} height={24} /> : "?"}</span>
+                  <span className="wf-next-card__icon" aria-hidden="true">{icon === "plane" ? <PlaneIcon /> : icon === "info" ? <InfoIcon /> : icon === "personal" ? <Image src="/assets/icons/personal-item-photo-rc4.jpg" alt="" width={24} height={24} /> : "?"}</span>
                   <span><strong>{label}</strong><small>{description}</small></span><span aria-hidden="true">&rarr;</span>
                 </Link>
               )
@@ -83,7 +92,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <p className="wf-runtime-source">Runtime source: {source === "sheet" ? "Google Sheets" : "validated local fallback"}.</p>
           </main>
           <aside className="wf-affiliate-rail" aria-label="Travel Essentials categories">
-            <TravelEssentials variant="rail" />
+            <TravelEssentials variant="rail" slots={affiliateSlots} />
           </aside>
         </div>
       </div>

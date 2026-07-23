@@ -7,6 +7,10 @@ import AirlineCard from "@/components/AirlineCard";
 import AirlineGuidance from "@/components/AirlineGuidance";
 import { safeJsonLd } from "@/lib/jsonLd";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { airlineHasBagType } from "@/lib/dimensions";
+import { getRuntimeContent } from "@/services/runtimeContent";
+import { getAffiliateSlots } from "@/services/runtimeAffiliates";
+import { getLabConfigurations } from "@/services/labConfig";
 
 interface AirlinePageProps {
   airline: Airline;
@@ -20,14 +24,21 @@ function formatDimensions(value: Airline["cabinBag"]): string {
   return `${value.heightCm} × ${value.widthCm} × ${value.depthCm} cm`;
 }
 
-export default function AirlinePage({
+export default async function AirlinePage({
   airline: current,
   airlines,
   relatedAirlines,
   tips,
   source,
 }: AirlinePageProps) {
+  const [{ content: notices }, { slots: affiliateSlots }, labConfigs] = await Promise.all([
+    getRuntimeContent({ module: "Notices", page: "checker" }),
+    getAffiliateSlots(),
+    getLabConfigurations(),
+  ]);
   const faq = airlineFaq(current);
+  const hasCabin = airlineHasBagType(current, "cabinBag");
+  const hasPersonal = airlineHasBagType(current, "personalItem");
   const availableFareClasses = current.fareClasses.filter(
     (fare) => fare.cabinBag || fare.personalItem
   );
@@ -80,12 +91,28 @@ export default function AirlinePage({
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         <div className="wf-card wf-card--compact p-5">
           <h2 className="font-heading text-base font-semibold text-navy-700">Cabin bag</h2>
-          <p className="mt-2 font-mono text-lg text-navy-700">{formatDimensions(current.cabinBag)}</p>
-          {current.weightLimitKg && <p className="mt-1 font-body text-sm text-navy-400">Max weight: {current.weightLimitKg} kg</p>}
+          {hasCabin ? (
+            <>
+              <p className="mt-2 font-mono text-lg text-navy-700">{formatDimensions(current.cabinBag)}</p>
+              {current.weightLimitKg && <p className="mt-1 font-body text-sm text-navy-400">Max weight: {current.weightLimitKg} kg</p>}
+            </>
+          ) : (
+            <div className="mt-2 text-sm text-navy-500">
+              <strong>{notices.find((item) => item.section === "cabinBag-unavailable")?.title}</strong>
+              <p>{notices.find((item) => item.section === "cabinBag-unavailable")?.body}</p>
+            </div>
+          )}
         </div>
         <div className="wf-card wf-card--compact p-5">
           <h2 className="font-heading text-base font-semibold text-navy-700">Personal item</h2>
-          <p className="mt-2 font-mono text-lg text-navy-700">{formatDimensions(current.personalItem)}</p>
+          {hasPersonal ? (
+            <p className="mt-2 font-mono text-lg text-navy-700">{formatDimensions(current.personalItem)}</p>
+          ) : (
+            <div className="mt-2 text-sm text-navy-500">
+              <strong>{notices.find((item) => item.section === "personalItem-unavailable")?.title}</strong>
+              <p>{notices.find((item) => item.section === "personalItem-unavailable")?.body}</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -115,7 +142,7 @@ export default function AirlinePage({
 
       <div className="mt-10">
         <h2 className="font-heading text-xl font-semibold text-navy-700">Check your bag against {current.airlineName}</h2>
-        <div className="mt-4"><DimensionForm airlines={airlines} initialAirline={current} /></div>
+        <div className="mt-4"><DimensionForm airlines={airlines} initialAirline={current} notices={notices} affiliateSlots={affiliateSlots} labConfigs={labConfigs} /></div>
       </div>
 
       <AirlineGuidance airline={current} tips={tips} />

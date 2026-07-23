@@ -11,15 +11,15 @@ describe("Travel Essentials fail-closed framework", () => {
   it("renders all six category buttons without merchant or affiliate links", () => {
     const markup = renderToStaticMarkup(<TravelEssentials />);
     expect((markup.match(/aria-haspopup="dialog"/g) ?? [])).toHaveLength(6);
-    expect(markup).not.toMatch(/<a\b|affiliate|merchant|price/i);
+    expect(markup).not.toMatch(/<a\b|https?:\/\/|£|\$/i);
   });
   it("renders the governed empty state and accessible modal contract", () => {
     const category = visibleTravelEssentialCategories[0]!;
     const markup = renderToStaticMarkup(<TravelEssentialsSheet category={category} onClose={() => undefined} />);
     expect(markup).toContain('role="dialog"');
     expect(markup).toContain('aria-modal="true"');
-    expect(markup).toContain("Coming soon");
-    expect(markup).toContain("Trusted travel recommendations are being prepared.");
-    expect(markup).not.toMatch(/<a\b|affiliate|merchant|price/i);
+    expect((markup.match(/Recommendation coming soon/g) ?? [])).toHaveLength(10);
+    expect(markup).toContain("This governed recommendation slot is ready for a verified product.");
+    expect(markup).not.toMatch(/<a\b|https?:\/\//i);
   });
 });

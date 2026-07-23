@@ -97,8 +97,8 @@
   .wf-checker-step--airline label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
   .wf-checker-step--airline input, .wf-fare-field select { width: 100%; min-height: 48px; border: 1px solid #ccd6e5; border-radius: 9px; padding: 0 14px; color: var(--wf-navy); font-weight: 700; }
   .wf-bag-types { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .wf-bag-type { display: flex; min-height: 48px; align-items: center; justify-content: center; gap: 8px; border: 1px solid #ccd6e5; border-radius: 9px; color: var(--wf-navy); font-size: 12px; font-weight: 700; }
-  .wf-bag-type img { width: 24px; height: 24px; object-fit: contain; }
+  .wf-bag-type { display: flex; min-height: 58px; align-items: center; justify-content: center; gap: 9px; border: 1px solid #ccd6e5; border-radius: 9px; color: var(--wf-navy); font-size: 12px; font-weight: 700; }
+  .wf-bag-type__icon { width: 44px; height: 44px; flex: 0 0 auto; border-radius: 4px; object-fit: contain; }
   .wf-bag-type.is-selected { border: 2px solid #279f37; background: #fbfffb; }
   .wf-fare-field { align-self: end; }
   .wf-fare-field label { display: block; margin-bottom: 9px; color: var(--wf-navy); font-size: 12px; font-weight: 700; }
@@ -133,8 +133,7 @@
   .wf-result-questions { margin-top: 18px; }
 
   .wf-bag-visual { position: relative; width: min(100%, 270px); margin: 16px auto 4px; }
-  .wf-bag-visual > svg { display: block; width: 100%; height: auto; }
-  .wf-bag-visual__status { position: absolute; left: 46%; top: 48%; transform: translate(-50%,-50%); }
+  .wf-bag-visual > img { display: block; width: 100%; height: auto; object-fit: contain; }
 
   .wf-next-steps { width: min(100%, 1000px); margin: 30px auto 0; }
   .wf-next-steps h2 { color: var(--wf-navy); font-size: 22px; font-weight: 750; }
@@ -182,6 +181,33 @@
   .wf-essentials-sheet__content h2 { font-size: 30px; font-weight: 800; }
   .wf-essentials-sheet__content > strong { display: block; margin-top: 30px; font-size: 22px; }
   .wf-essentials-sheet__content p { margin-top: 8px; color: #52617d; line-height: 1.55; }
+  .wf-product-slots { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-top: 24px; }
+  .wf-product-slot { display: flex; min-height: 180px; flex-direction: column; border: 1px solid #dce3ee; border-radius: 12px; padding: 16px; }
+  .wf-product-slot.is-placeholder { border-style: dashed; background: #f7f9fc; }
+  .wf-product-slot small { color: #66738a; font-size: 10px; font-weight: 750; text-transform: uppercase; }
+  .wf-product-slot strong { margin-top: 7px; color: var(--wf-navy); font-size: 14px; }
+  .wf-product-slot p { flex: 1; font-size: 12px; }
+  .wf-product-slot span, .wf-product-slot a { margin-top: 12px; font-size: 11px; font-weight: 700; }
+  .wf-product-slot a { color: #168b2c; text-decoration: underline; }
+  .wf-lab-invitation { margin-top: 18px; border: 1px solid #9ed9a8; border-radius: 12px; background: #f1fbf3; padding: 16px; }
+  .wf-lab-invitation strong { color: var(--wf-navy); }
+  .wf-lab-invitation p { margin-top: 5px; color: #52617d; font-size: 13px; }
+  .wf-lab-invitation a { display: inline-block; margin-top: 10px; color: #087523; font-weight: 750; }
+  .wf-lab-shell { position: fixed; inset: 0; z-index: 200; overflow-y: auto; background: radial-gradient(circle at top,#204673,#081a38 65%); padding: 36px 18px; color: white; }
+  .wf-lab { width: min(100%,720px); margin: 0 auto; border: 1px solid rgba(255,255,255,.2); border-radius: 24px; background: rgba(8,26,56,.9); padding: 36px; box-shadow: 0 24px 80px rgba(0,0,0,.35); }
+  .wf-lab__eyebrow { color: #75e18b; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+  .wf-lab h1 { margin-top: 8px; font-size: clamp(32px,6vw,58px); font-weight: 850; }
+  .wf-lab > p { margin-top: 10px; color: #d1dbeb; }
+  .wf-lab__meter { height: 14px; overflow: hidden; margin-top: 28px; border-radius: 999px; background: #41516e; }
+  .wf-lab__meter span { display: block; height: 100%; background: #53cf6b; transition: width .25s ease; }
+  .wf-lab > strong { display: block; margin-top: 8px; color: #75e18b; }
+  .wf-lab > strong.is-over { color: #ff9d9d; }
+  .wf-lab__items { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-top: 28px; }
+  .wf-lab__items button { display: flex; justify-content: space-between; border: 1px solid #657492; border-radius: 12px; padding: 16px; text-align: left; }
+  .wf-lab__items button[aria-pressed="true"] { border-color: #75e18b; background: rgba(83,207,107,.15); }
+  .wf-lab__items small { color: #c3cee0; }
+  .wf-lab .wf-lab__result { min-height: 48px; margin-top: 22px; color: white; font-weight: 700; }
+  .wf-lab > a { display: inline-block; margin-top: 14px; color: #75e18b; text-decoration: underline; }
 
   .wf-top-airlines { width: min(100%,1000px); margin: 24px auto 0; display: flex; align-items: center; gap: 22px; border: 1px solid #dce3ee; border-radius: 14px; background: white; padding: 18px 22px; }
   .wf-top-airlines > div { display: flex; align-items: center; gap: 11px; min-width: 190px; }
@@ -266,6 +292,8 @@
     .wf-result-copy { margin-top: 24px; }
     .wf-travel-essentials-mobile { display: block; grid-column: 1 / -1; margin-top: 24px; }
     .wf-travel-essentials__cards { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+    .wf-product-slots, .wf-lab__items { grid-template-columns: 1fr; }
+    .wf-lab { padding: 26px 20px; }
     .wf-essential-card__copy { min-height: 94px; padding: 10px; }
     .wf-essential-card__copy strong { font-size: 13px; }
     .wf-essential-card__copy small { font-size: 10px; }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Airline, TravelTip } from "@/types";
+import { airlineHasBagType } from "@/lib/dimensions";
 
 type AirlineSeoHubProps = {
   airline: Airline;
@@ -11,6 +12,8 @@ function formatDimensions(label: string, dims: Airline["cabinBag"]): string {
 }
 
 export default function AirlineSeoHub({ airline, tips }: AirlineSeoHubProps) {
+  const hasCabin = airlineHasBagType(airline, "cabinBag");
+  const hasPersonal = airlineHasBagType(airline, "personalItem");
   const visibleTips = tips.slice(0, 6);
   const relatedSearches = [
     `${airline.airlineName} cabin bag size`,
@@ -32,7 +35,7 @@ export default function AirlineSeoHub({ airline, tips }: AirlineSeoHubProps) {
         </p>
 
         <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-navy-100 bg-white p-4">
+          {hasCabin && <div className="rounded-2xl border border-navy-100 bg-white p-4">
             <dt className="font-heading text-sm font-semibold text-navy-700">
               Cabin bag size
             </dt>
@@ -44,9 +47,9 @@ export default function AirlineSeoHub({ airline, tips }: AirlineSeoHubProps) {
                 Weight limit: {airline.weightLimitKg} kg
               </dd>
             )}
-          </div>
+          </div>}
 
-          <div className="rounded-2xl border border-navy-100 bg-white p-4">
+          {hasPersonal && <div className="rounded-2xl border border-navy-100 bg-white p-4">
             <dt className="font-heading text-sm font-semibold text-navy-700">
               Personal item size
             </dt>
@@ -56,7 +59,7 @@ export default function AirlineSeoHub({ airline, tips }: AirlineSeoHubProps) {
             <dd className="mt-1 font-body text-sm text-navy-400">
               Usually stored under the seat in front.
             </dd>
-          </div>
+          </div>}
         </dl>
       </section>
 
