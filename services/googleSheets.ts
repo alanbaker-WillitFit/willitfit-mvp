@@ -245,8 +245,7 @@ async function readSheetRows(tabName: string): Promise<SheetRow[] | null> {
       return null;
     }
 
-    const range = encodeURIComponent(`${tabName}!A:ZZ`);
-
+    const range = encodeURIComponent(`'${tabName}'!A:ZZ`);
     const response = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`,
       {
