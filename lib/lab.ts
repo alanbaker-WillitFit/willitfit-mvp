@@ -1,6 +1,19 @@
-import type { LabConfiguration } from "@/types";
+import type { FitResult, LabConfiguration } from "@/types";
 
-export function isLabInvitationActive(config: LabConfiguration, now = new Date()) {
-  const trigger = Date.parse(`${config.triggerDate}T00:00:00Z`);
-  return config.active && config.published && Number.isFinite(trigger) && now.getTime() >= trigger;
+export function isLabInvitationActive(config: LabConfiguration, result?: FitResult) {
+  return Boolean(
+    result
+    && config.source === "sheet"
+    && config.active
+    && config.published
+    && config.triggerType.trim().toLowerCase() === "code"
+    && config.bagTypes.includes(result.bagType)
+    && config.resultStates.includes(result.verdict)
+  );
+}
+
+export function selectLabInvitation(configs: LabConfiguration[], result?: FitResult) {
+  return configs
+    .filter((config) => isLabInvitationActive(config, result))
+    .sort((left, right) => left.priority - right.priority || left.configId.localeCompare(right.configId))[0] ?? null;
 }

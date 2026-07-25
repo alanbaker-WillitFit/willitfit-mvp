@@ -272,6 +272,22 @@ async function readSheetRows(tabName: string): Promise<SheetRow[] | null> {
     };
 
     const values = data.values || [];
+    // A reachable, intentionally blank canonical tab is authoritative empty
+    // runtime content. It must not be mistaken for a connection/schema failure
+    // and must not cause a legacy alias or editorial fallback to be loaded.
+    if (values.length === 0) {
+      sheetDiagnostics.set(tabName, {
+        tabName,
+        state: "empty",
+        rowCount: 0,
+        fetchedAt: new Date().toISOString(),
+        error: null,
+        schemaValid: true,
+        missingHeaders: [],
+        duplicateHeaders: [],
+      });
+      return [];
+    }
     const headerRowIndex = findHeaderRowIndex(tabName, values);
     const headerValidation = validateSheetHeaders(tabName, values[headerRowIndex] || []);
 
@@ -386,4 +402,24 @@ export function getSheetDiagnostics(): SheetDiagnostic[] {
 export function clearSheetCaches(): void {
   rowsCache.clear();
   sheetDiagnostics.clear();
+}
+
+export function getRuntimeSourceConfiguration(): {
+  configured: boolean;
+  spreadsheetId: string | null;
+  authenticationConfigured: boolean;
+} {
+  const spreadsheetId = getEnvValue([
+    "GOOGLE_SHEETS_SPREADSHEET_ID",
+    "GOOGLE_SPREADSHEET_ID",
+    "GOOGLE_SHEET_ID",
+  ]);
+  return {
+    configured: Boolean(spreadsheetId),
+    spreadsheetId,
+    authenticationConfigured: Boolean(
+      getEnvValue(["GOOGLE_SERVICE_ACCOUNT_EMAIL"])
+      && getEnvValue(["GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY"])
+    ),
+  };
 }

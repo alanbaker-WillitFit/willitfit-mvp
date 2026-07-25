@@ -1,21 +1,60 @@
 import { Airline, FareClassAllowance, Dimensions, SheetStatus } from "@/types";
 import { cache } from "react";
 import { hasValidDimensions } from "@/lib/dimensions";
-import { getSheetRows, toNumber, slugify } from "./googleSheets";
+import { toNumber, slugify } from "./googleSheets";
 import { FALLBACK_AIRLINES } from "@/data/fallback";
+import { readFirstAvailableRuntimeTab, runtimePublished } from "./runtimeContent";
 
-type AirlineRow = {
+type RuntimeRow = Record<string, string>;
+type AirlineRow = RuntimeRow & {
   AirlineID: string; AirlineName: string; Slug: string; Country: string;
-  AirlineType: string; OfficialBaggageURL: string; Status: string;
-  LastChecked: string; Notes: string;
+  OfficialBaggageURL: string; Status: string; LastChecked: string; Notes: string;
+};
+type BaggageRuleRow = RuntimeRow & {
+  RuleID: string; AirlineID: string; FareClass: string; BagType: string;
+  HeightCm: string; WidthCm: string; DepthCm: string; WeightKg: string; Status?: string;
 };
 
-type BaggageRuleRow = {
-  RuleID: string; AirlineID: string; FareClass: string; BagType: string;
-  IncludedInFare: string; HeightCm: string; WidthCm: string; DepthCm: string;
-  WeightKg: string; Quantity: string; Storage: string; PriorityAllowed: string;
-  PaidUpgradeRequired?: string; Status?: string; Notes?: string;
-};
+export const AIRLINE_TABS = ["02_Airlines", "01_Airlines"] as const;
+export const BAGGAGE_RULE_TABS = ["03_Airline Rules", "02_Baggage_Rules"] as const;
+
+function value(row: RuntimeRow, ...names: string[]): string {
+  for (const name of names) {
+    const candidate = String(row[name] ?? "").trim();
+    if (candidate) return candidate;
+  }
+  return "";
+}
+
+export function adaptAirlineRow(row: RuntimeRow): AirlineRow {
+  return {
+    ...row,
+    AirlineID: value(row, "Airline ID", "AirlineID"),
+    AirlineName: value(row, "Airline Name", "AirlineName"),
+    Slug: value(row, "Slug"),
+    Country: value(row, "Country"),
+    OfficialBaggageURL: value(row, "Baggage URL", "Website URL", "OfficialBaggageURL"),
+    Status: runtimePublished(row) ? "Live" : value(row, "Status", "Review Status"),
+    LastChecked: value(row, "Last Reviewed", "Last Checked", "LastChecked"),
+    Notes: value(row, "Notes"),
+  };
+}
+
+export function adaptBaggageRuleRow(row: RuntimeRow): BaggageRuleRow {
+  return {
+    ...row,
+    RuleID: value(row, "Rule ID", "RuleID"),
+    AirlineID: value(row, "Airline ID", "AirlineID"),
+    FareClass: value(row, "Fare", "FareClass"),
+    BagType: value(row, "Bag Type", "BagType"),
+    // The reduced workbook calls the vertical measure Length.
+    HeightCm: value(row, "Length cm", "HeightCm"),
+    WidthCm: value(row, "Width cm", "WidthCm"),
+    DepthCm: value(row, "Depth cm", "DepthCm"),
+    WeightKg: value(row, "Weight kg", "WeightKg"),
+    Status: runtimePublished(row) ? "Live" : value(row, "Status", "Review Status"),
+  };
+}
 
 function normalise(value: string | undefined): string {
   return String(value ?? "").trim().toLowerCase();
@@ -139,12 +178,14 @@ function mapRows(airline: AirlineRow, baggageRows: BaggageRuleRow[]): Airline {
 }
 
 export async function getAirlines(): Promise<{ airlines: Airline[]; source: "sheet" | "fallback" }> {
-  const [airlineRows, baggageRows] = await Promise.all([
-    getSheetRows<AirlineRow>("01_Airlines"),
-    getSheetRows<BaggageRuleRow>("02_Baggage_Rules"),
+  const [airlineRead, baggageRead] = await Promise.all([
+    readFirstAvailableRuntimeTab<RuntimeRow>(AIRLINE_TABS),
+    readFirstAvailableRuntimeTab<RuntimeRow>(BAGGAGE_RULE_TABS),
   ]);
+  const airlineRows = airlineRead.rows?.filter(runtimePublished).map(adaptAirlineRow) ?? null;
+  const baggageRows = baggageRead.rows?.filter(runtimePublished).map(adaptBaggageRuleRow) ?? null;
 
-  if (!airlineRows || !baggageRows || airlineRows.length === 0 || baggageRows.length === 0) {
+  if (!airlineRows || !baggageRows) {
     return { airlines: FALLBACK_AIRLINES, source: "fallback" };
   }
 
@@ -163,7 +204,7 @@ export async function getAirlines(): Promise<{ airlines: Airline[]; source: "she
     .map((a) => mapRows(a, baggageRows))
     .filter((a) => a.slug && (a.hasCabinBag || a.hasPersonalItem));
 
-  return airlines.length > 0 ? { airlines, source: "sheet" } : { airlines: FALLBACK_AIRLINES, source: "fallback" };
+  return { airlines, source: "sheet" };
 }
 
 export const getCachedAirlines = cache(getAirlines);

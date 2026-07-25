@@ -27,3 +27,28 @@ Keep the key as one secret value with escaped newlines:
 ```
 
 Never commit `.env.local`, service-account JSON, private keys, tokens, or spreadsheet credentials.
+
+## Local RC4 TEST runtime
+
+Copy `.env.local.example` to `.env.local` and add the read-only service-account
+email and private key. The example is deliberately pinned to the TEST workbook:
+
+```text
+1jDzgRN6gRZ6C2i1pb7eMLz22e8opVIn6opPqg3vslhg
+```
+
+The application uses the same loader locally and in Cloudflare. There is no
+separate local content source:
+
+- a successful runtime read, including an empty tab, is authoritative;
+- fallback is used only when the runtime ID, authentication, request, or
+  non-empty tab schema fails;
+- `.env.local` is ignored by Git and must never contain the LIVE workbook ID.
+
+The runtime loader requests these canonical reduced tabs first:
+
+`02_Airlines`, `03_Airline Rules`, `05_FAQs`, `06_Tips`,
+`07_Site Content`, `09_Affiliates`, and `10_Lab`.
+
+Legacy aliases are temporary read compatibility only. They are tried only when
+the canonical tab cannot be read, never when it is successfully empty.

@@ -37,6 +37,23 @@ describe("RC4 bag artwork contract", () => {
     expect(personal).toContain("personal-item-measurement-rc4.jpg");
   });
 
+  it("shows a separate pass or fail callout for every measured axis", () => {
+    const result = renderToStaticMarkup(
+      <BagVisualizer
+        bagType="cabinBag"
+        verdict="no-fit"
+        dimensions={{ heightCm: 60, widthCm: 40, depthCm: 20 }}
+        limit={{ heightCm: 55, widthCm: 40, depthCm: 20 }}
+      />,
+    );
+
+    expect(result).toContain("wf-bag-measurement--height is-over");
+    expect(result).toContain("wf-bag-measurement--width is-fit");
+    expect(result).toContain("wf-bag-measurement--depth is-fit");
+    expect(result).toContain("60 cm");
+    expect(result).toContain("Too large");
+  });
+
   it("uses the locked photographic masters in the bag selector", () => {
     const selector = fs.readFileSync(path.join(process.cwd(), "components", "DimensionForm.tsx"), "utf8");
 

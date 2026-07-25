@@ -1,4 +1,30 @@
 export const REQUIRED_SHEET_HEADERS: Record<string, readonly string[]> = {
+  "02_Airlines": [
+    "Airline ID", "Airline Name", "Website URL", "Baggage URL",
+    "Active", "Review Status", "Publish",
+  ],
+  "03_Airline Rules": [
+    "Rule ID", "Airline ID", "Fare", "Bag Type", "Length cm", "Width cm",
+    "Depth cm", "Review Status", "Publish",
+  ],
+  "05_FAQs": [
+    "FAQ ID", "Category", "Question", "Answer", "Review Status", "Publish",
+  ],
+  "06_Tips": [
+    "Tip ID", "Category", "Title", "Tip / Hint", "Review Status", "Publish",
+  ],
+  "07_Site Content": [
+    "Content ID", "Page", "Section", "Content Type", "Title", "Content",
+    "Display Order", "Active", "Review Status", "Publish",
+  ],
+  "09_Affiliates": [
+    "Affiliate ID", "Category", "Product Name", "Destination URL",
+    "Display Order", "Active", "Review Status", "Publish",
+  ],
+  "10_Lab": [
+    "Lab ID", "Game ID", "Game Name", "Game Path", "Trigger Type",
+    "Active", "Review Status", "Publish",
+  ],
   "01_Airlines": [
     "AirlineID", "AirlineName", "Slug", "OfficialBaggageURL", "Status", "LastChecked",
   ],

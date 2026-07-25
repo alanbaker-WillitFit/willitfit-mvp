@@ -132,8 +132,17 @@
   .wf-result-notice span { display: grid; width: 22px; height: 22px; flex: 0 0 auto; place-items: center; border: 2px solid var(--wf-navy); border-radius: 50%; font-weight: 850; }
   .wf-result-questions { margin-top: 18px; }
 
-  .wf-bag-visual { position: relative; width: min(100%, 270px); margin: 16px auto 4px; }
-  .wf-bag-visual > img { display: block; width: 100%; height: auto; object-fit: contain; }
+.wf-bag-visual { position: relative; width: min(100%, 270px); margin: 16px auto 4px; }
+.wf-bag-visual > img { display: block; width: 100%; height: auto; object-fit: contain; }
+.wf-bag-measurement { position: absolute; z-index: 1; display: grid; min-width: 48px; place-items: center; border: 2px solid white; border-radius: 7px; padding: 4px 6px; color: white; box-shadow: 0 2px 8px rgba(13,27,61,.22); line-height: 1.05; }
+.wf-bag-measurement strong { font-size: 11px; font-weight: 850; white-space: nowrap; }
+.wf-bag-measurement small { margin-top: 2px; font-size: 8px; font-weight: 750; text-transform: uppercase; }
+.wf-bag-measurement.is-fit { background: #1a9b32; }
+.wf-bag-measurement.is-close { background: #d98300; }
+.wf-bag-measurement.is-over { background: #f04444; }
+.wf-bag-measurement--height { left: 7%; top: 47%; }
+.wf-bag-measurement--width { left: 48%; bottom: 11%; transform: translateX(-50%); }
+.wf-bag-measurement--depth { right: 7%; bottom: 18%; }
 
   .wf-next-steps { width: min(100%, 1000px); margin: 30px auto 0; }
   .wf-next-steps h2 { color: var(--wf-navy); font-size: 22px; font-weight: 750; }

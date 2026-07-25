@@ -136,7 +136,11 @@ export interface LabConfiguration {
   gameId: string;
   gameName: string;
   gamePath: string;
-  triggerDate: string;
+  triggerType: string;
+  bagTypes: Array<"cabinBag" | "personalItem">;
+  resultStates: FitVerdict[];
+  priority: number;
+  implementationReference: string;
   invitationTitle: string;
   invitationBody: string;
   cta: string;
@@ -166,7 +170,8 @@ export interface FitResult {
 
 // ── Data fetch envelope ──────────────────────────────────────────────────────
 // Every service call returns this shape so pages can render graceful
-// fallbacks without throwing when the Sheet is unreachable or empty.
+// fallbacks on connection, authentication, request, or schema failure.
+// A successfully read empty runtime tab remains authoritative empty content.
 
 export interface DataResult<T> {
   data: T;

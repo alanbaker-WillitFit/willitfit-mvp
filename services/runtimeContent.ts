@@ -3,7 +3,7 @@ import type { RuntimeContentRecord } from "@/types";
 import { FALLBACK_RUNTIME_CONTENT } from "@/data/runtimeContent";
 import { getSheetRows, toNumber } from "./googleSheets";
 
-export const SITE_CONTENT_TABS = ["90_Site_Content", "Site Content", "10_Site_Content"] as const;
+export const SITE_CONTENT_TABS = ["07_Site Content", "90_Site_Content", "Site Content", "10_Site_Content"] as const;
 
 type RuntimeRow = Record<string, string>;
 
@@ -27,17 +27,34 @@ export function runtimePublished(row: RuntimeRow): boolean {
   const activeValue = value(row, "Active", "Lifecycle Status");
   const publishValue = value(row, "Publish", "Runtime Publish Status", "Published", "Publish Status");
   const reviewValue = value(row, "Review Status", "ReviewStatus", "Workflow Status");
+  const legacyStatusValue = value(row, "Status", "Content Status");
   const active = activeValue ? runtimeBoolean(activeValue) : true;
-  const approved = publishValue
-    ? runtimeBoolean(publishValue)
-    : ["approved", "published", "live"].includes(reviewValue.toLowerCase());
-  return active && approved;
+  const publishApproved = publishValue ? runtimeBoolean(publishValue) : true;
+  const reviewApproved = reviewValue
+    ? ["approved", "published", "live"].includes(reviewValue.toLowerCase())
+    : true;
+  const legacyApproved = !activeValue && !publishValue && !reviewValue && legacyStatusValue
+    ? runtimeBoolean(legacyStatusValue)
+    : true;
+  return active && publishApproved && reviewApproved && legacyApproved;
+}
+
+function derivedModule(row: RuntimeRow): string {
+  const explicit = value(row, "Module");
+  if (explicit) return explicit;
+  const type = value(row, "Content Type", "ContentType").toLowerCase();
+  const page = value(row, "Page").toLowerCase();
+  if (type.includes("hint")) return "Hints";
+  if (type.includes("notice")) return "Notices";
+  if (page === "about") return "About";
+  if (page.includes("travel tip") || page === "tips") return "Travel Tips";
+  return value(row, "Page") || "General";
 }
 
 export function mapRuntimeContentRow(row: RuntimeRow, index: number): RuntimeContentRecord {
   return {
     contentId: value(row, "ContentID", "Content ID", "Content_ID") || `runtime-content-${index + 1}`,
-    module: value(row, "Module") || "General",
+    module: derivedModule(row),
     page: value(row, "Page"),
     section: value(row, "Section"),
     contentType: value(row, "Content Type", "ContentType") || "Section",
@@ -54,11 +71,12 @@ export function mapRuntimeContentRow(row: RuntimeRow, index: number): RuntimeCon
 }
 
 export async function readFirstAvailableRuntimeTab<T extends RuntimeRow>(
-  tabNames: readonly string[]
+  tabNames: readonly string[],
+  reader: <R extends RuntimeRow>(tabName: string) => Promise<R[] | null> = getSheetRows
 ): Promise<{ rows: T[] | null; tabName: string | null }> {
   for (const tabName of tabNames) {
-    const rows = await getSheetRows<T>(tabName);
-    if (rows && rows.length > 0) return { rows, tabName };
+    const rows = await reader<T>(tabName);
+    if (rows !== null) return { rows, tabName };
   }
   return { rows: null, tabName: null };
 }
@@ -82,9 +100,7 @@ export async function getAllRuntimeContent(): Promise<{
     record.published && record.contentId && record.module && (record.title || record.body)
   )).sort((a, b) => a.displayOrder - b.displayOrder || a.contentId.localeCompare(b.contentId));
 
-  return content.length > 0
-    ? { content, source: "sheet" }
-    : { content: FALLBACK_RUNTIME_CONTENT, source: "fallback" };
+  return { content, source: "sheet" };
 }
 
 export const getCachedRuntimeContent = cache(getAllRuntimeContent);
@@ -106,7 +122,9 @@ export async function getRuntimeContent(query: {
     (!query.section || normalise(record.section) === normalise(query.section))
   );
 
-  if (matches.length > 0) return { content: matches, source: loaded.source };
+  if (matches.length > 0 || loaded.source === "sheet") {
+    return { content: matches, source: loaded.source };
+  }
 
   const fallback = FALLBACK_RUNTIME_CONTENT.filter((record) =>
     moduleName(record.module) === moduleName(query.module) &&

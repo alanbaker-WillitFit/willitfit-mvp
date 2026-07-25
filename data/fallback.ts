@@ -163,14 +163,39 @@ export const FALLBACK_AIRLINES: Airline[] = [
 
 export const FALLBACK_TIPS: TravelTip[] = [
   {
-    tipId: "fallback-tip-1",
-    title: "How gate agents actually measure your bag",
-    slug: "how-gate-agents-measure-your-bag",
+    tipId: "tip-measure-handles-wheels",
+    title: "Measure handles and wheels",
+    slug: "measure-handles-and-wheels",
     content:
-      "Most airlines use a rigid sizer cage at the gate, not a tape measure — a bag that bulges by even a centimetre can fail the check even if its rated dimensions are compliant.",
-    category: "Packing",
-    seoKeyword: "airline bag sizer",
-    cta: "Check your bag now",
+      "Airline bag sizes include handles, wheels and outside pockets — not just the soft body of the bag.",
+    category: "Measurement",
+    seoKeyword: "measure cabin bag handles wheels",
+    cta: "Check your bag before you leave",
     status: "Live",
+    priority: 30,
+  },
+  {
+    tipId: "tip-depth-airport-trap",
+    title: "Depth is the airport trap",
+    slug: "depth-is-the-airport-trap",
+    content:
+      "Many bags fail because depth is measured at the bulging front pocket. Measure the thickest point.",
+    category: "Measurement",
+    seoKeyword: "measure cabin bag depth",
+    cta: "Measure the thickest point",
+    status: "Live",
+    priority: 20,
+  },
+  {
+    tipId: "tip-underseat",
+    title: "Underseat means underseat",
+    slug: "underseat-means-underseat",
+    content:
+      "A free personal item usually has to fit under the seat, not just in the overhead locker.",
+    category: "Rules",
+    seoKeyword: "personal item underseat size",
+    cta: "Check airline underseat size",
+    status: "Live",
+    priority: 10,
   },
 ];

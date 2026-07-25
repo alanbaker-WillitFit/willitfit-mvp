@@ -4,7 +4,7 @@ import { affiliatePlaceholdersForCategory, visibleTravelEssentialCategories } fr
 import { readFirstAvailableRuntimeTab, runtimeBoolean, runtimePublished } from "./runtimeContent";
 import { toNumber } from "./googleSheets";
 
-export const AFFILIATE_PRODUCT_TABS = ["09_Affiliate_Products", "Affiliate Products"] as const;
+export const AFFILIATE_PRODUCT_TABS = ["09_Affiliates", "09_Affiliate_Products", "Affiliate Products"] as const;
 const SLOTS_PER_CATEGORY = 10;
 type ProductRow = Record<string, string>;
 
@@ -30,16 +30,16 @@ export function buildAffiliateSlots(rows: ProductRow[] = []): AffiliateSlot[] {
     if (!runtimePublished(row)) return [];
     const category = value(row, "Category", "Product Category").toLowerCase();
     const position = toNumber(value(row, "Slot Position", "Position", "Display Order"), 0);
-    const affiliateUrl = safeHttpsUrl(value(row, "Affiliate URL", "AffiliateURL", "URL"));
+    const affiliateUrl = safeHttpsUrl(value(row, "Destination URL", "Affiliate URL", "AffiliateURL", "URL"));
     if (!category || position < 1 || position > SLOTS_PER_CATEGORY || !affiliateUrl) return [];
     return [{
-      slotId: value(row, "Affiliate Slot ID", "SlotID", "AffiliateID") || `${category}-${String(position).padStart(2, "0")}`,
+      slotId: value(row, "Affiliate ID", "Affiliate Slot ID", "SlotID", "AffiliateID") || `${category}-${String(position).padStart(2, "0")}`,
       category,
       position,
-      title: value(row, "Product Title", "Product", "Title"),
-      description: value(row, "Description", "Supporting Text"),
+      title: value(row, "Product Name", "Product Title", "Product", "Title"),
+      description: value(row, "Product Description", "Description", "Supporting Line", "Supporting Text"),
       merchant: value(row, "Merchant", "Brand"),
-      imageUrl: safeHttpsUrl(value(row, "Image URL", "ImageURL")),
+      imageUrl: safeHttpsUrl(value(row, "Image Reference", "Image URL", "ImageURL")),
       affiliateUrl,
       cta: value(row, "CTA", "CTA Text") || "View product",
       priceText: value(row, "Price Text", "Price"),
