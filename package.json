@@ -15,11 +15,11 @@
     "verify": "npm run type-check && npm run lint && npm test && npm run build",
     "build:cloudflare": "opennextjs-cloudflare build",
     "deploy:dry-run": "opennextjs-cloudflare build && wrangler deploy --dry-run",
-    "validate-build-content": "node scripts/content-automation/validate-build-content.mjs",
+    "validate-build-content": "node archive/workbook-automation/content-automation/validate-build-content.mjs",
     "validate:content": "npm run validate-build-content",
-    "check-airline-policies": "node scripts/content-automation/check-airline-policies.mjs",
+    "check-airline-policies": "node archive/workbook-automation/content-automation/check-airline-policies.mjs",
     "check:airlines": "npm run check-airline-policies",
-    "export-runtime": "node scripts/content-automation/export-runtime.mjs"
+    "export-runtime": "node archive/workbook-automation/content-automation/export-runtime.mjs"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.20.1",
