@@ -3,8 +3,9 @@ import type { AffiliateSlot } from "@/types";
 import { affiliatePlaceholdersForCategory, visibleTravelEssentialCategories } from "@/data/travelEssentials";
 import { readFirstAvailableRuntimeTab, runtimeBoolean, runtimePublished } from "./runtimeContent";
 import { toNumber } from "./googleSheets";
+import { AFFILIATE_PRODUCT_TABS } from "./runtimeSources";
+export { AFFILIATE_PRODUCT_TABS } from "./runtimeSources";
 
-export const AFFILIATE_PRODUCT_TABS = ["09_Affiliates", "09_Affiliate_Products", "Affiliate Products"] as const;
 const SLOTS_PER_CATEGORY = 10;
 type ProductRow = Record<string, string>;
 

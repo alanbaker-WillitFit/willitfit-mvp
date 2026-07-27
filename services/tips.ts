@@ -1,8 +1,10 @@
 import { TravelTip, SheetStatus } from "@/types";
 import { cache } from "react";
-import { FALLBACK_TIPS } from "@/data/fallback";
+import { FALLBACK_TIPS } from "@/data/runtimeFallbacks";
 import { slugify, toNumber } from "./googleSheets";
 import { readFirstAvailableRuntimeTab, runtimePublished } from "./runtimeContent";
+import { TIP_TABS } from "./runtimeSources";
+export { TIP_TABS } from "./runtimeSources";
 
 type TipRow = Record<string, string> & {
   TipID?: string; "Tip ID"?: string; Title?: string; Slug?: string;
@@ -16,7 +18,6 @@ type TipRow = Record<string, string> & {
   Publish?: string;
 };
 
-export const TIP_TABS = ["06_Tips", "06_Travel_Tips", "Content Engine"] as const;
 
 function clean(value: string | undefined): string { return (value ?? "").trim(); }
 

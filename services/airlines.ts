@@ -2,8 +2,10 @@ import { Airline, FareClassAllowance, Dimensions, SheetStatus } from "@/types";
 import { cache } from "react";
 import { hasValidDimensions } from "@/lib/dimensions";
 import { toNumber, slugify } from "./googleSheets";
-import { FALLBACK_AIRLINES } from "@/data/fallback";
+import { FALLBACK_AIRLINES } from "@/data/runtimeFallbacks";
 import { readFirstAvailableRuntimeTab, runtimePublished } from "./runtimeContent";
+import { AIRLINE_TABS, BAGGAGE_RULE_TABS } from "./runtimeSources";
+export { AIRLINE_TABS, BAGGAGE_RULE_TABS } from "./runtimeSources";
 
 type RuntimeRow = Record<string, string>;
 type AirlineRow = RuntimeRow & {
@@ -15,8 +17,6 @@ type BaggageRuleRow = RuntimeRow & {
   HeightCm: string; WidthCm: string; DepthCm: string; WeightKg: string; Status?: string;
 };
 
-export const AIRLINE_TABS = ["02_Airlines", "01_Airlines"] as const;
-export const BAGGAGE_RULE_TABS = ["03_Airline Rules", "02_Baggage_Rules"] as const;
 
 function value(row: RuntimeRow, ...names: string[]): string {
   for (const name of names) {

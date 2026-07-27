@@ -2,9 +2,10 @@ import { cache } from "react";
 import type { LabConfiguration } from "@/types";
 import { readFirstAvailableRuntimeTab, runtimeBoolean, runtimePublished } from "./runtimeContent";
 import { toNumber } from "./googleSheets";
+import { LAB_CONFIG_TABS } from "./runtimeSources";
+export { LAB_CONFIG_TABS } from "./runtimeSources";
 export { isLabInvitationActive } from "@/lib/lab";
 
-export const LAB_CONFIG_TABS = ["10_Lab", "91_Lab_Config", "Lab configuration"] as const;
 type LabRow = Record<string, string>;
 
 // Static route catalogue for the two certified game assets. These entries are
