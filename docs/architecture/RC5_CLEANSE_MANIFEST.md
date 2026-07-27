@@ -37,9 +37,6 @@ styles/
 tests/
 tokens/
 types/
-scripts/
-  build/
-  content/
 docs/
   architecture/
   runbooks/
@@ -93,6 +90,17 @@ Package audit completed on 27 July 2026.
 - That ZIP belongs to the locked icon engineering set and has therefore been retained with its related assets at `archive/engineering-assets/assets/I001 Icons/willitfit-icons-deploy-now.zip` rather than duplicated into `archive/packages/`.
 - No additional move was required and no empty archive placeholder was created.
 
+## Active script audit
+
+Active script audit completed on 27 July 2026.
+
+- Before separation, the tracked `scripts/` tree contained only the four local workbook/content-engine automation files.
+- Those four files were moved unchanged to `archive/workbook-automation/content-automation/`.
+- No tracked file remains under `scripts/`; empty directories are not retained by Git.
+- Website commands `dev`, `build`, `preview`, `deploy`, `start`, `lint`, `type-check`, `test`, `verify`, `build:cloudflare` and `deploy:dry-run` invoke package binaries directly and do not depend on repository scripts.
+- The three deliberate workbook commands remain available through updated `package.json` paths to the archive location.
+- Classification result: build-critical repository scripts — none; operational website scripts — none; historical/local workbook automation — four, archived.
+
 ## Move register
 
 | Status | Original path | New path | Notes |
@@ -103,3 +111,5 @@ Package audit completed on 27 July 2026.
 | Complete | `runtime-export/` | `archive/runtime-exports/` | Eight snapshot files preserved as zero-content-change renames |
 | Complete | `engineering-archive/` | `archive/engineering-assets/` | 14 engineering files preserved as zero-content-change renames |
 | Complete — no further move | Nested ZIPs and historical packages | `archive/packages/` | Only icon deployment ZIP found; retained with the engineering asset set |
+| Complete | `scripts/content-automation/` | `archive/workbook-automation/content-automation/` | Four files preserved as zero-content-change renames; npm command paths updated |
+| Complete — no active files | Remaining `scripts/` tree | Not applicable | No build-critical or operational repository script remains |
