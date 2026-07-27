@@ -84,14 +84,22 @@ archive/
 8. Compare routes, screenshots, metadata, HTML and Lab behaviour with RC4.
 9. Certify and tag the clean RC5 baseline before feature work.
 
-## Move register
+## Package audit
 
-The move register will be extended as each controlled archive move is completed.
+Package audit completed on 27 July 2026.
+
+- No standalone historical ZIP, TAR, TGZ, GZ or 7Z package remains in active source.
+- The only nested package identified was `willitfit-icons-deploy-now.zip`.
+- That ZIP belongs to the locked icon engineering set and has therefore been retained with its related assets at `archive/engineering-assets/assets/I001 Icons/willitfit-icons-deploy-now.zip` rather than duplicated into `archive/packages/`.
+- No additional move was required and no empty archive placeholder was created.
+
+## Move register
 
 | Status | Original path | New path | Notes |
 |---|---|---|---|
-| Planned | `RC2_*_CHANGELOG.md` and `RC2_*_BUILD_VERIFICATION.md` | `archive/releases/rc2/` | Preserve full contents and Git history |
-| Planned | `reports/` | `archive/evidence/reports/` | No evidence deletion |
-| Planned | `artifacts/` | `archive/workbooks/` | No workbook deletion |
-| Planned | `runtime-export/` | `archive/runtime-exports/` | No export deletion |
-| Planned | `engineering-archive/` | `archive/engineering-assets/` | No asset deletion |
+| Complete | `RC2_*_CHANGELOG.md`, release status and build-verification records | `archive/releases/rc2/` | 24 files preserved as zero-content-change renames |
+| Complete | `reports/` | `archive/evidence/reports/` | 21 evidence files preserved as zero-content-change renames |
+| Complete | `artifacts/rc4/` | `archive/workbooks/rc4/` | Two workbook files preserved as zero-content-change renames |
+| Complete | `runtime-export/` | `archive/runtime-exports/` | Eight snapshot files preserved as zero-content-change renames |
+| Complete | `engineering-archive/` | `archive/engineering-assets/` | 14 engineering files preserved as zero-content-change renames |
+| Complete — no further move | Nested ZIPs and historical packages | `archive/packages/` | Only icon deployment ZIP found; retained with the engineering asset set |
