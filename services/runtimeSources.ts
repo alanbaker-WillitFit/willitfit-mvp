@@ -1,10 +1,16 @@
-// Canonical runtime tab names must remain first. Later entries are legacy aliases
-// tried only when the preceding tab cannot be read. An accessible empty canonical
-// tab remains authoritative and stops alias traversal.
+// RC5 canonical runtime tab names.
+//
+// Core RC5 development reads only the isolated MVP runtime tabs. The RC4-era
+// Mother and compact-runtime aliases are intentionally not traversed for these
+// modules: a missing or invalid canonical tab must fail closed instead of
+// silently loading data from an older contract.
 export const RUNTIME_TABS = {
-  airlines: ["02_Airlines", "01_Airlines"],
-  baggageRules: ["03_Airline Rules", "02_Baggage_Rules"],
-  tips: ["06_Tips", "06_Travel_Tips", "Content Engine"],
+  airlines: ["01_Airlines"],
+  baggageRules: ["02_Baggage_Rules"],
+  tips: ["06_Travel_Tips"],
+
+  // Deferred modules retain their existing sources until each module receives
+  // an approved RC5 runtime contract and is enabled in 00_Runtime_Control.
   faqs: ["05_FAQs"],
   siteContent: ["07_Site Content", "90_Site_Content", "Site Content", "10_Site_Content"],
   affiliateProducts: ["09_Affiliates", "09_Affiliate_Products", "Affiliate Products"],
