@@ -1,20 +1,17 @@
 // RC5 canonical runtime tab names.
 //
-// Core RC5 development reads only the isolated MVP runtime tabs. The RC4-era
-// Mother and compact-runtime aliases are intentionally not traversed for these
-// modules: a missing or invalid canonical tab must fail closed instead of
-// silently loading data from an older contract.
+// The isolated RC5 runtime is a full Mother-derived baseline. These canonical
+// tabs mirror the approved Mother output names. Core modules must fail closed
+// when a required tab is missing or invalid rather than traversing legacy RC4
+// compact-runtime aliases.
 export const RUNTIME_TABS = {
-  airlines: ["01_Airlines"],
-  baggageRules: ["02_Baggage_Rules"],
-  tips: ["06_Travel_Tips"],
-
-  // Deferred modules retain their existing sources until each module receives
-  // an approved RC5 runtime contract and is enabled in 00_Runtime_Control.
+  airlines: ["02_Airlines"],
+  baggageRules: ["03_Airline Rules"],
+  tips: ["06_Tips"],
   faqs: ["05_FAQs"],
-  siteContent: ["07_Site Content", "90_Site_Content", "Site Content", "10_Site_Content"],
-  affiliateProducts: ["09_Affiliates", "09_Affiliate_Products", "Affiliate Products"],
-  labConfig: ["10_Lab", "91_Lab_Config", "Lab configuration"],
+  siteContent: ["07_Site Content"],
+  affiliateProducts: ["09_Affiliate_Placements"],
+  labConfig: ["10_Lab"],
 } as const;
 
 export const AIRLINE_TABS = RUNTIME_TABS.airlines;
