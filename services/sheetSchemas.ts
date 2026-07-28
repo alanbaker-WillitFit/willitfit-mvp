@@ -1,4 +1,21 @@
 export const REQUIRED_SHEET_HEADERS: Record<string, readonly string[]> = {
+  // RC5 MVP runtime contract.
+  "01_Airlines": [
+    "Airline ID", "Airline Name", "IATA Code", "Search Terms", "Country",
+    "Display Order", "Active", "Publish",
+  ],
+  "02_Baggage_Rules": [
+    "Rule ID", "Airline ID", "Fare", "Bag Type", "Length cm", "Width cm",
+    "Depth cm", "Weight kg", "Wheels Included", "Handles Included",
+    "Fits Under Seat", "Soft Bag Guidance", "Rule Wording", "Publish",
+  ],
+  "06_Travel_Tips": [
+    "Tip ID", "Category", "Airline ID", "Fare", "Bag Type", "Title",
+    "Tip / Hint", "Context Trigger", "Search Terms", "Priority", "Publish",
+  ],
+
+  // Deferred/editorial contracts retained until their RC5 runtime modules are
+  // separately designed and enabled.
   "02_Airlines": [
     "Airline ID", "Airline Name", "Website URL", "Baggage URL",
     "Active", "Review Status", "Publish",
@@ -25,15 +42,6 @@ export const REQUIRED_SHEET_HEADERS: Record<string, readonly string[]> = {
     "Lab ID", "Game ID", "Game Name", "Game Path", "Trigger Type",
     "Active", "Review Status", "Publish",
   ],
-  "01_Airlines": [
-    "AirlineID", "AirlineName", "Slug", "OfficialBaggageURL", "Status", "LastChecked",
-  ],
-  "02_Baggage_Rules": [
-    "RuleID", "AirlineID", "FareClass", "BagType", "HeightCm", "WidthCm", "DepthCm", "Status",
-  ],
-  "06_Travel_Tips": [
-    "TipID", "Title", "Slug", "Content", "Category", "Status",
-  ],
   "07_Poll_Questions": [
     "Question", "OptionA", "OptionB", "Status",
   ],
@@ -51,7 +59,6 @@ export const REQUIRED_SHEET_HEADERS: Record<string, readonly string[]> = {
     "ConfigID", "GameID", "Game Name", "Game Path", "Trigger Date",
     "Active", "Review Status", "Publish",
   ],
-
   "73_QE_Canonical_Map": [
     "Question_ID", "Canonical_Question", "Answer_Object_ID", "Destination_URL", "Pass_3_Status", "Pass_4_Status",
   ],
