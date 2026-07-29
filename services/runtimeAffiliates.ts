@@ -1,6 +1,10 @@
 import { cache } from "react";
 import type { AffiliateSlot } from "@/types";
-import { affiliatePlaceholdersForCategory, visibleTravelEssentialCategories } from "@/data/travelEssentials";
+import {
+  affiliatePlaceholdersForCategory,
+  isAffiliateRuntimeCategoryKey,
+  visibleTravelEssentialCategories,
+} from "@/data/travelEssentials";
 import { readFirstAvailableRuntimeTab, runtimeBoolean, runtimePublished } from "./runtimeContent";
 import { toNumber } from "./googleSheets";
 
@@ -28,10 +32,17 @@ function safeHttpsUrl(input: string) {
 export function buildAffiliateSlots(rows: ProductRow[] = []): AffiliateSlot[] {
   const candidates = rows.flatMap((row) => {
     if (!runtimePublished(row)) return [];
-    const category = value(row, "Category", "Product Category").toLowerCase();
+
+    const activeValue = value(row, "Active");
+    if (activeValue && !runtimeBoolean(activeValue)) return [];
+
+    const category = value(row, "Category Key", "Runtime Category Key", "Category", "Product Category").toLowerCase();
     const position = toNumber(value(row, "Slot Position", "Position", "Display Order"), 0);
     const affiliateUrl = safeHttpsUrl(value(row, "Destination URL", "Affiliate URL", "AffiliateURL", "URL"));
-    if (!category || position < 1 || position > SLOTS_PER_CATEGORY || !affiliateUrl) return [];
+
+    if (!isAffiliateRuntimeCategoryKey(category)) return [];
+    if (position < 1 || position > SLOTS_PER_CATEGORY || !affiliateUrl) return [];
+
     return [{
       slotId: value(row, "Affiliate ID", "Affiliate Slot ID", "SlotID", "AffiliateID") || `${category}-${String(position).padStart(2, "0")}`,
       category,
@@ -44,7 +55,7 @@ export function buildAffiliateSlots(rows: ProductRow[] = []): AffiliateSlot[] {
       cta: value(row, "CTA", "CTA Text") || "View product",
       priceText: value(row, "Price Text", "Price"),
       disclosure: value(row, "Disclosure") || "Affiliate link",
-      active: value(row, "Active") ? runtimeBoolean(value(row, "Active")) : true,
+      active: true,
       reviewStatus: value(row, "Review Status", "Status"),
       published: true,
       lastReviewed: value(row, "Last Reviewed", "LastReviewed"),
@@ -60,9 +71,9 @@ export function buildAffiliateSlots(rows: ProductRow[] = []): AffiliateSlot[] {
   }
 
   return visibleTravelEssentialCategories.flatMap((category) => {
-    const placeholders = affiliatePlaceholdersForCategory(category.slug);
+    const placeholders = affiliatePlaceholdersForCategory(category.runtimeKey);
     return Array.from({ length: SLOTS_PER_CATEGORY }, (_, index) =>
-      unique.get(`${category.slug}:${index + 1}`) ?? placeholders[index]!
+      unique.get(`${category.runtimeKey}:${index + 1}`) ?? placeholders[index]!
     );
   });
 }
