@@ -17,7 +17,6 @@ type BaggageRuleRow = RuntimeRow & {
   HeightCm: string; WidthCm: string; DepthCm: string; WeightKg: string; Status?: string;
 };
 
-
 function value(row: RuntimeRow, ...names: string[]): string {
   for (const name of names) {
     const candidate = String(row[name] ?? "").trim();
@@ -47,7 +46,6 @@ export function adaptBaggageRuleRow(row: RuntimeRow): BaggageRuleRow {
     AirlineID: value(row, "Airline ID", "AirlineID"),
     FareClass: value(row, "Fare", "FareClass"),
     BagType: value(row, "Bag Type", "BagType"),
-    // The reduced workbook calls the vertical measure Length.
     HeightCm: value(row, "Length cm", "HeightCm"),
     WidthCm: value(row, "Width cm", "WidthCm"),
     DepthCm: value(row, "Depth cm", "DepthCm"),
@@ -80,6 +78,11 @@ function isPersonalItem(rule: BaggageRuleRow): boolean {
   return bagType.includes("personal") || bagType.includes("underseat") || bagType.includes("handbag");
 }
 
+function isCheckedBag(rule: BaggageRuleRow): boolean {
+  const bagType = normalise(rule.BagType);
+  return bagType.includes("checked") || bagType.includes("hold") || bagType.includes("check-in");
+}
+
 function toDimensions(rule: BaggageRuleRow | undefined): Dimensions | null {
   if (!rule) return null;
   const dimensions = {
@@ -103,7 +106,6 @@ function selectBaseline(rules: BaggageRuleRow[]): Dimensions {
 
   if (candidates.length === 0) return { heightCm: 0, widthCm: 0, depthCm: 0 };
 
-  // Select one real published allowance rather than combining axes from different rows.
   candidates.sort((a, b) => {
     const av = a.dimensions.heightCm * a.dimensions.widthCm * a.dimensions.depthCm;
     const bv = b.dimensions.heightCm * b.dimensions.widthCm * b.dimensions.depthCm;
@@ -130,11 +132,14 @@ function buildFareClasses(rules: BaggageRuleRow[]): FareClassAllowance[] {
     const classRules = rules.filter((r) => r.FareClass?.trim() === fareClass);
     const cabinRule = classRules.find(isCabinBag);
     const personalRule = classRules.find(isPersonalItem);
+    const checkedRule = classRules.find(isCheckedBag);
     return {
       fareClass,
       cabinBag: toDimensions(cabinRule),
       personalItem: toDimensions(personalRule),
+      checkedBag: toDimensions(checkedRule),
       weightLimitKg: toWeight(cabinRule),
+      checkedWeightLimitKg: toWeight(checkedRule),
     };
   });
 }
@@ -154,9 +159,12 @@ function mapRows(airline: AirlineRow, baggageRows: BaggageRuleRow[]): Airline {
   const airlineRules = baggageRows.filter((rule) => rule.AirlineID.trim() === airlineId && isLiveRule(rule));
   const cabinRules = airlineRules.filter(isCabinBag);
   const personalRules = airlineRules.filter(isPersonalItem);
+  const checkedRules = airlineRules.filter(isCheckedBag);
 
   const personalItem = selectBaseline(personalRules);
   const cabinBag = selectBaseline(cabinRules);
+  const checkedBag = selectBaseline(checkedRules);
+  const hasCheckedBag = hasValidDimensions(checkedBag);
 
   return {
     airlineId,
@@ -166,7 +174,9 @@ function mapRows(airline: AirlineRow, baggageRows: BaggageRuleRow[]): Airline {
     logoUrl: "",
     personalItem,
     cabinBag,
+    ...(hasCheckedBag ? { checkedBag } : {}),
     weightLimitKg: minWeight(cabinRules),
+    checkedWeightLimitKg: minWeight(checkedRules),
     fareClasses: buildFareClasses(airlineRules),
     websiteUrl: isHttpsUrl(airline.OfficialBaggageURL) ? airline.OfficialBaggageURL.trim() : "",
     lastUpdated: airline.LastChecked?.trim() || "",
@@ -174,6 +184,7 @@ function mapRows(airline: AirlineRow, baggageRows: BaggageRuleRow[]): Airline {
     notes: airline.Notes?.trim() || "",
     hasCabinBag: hasValidDimensions(cabinBag),
     hasPersonalItem: hasValidDimensions(personalItem),
+    hasCheckedBag,
   };
 }
 
@@ -202,7 +213,7 @@ export async function getAirlines(): Promise<{ airlines: Airline[]; source: "she
   const airlines = liveRows
     .filter((a) => !duplicateIds.has(a.AirlineID.trim()) && !duplicateSlugs.has(slugify(a.Slug || a.AirlineName)))
     .map((a) => mapRows(a, baggageRows))
-    .filter((a) => a.slug && (a.hasCabinBag || a.hasPersonalItem));
+    .filter((a) => a.slug && (a.hasCabinBag || a.hasPersonalItem || a.hasCheckedBag));
 
   return { airlines, source: "sheet" };
 }
