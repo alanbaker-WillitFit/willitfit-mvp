@@ -31,6 +31,8 @@ function makeResult(verdict: FitResult["verdict"], overrides: Partial<FitResult>
     userDimensions: { heightCm: 56, widthCm: 45, depthCm: 25 },
     limit: { heightCm: 56, widthCm: 45, depthCm: 25 },
     weightLimitKg: 15,
+    userWeightKg: null,
+    weightVerdict: "not-checked",
     fareClass: "Large cabin bag",
     overBy: verdict === "no-fit" ? { heightCm: 4 } : {},
     spareCm: verdict === "fits" ? { heightCm: 4, widthCm: 3, depthCm: 3 } : {},
@@ -62,7 +64,7 @@ describe("RC15 Question Engine", () => {
   });
 
   it("suppresses the weight question when no published limit exists", () => {
-    const questions = getResultQuestions(makeResult("fits", { weightLimitKg: null }));
+    const questions = getResultQuestions(makeResult("fits", { weightLimitKg: null, weightVerdict: "not-published" }));
     expect(questions.some((item) => item.questionId === "Q-0002")).toBe(false);
   });
 

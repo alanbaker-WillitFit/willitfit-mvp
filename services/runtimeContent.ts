@@ -1,9 +1,10 @@
 import { cache } from "react";
 import type { RuntimeContentRecord } from "@/types";
-import { FALLBACK_RUNTIME_CONTENT } from "@/data/runtimeContent";
+import { FALLBACK_RUNTIME_CONTENT } from "@/data/runtimeFallbacks";
 import { getSheetRows, toNumber } from "./googleSheets";
+import { SITE_CONTENT_TABS } from "./runtimeSources";
+export { SITE_CONTENT_TABS } from "./runtimeSources";
 
-export const SITE_CONTENT_TABS = ["07_Site Content", "90_Site_Content", "Site Content", "10_Site_Content"] as const;
 
 type RuntimeRow = Record<string, string>;
 

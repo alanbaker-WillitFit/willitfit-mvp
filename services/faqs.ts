@@ -1,10 +1,11 @@
 import { cache } from "react";
 import type { RuntimeContentRecord } from "@/types";
-import { FALLBACK_RUNTIME_CONTENT } from "@/data/runtimeContent";
+import { FALLBACK_RUNTIME_CONTENT } from "@/data/runtimeFallbacks";
 import { toNumber } from "./googleSheets";
 import { readFirstAvailableRuntimeTab, runtimePublished } from "./runtimeContent";
+import { FAQ_TABS } from "./runtimeSources";
+export { FAQ_TABS } from "./runtimeSources";
 
-export const FAQ_TABS = ["05_FAQs"] as const;
 type FaqRow = Record<string, string>;
 
 function value(row: FaqRow, ...names: string[]): string {

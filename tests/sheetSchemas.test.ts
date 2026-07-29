@@ -12,8 +12,8 @@ describe("sheet schema validation", () => {
   it("reports missing required headers", () => {
     const result = validateSheetHeaders("01_Airlines", ["AirlineID", "AirlineName", "Status"]);
     expect(result.valid).toBe(false);
-    expect(result.missingHeaders).toContain("Slug");
-    expect(result.missingHeaders).toContain("OfficialBaggageURL");
+    expect(result.missingHeaders).toContain("IATA Code");
+    expect(result.missingHeaders).toContain("Publish");
   });
 
   it("reports duplicate headers", () => {
