@@ -1,26 +1,13 @@
-import { Airline, Dimensions, FitResult, FitVerdict } from "@/types";
+import { Airline, BagType, Dimensions, FitResult, FitVerdict, WeightVerdict } from "@/types";
 import { hasValidDimensions } from "@/lib/dimensions";
 
 const CLOSE_FIT_THRESHOLD_CM = 2;
 
-/**
- * Bags aren't rigid boxes — a 55×40×20 bag can usually be presented to a
- * sizer cage as 40×55×20 just as easily. We try every axis permutation of
- * the user's three measurements and keep whichever orientation is most
- * favourable against the airline's limit, then grade that best orientation.
- * This mirrors how a gate agent actually tests a bag, rather than penalising
- * someone for typing height/width/depth in a different order than the
- * airline lists them.
- */
 function orientations(d: Dimensions): Dimensions[] {
   const { heightCm: h, widthCm: w, depthCm: dp } = d;
   const perms: [number, number, number][] = [
-    [h, w, dp],
-    [h, dp, w],
-    [w, h, dp],
-    [w, dp, h],
-    [dp, h, w],
-    [dp, w, h],
+    [h, w, dp], [h, dp, w], [w, h, dp],
+    [w, dp, h], [dp, h, w], [dp, w, h],
   ];
   return perms.map(([heightCm, widthCm, depthCm]) => ({ heightCm, widthCm, depthCm }));
 }
@@ -37,27 +24,28 @@ function maxOverage(diff: Dimensions): number {
   return Math.max(diff.heightCm, diff.widthCm, diff.depthCm);
 }
 
-/**
- * Scores how good an orientation is: the largest overage across the three
- * axes, where negative means "under the limit by this much". Lower is
- * always better — we want the orientation that is most under (or least
- * over) the limit.
- */
 function gradeOrientation(user: Dimensions, limit: Dimensions): { diff: Dimensions; score: number } {
   const diff = diffAgainstLimit(user, limit);
   return { diff, score: maxOverage(diff) };
 }
 
-/**
- * Resolves which allowance to check against. If a fareClass is given and the
- * airline actually has data for it, use that fare class's specific figures.
- * Otherwise fall back to the airline's conservative minimum (the smallest
- * allowance across all its fare classes) — this is also what's used when the
- * person hasn't picked a seat type at all.
- */
+function airlineLimit(airline: Airline, bagType: BagType): Dimensions {
+  const limit = airline[bagType];
+  if (!limit || !hasValidDimensions(limit)) {
+    throw new Error(`No valid ${bagType} allowance is available for ${airline.airlineName}.`);
+  }
+  return limit;
+}
+
+function airlineWeightLimit(airline: Airline, bagType: BagType): number | null {
+  return bagType === "checkedBag"
+    ? airline.checkedWeightLimitKg ?? null
+    : airline.weightLimitKg;
+}
+
 export function resolveLimit(
   airline: Airline,
-  bagType: "cabinBag" | "personalItem",
+  bagType: BagType,
   fareClass?: string | null
 ): { limit: Dimensions; weightLimitKg: number | null; fareClass: string | null } {
   if (fareClass) {
@@ -66,18 +54,32 @@ export function resolveLimit(
     );
     const selectedLimit = match?.[bagType] ?? null;
     if (match && selectedLimit && hasValidDimensions(selectedLimit)) {
-      return { limit: selectedLimit, weightLimitKg: match.weightLimitKg, fareClass: match.fareClass };
+      const weightLimitKg = bagType === "checkedBag"
+        ? match.checkedWeightLimitKg ?? null
+        : match.weightLimitKg;
+      return { limit: selectedLimit, weightLimitKg, fareClass: match.fareClass };
     }
   }
 
-  return { limit: airline[bagType], weightLimitKg: airline.weightLimitKg, fareClass: null };
+  return {
+    limit: airlineLimit(airline, bagType),
+    weightLimitKg: airlineWeightLimit(airline, bagType),
+    fareClass: null,
+  };
+}
+
+function resolveWeightVerdict(userWeightKg: number | null, weightLimitKg: number | null): WeightVerdict {
+  if (weightLimitKg === null) return "not-published";
+  if (userWeightKg === null) return "not-checked";
+  return userWeightKg <= weightLimitKg ? "fits" : "no-fit";
 }
 
 export function checkFit(
   userDimensions: Dimensions,
   airline: Airline,
-  bagType: "cabinBag" | "personalItem",
-  fareClass?: string | null
+  bagType: BagType,
+  fareClass?: string | null,
+  userWeightKg: number | null = null
 ): FitResult {
   const { limit, weightLimitKg, fareClass: resolvedFareClass } = resolveLimit(airline, bagType, fareClass);
 
@@ -102,8 +104,6 @@ export function checkFit(
 
   if (best.score <= 0) {
     verdict = "fits";
-    // Headroom per axis (limit minus bag) — this is the "Allowance Remaining"
-    // figure shown to the user, so it should always be >= 0 here by definition.
     spareCm = {
       heightCm: round1(-best.diff.heightCm),
       widthCm: round1(-best.diff.widthCm),
@@ -111,7 +111,7 @@ export function checkFit(
     };
   } else if (best.score <= CLOSE_FIT_THRESHOLD_CM) {
     verdict = "close";
-    withinCm = Math.round(best.score * 10) / 10;
+    withinCm = round1(best.score);
   } else {
     verdict = "no-fit";
     overBy = {
@@ -121,6 +121,9 @@ export function checkFit(
     };
   }
 
+  const weightVerdict = resolveWeightVerdict(userWeightKg, weightLimitKg);
+  if (weightVerdict === "no-fit") verdict = "no-fit";
+
   return {
     verdict,
     airline,
@@ -128,6 +131,8 @@ export function checkFit(
     userDimensions,
     limit,
     weightLimitKg,
+    userWeightKg,
+    weightVerdict,
     fareClass: resolvedFareClass,
     overBy,
     spareCm,
@@ -143,7 +148,6 @@ function round1(n: number): number {
 export function isValidDimensions(d: Partial<Dimensions>): d is Dimensions {
   return hasValidDimensions(d);
 }
-
 
 export const VERDICT_COPY: Record<FitVerdict, { label: string; tone: "good" | "warn" | "bad" }> = {
   fits: { label: "Good to Go", tone: "good" },
