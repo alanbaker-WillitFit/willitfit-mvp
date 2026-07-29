@@ -59,6 +59,59 @@
       "lastChecked"
     ]
   },
+  "affiliates": {
+    "enabled": true,
+    "sourceTab": "09_Affiliate_Placements",
+    "runtimeTabs": ["09_Affiliates", "09_Affiliate_Products", "Affiliate Products"],
+    "slotsPerCategory": 10,
+    "categoryKeys": [
+      "packing-cubes",
+      "power-banks",
+      "travel-adapters",
+      "luggage-scales",
+      "travel-comfort",
+      "esim-connectivity"
+    ],
+    "badgeValues": [
+      "Best Buy",
+      "Budget Pick",
+      "WillItFit Recommends",
+      "Top Rated"
+    ],
+    "requiredFields": [
+      "productName",
+      "productRef",
+      "affiliateUrl",
+      "categoryKey",
+      "slotPosition",
+      "active",
+      "reviewStatus",
+      "publish"
+    ],
+    "optionalFields": [
+      "affiliateProgrammeId",
+      "merchant",
+      "targetType",
+      "targetReference",
+      "subjectContext",
+      "supportingLine",
+      "productDescription",
+      "imageUrl",
+      "disclosure",
+      "displayOrder",
+      "lastReviewed",
+      "productScope",
+      "notes",
+      "badge"
+    ],
+    "publicationRules": {
+      "activeValue": true,
+      "approvedReviewStatus": "Approved",
+      "httpsOnly": true,
+      "uniqueCategorySlot": true,
+      "badgeControlsRouting": false
+    }
+  },
   "airlineCards": {
     "runtimeDriven": true,
     "supportedSections": [
