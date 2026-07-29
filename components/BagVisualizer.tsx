@@ -1,9 +1,9 @@
 import React from "react";
 import Image from "next/image";
-import { Dimensions, FitVerdict } from "@/types";
+import { BagType, Dimensions, FitVerdict } from "@/types";
 
 interface BagVisualizerProps {
-  bagType: "cabinBag" | "personalItem";
+  bagType: BagType;
   verdict: FitVerdict;
   dimensions?: Dimensions;
   limit?: Dimensions;
@@ -18,13 +18,29 @@ export function getMeasurementState(value: number, allowance: number, verdict: F
   };
 }
 
-// RC4 locked photographic masters supplied by the product owner.
-// Keep these versioned paths aligned with the canonical selector assets.
+const BAG_PRESENTATION: Record<BagType, { image: string; label: string; width: number; height: number }> = {
+  cabinBag: {
+    image: "/assets/icons/cabin-bag-measurement-rc4.jpg",
+    label: "Cabin bag",
+    width: 672,
+    height: 934,
+  },
+  personalItem: {
+    image: "/assets/icons/personal-item-measurement-rc4.jpg",
+    label: "Personal item",
+    width: 689,
+    height: 850,
+  },
+  checkedBag: {
+    image: "/assets/icons/cabin-bag-measurement-rc4.jpg",
+    label: "Checked bag",
+    width: 672,
+    height: 934,
+  },
+};
+
 export default function BagVisualizer({ bagType, verdict, dimensions, limit }: BagVisualizerProps) {
-  const cabinBag = bagType === "cabinBag";
-  const image = cabinBag
-    ? "/assets/icons/cabin-bag-measurement-rc4.jpg"
-    : "/assets/icons/personal-item-measurement-rc4.jpg";
+  const presentation = BAG_PRESENTATION[bagType];
   const measurement = dimensions
     ? `: ${dimensions.heightCm} by ${dimensions.widthCm} by ${dimensions.depthCm} centimetres`
     : "";
@@ -39,10 +55,10 @@ export default function BagVisualizer({ bagType, verdict, dimensions, limit }: B
   return (
     <figure className="wf-bag-visual">
       <Image
-        src={image}
-        alt={`${cabinBag ? "Cabin bag" : "Personal item"} with measurement arrows${measurement}. Result: ${verdict}.`}
-        width={cabinBag ? 672 : 689}
-        height={cabinBag ? 934 : 850}
+        src={presentation.image}
+        alt={`${presentation.label} with measurement arrows${measurement}. Result: ${verdict}.`}
+        width={presentation.width}
+        height={presentation.height}
         sizes="(max-width: 767px) 86vw, 360px"
       />
       {callouts.map(([axis, positionClass, value, allowance]) => {
