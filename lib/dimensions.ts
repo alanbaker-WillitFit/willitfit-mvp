@@ -1,4 +1,4 @@
-import { Airline, Dimensions } from "@/types";
+import { Airline, BagType, Dimensions } from "@/types";
 
 export type DimensionField = "heightCm" | "widthCm" | "depthCm";
 
@@ -6,12 +6,6 @@ export const MIN_BAG_DIMENSION_CM = 1;
 export const MAX_BAG_DIMENSION_CM = 150;
 export const DIMENSION_INPUT_PATTERN = /^\d{0,3}(?:\.\d{0,1})?$/;
 
-/**
- * Produces an editable dimension string from typed or pasted input.
- * Invalid characters are removed, commas become decimal points, only the
- * first decimal point is kept, and the value is capped at three whole-number
- * digits plus one decimal place.
- */
 export function sanitiseDimensionInput(value: string): string {
   if (/^\s*-/.test(value)) return "";
   const normalised = value.trim().replace(/,/g, ".").replace(/[^\d.]/g, "");
@@ -20,20 +14,14 @@ export function sanitiseDimensionInput(value: string): string {
   const fractionDigits = fractionParts.join("").slice(0, 1);
   const hadDecimalPoint = normalised.includes(".");
 
-  if (hadDecimalPoint) {
-    return `${wholeDigits}.${fractionDigits}`;
-  }
-
+  if (hadDecimalPoint) return `${wholeDigits}.${fractionDigits}`;
   return wholeDigits;
 }
 
-/** Normalises a completed field while preserving an empty field. */
 export function normaliseDimensionOnBlur(value: string): string {
   if (value === "" || value === ".") return "";
-
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return "";
-
   return String(Math.round(numeric * 10) / 10);
 }
 
@@ -46,7 +34,6 @@ export function dimensionError(value: string): string | null {
   if (numeric < MIN_BAG_DIMENSION_CM || numeric > MAX_BAG_DIMENSION_CM) {
     return `Enter a value between ${MIN_BAG_DIMENSION_CM}–${MAX_BAG_DIMENSION_CM} cm.`;
   }
-
   return null;
 }
 
@@ -65,10 +52,13 @@ export function hasValidDimensions(
   );
 }
 
-export function airlineHasBagType(
-  airline: Airline,
-  bagType: "cabinBag" | "personalItem"
-): boolean {
-  const explicit = bagType === "cabinBag" ? airline.hasCabinBag : airline.hasPersonalItem;
+export function airlineHasBagType(airline: Airline, bagType: BagType): boolean {
+  const explicit =
+    bagType === "cabinBag"
+      ? airline.hasCabinBag
+      : bagType === "personalItem"
+        ? airline.hasPersonalItem
+        : airline.hasCheckedBag;
+
   return explicit ?? hasValidDimensions(airline[bagType]);
 }
