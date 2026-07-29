@@ -22,6 +22,8 @@ const result: FitResult = {
   userDimensions: { heightCm: 60, widthCm: 40, depthCm: 20 },
   limit: { heightCm: 55, widthCm: 40, depthCm: 20 },
   weightLimitKg: 10,
+  userWeightKg: null,
+  weightVerdict: "not-checked",
   fareClass: null,
   overBy: { heightCm: 5 },
   spareCm: {},
