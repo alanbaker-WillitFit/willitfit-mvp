@@ -80,10 +80,13 @@ export default function DimensionForm({
   const weightLimitKg = selectedWeightLimit(airline, bagType, fareClass);
   const weightSupported = weightLimitKg !== null;
   const showWeightStep = bagType === "checkedBag" || weightSupported;
+  const weightRequired = bagType === "checkedBag" && weightSupported;
   const weightValue = weightRaw === "" ? null : Number(weightRaw);
-  const weightError = weightRaw !== "" && (!Number.isFinite(weightValue) || weightValue! <= 0 || weightValue! > 999)
-    ? "Enter a valid weight in kilograms."
-    : null;
+  const weightError = weightRequired && weightRaw === ""
+    ? "Enter your checked-bag weight in kilograms."
+    : weightRaw !== "" && (!Number.isFinite(weightValue) || weightValue! <= 0 || weightValue! > 999)
+      ? "Enter a valid weight in kilograms."
+      : null;
 
   useEffect(() => {
     if (!initialAirline || airlineHasBagType(initialAirline, bagType)) return;
@@ -103,6 +106,7 @@ export default function DimensionForm({
     setResult(null);
     setWeightRaw("");
     setWeightTouched(false);
+    setSelectedSpecial(null);
     if (selectedAirline && airlineHasBagType(selectedAirline, selectedBagType)) {
       loadDimensions(checkerPreset(selectedAirline, selectedBagType, selectedFare));
     }
@@ -123,6 +127,7 @@ export default function DimensionForm({
 
   function onReset() {
     reset();
+    setAirline(initialAirline);
     setFareClass(null);
     setWeightRaw("");
     setWeightTouched(false);
@@ -165,12 +170,36 @@ export default function DimensionForm({
             <fieldset className="wf-checker-step wf-checker-step--bag">
               <legend><b>2</b> Choose bag type</legend>
               <div className="wf-bag-types">
-                {BAG_TYPES.map(item => (
-                  <button key={item.type} type="button" disabled={Boolean(airline && !airlineHasBagType(airline, item.type))} aria-pressed={bagType === item.type} className={cn("wf-bag-type", bagType === item.type && "is-selected")} onClick={() => { setBagType(item.type); setFareClass(null); applySelection(airline, item.type, null); }}>
-                    <Image className="wf-bag-type__icon" src={item.icon} alt="" width={44} height={44} priority /> {item.title}
-                  </button>
-                ))}
+                {BAG_TYPES.map(item => {
+                  const unavailable = !airline || !airlineHasBagType(airline, item.type);
+                  return (
+                    <button
+                      key={item.type}
+                      type="button"
+                      disabled={unavailable}
+                      aria-pressed={bagType === item.type}
+                      className={cn("wf-bag-type", bagType === item.type && "is-selected")}
+                      onClick={() => {
+                        if (unavailable) return;
+                        setBagType(item.type);
+                        setFareClass(null);
+                        applySelection(airline, item.type, null);
+                      }}
+                    >
+                      <Image
+                        className={cn("wf-bag-type__icon", item.type === "checkedBag" && "scale-125")}
+                        src={item.icon}
+                        alt=""
+                        width={44}
+                        height={44}
+                        priority
+                      />
+                      {item.title}
+                    </button>
+                  );
+                })}
               </div>
+              {!airline && <p className="mt-2 text-xs font-medium text-navy-400">Select an airline to see its available bag types.</p>}
             </fieldset>
 
             {airline && !airlineHasBagType(airline, bagType) && (() => {
@@ -208,7 +237,7 @@ export default function DimensionForm({
               <div className="wf-checker-step wf-checker-step--weight">
                 {weightSupported ? (
                   <>
-                    <label htmlFor="weightKg"><b>4</b> Weight <span><input id="weightKg" value={weightRaw} inputMode="decimal" maxLength={5} autoComplete="off" onChange={event => { setWeightRaw(decimalInput(event.target.value)); invalidate(); }} onBlur={() => setWeightTouched(true)} /><i>kg</i></span></label>
+                    <label htmlFor="weightKg"><b>4</b> Weight (kg)<span><input id="weightKg" value={weightRaw} inputMode="decimal" maxLength={5} autoComplete="off" aria-required={weightRequired} aria-invalid={Boolean(weightTouched && weightError)} onChange={event => { setWeightRaw(decimalInput(event.target.value)); invalidate(); }} onBlur={() => setWeightTouched(true)} /></span></label>
                     {weightTouched && weightError ? <p className="wf-form-error" role="alert">{weightError}</p> : null}
                     <small>Published limit: {weightLimitKg} kg</small>
                   </>
@@ -224,7 +253,9 @@ export default function DimensionForm({
               </button>
               {advancedOpen && (
                 <div id="advanced-baggage-options">
-                  {specialBaggageResults.length === 14 ? (
+                  {!airline ? (
+                    <p className="mt-3 text-sm font-medium text-navy-500" role="status">Select an airline to view special baggage guidance.</p>
+                  ) : specialBaggageResults.length === 14 ? (
                     <div className="wf-bag-types" role="list" aria-label="Special and oversized baggage categories">
                       {specialBaggageResults.map(item => (
                         <button key={item.resultId} type="button" role="listitem" aria-pressed={selectedSpecial === item.resultId} className={cn("wf-bag-type", selectedSpecial === item.resultId && "is-selected")} onClick={() => setSelectedSpecial(item.resultId)}>
@@ -232,10 +263,12 @@ export default function DimensionForm({
                         </button>
                       ))}
                     </div>
-                  ) : <p className="wf-form-error" role="status">Special baggage guidance is temporarily unavailable.</p>}
+                  ) : (
+                    <p className="mt-3 text-sm font-semibold text-amber-700" role="status">Special baggage guidance is temporarily unavailable.</p>
+                  )}
                 </div>
               )}
-              {selectedSpecialResult && (
+              {airline && selectedSpecialResult && (
                 <aside className="wf-card wf-card--compact mt-4 p-4" aria-live="polite">
                   <strong>{selectedSpecialResult.title}</strong>
                   <p>{selectedSpecialResult.summary}</p>
