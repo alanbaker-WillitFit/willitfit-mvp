@@ -86,6 +86,29 @@ export async function readFirstAvailableRuntimeTab<T extends RuntimeRow>(
   return { rows: null, tabName: null };
 }
 
+function validPublished(records: RuntimeContentRecord[]): RuntimeContentRecord[] {
+  const missingIds = records.filter((record) => record.published && !record.contentId);
+  const incomplete = records.filter((record) =>
+    record.published && record.contentId && (!record.module || (!record.title && !record.body))
+  );
+
+  if (missingIds.length > 0) {
+    console.error("[runtimeContent] Rejected published content without ContentID", {
+      count: missingIds.length,
+    });
+  }
+  if (incomplete.length > 0) {
+    console.error(
+      "[runtimeContent] Rejected incomplete published content",
+      incomplete.map((record) => record.contentId)
+    );
+  }
+
+  return records.filter((record) =>
+    record.published && record.contentId && record.module && (record.title || record.body)
+  );
+}
+
 function uniquePublished(records: RuntimeContentRecord[]): RuntimeContentRecord[] {
   const counts = new Map<string, number>();
   records.forEach((record) => counts.set(record.contentId, (counts.get(record.contentId) ?? 0) + 1));
@@ -101,9 +124,8 @@ export async function getAllRuntimeContent(): Promise<{
   const { rows } = await readFirstAvailableRuntimeTab<RuntimeRow>(SITE_CONTENT_TABS);
   if (!rows) return { content: FALLBACK_RUNTIME_CONTENT, source: "fallback" };
 
-  const content = uniquePublished(rows.map(mapRuntimeContentRow).filter((record) =>
-    record.published && record.contentId && record.module && (record.title || record.body)
-  )).sort((a, b) => a.displayOrder - b.displayOrder || a.contentId.localeCompare(b.contentId));
+  const content = uniquePublished(validPublished(rows.map(mapRuntimeContentRow)))
+    .sort((a, b) => a.displayOrder - b.displayOrder || a.contentId.localeCompare(b.contentId));
 
   return { content, source: "sheet" };
 }
