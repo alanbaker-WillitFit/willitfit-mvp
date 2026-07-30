@@ -16,9 +16,9 @@ function value(row: FaqRow, ...names: string[]): string {
   return "";
 }
 
-export function mapFaqRow(row: FaqRow, index: number): RuntimeContentRecord {
+export function mapFaqRow(row: FaqRow): RuntimeContentRecord {
   return {
-    contentId: value(row, "FAQ ID", "FAQID") || `faq-${index + 1}`,
+    contentId: value(row, "FAQ ID", "FAQID"),
     module: "FAQs",
     page: "ask",
     section: value(row, "Category") || "General",
@@ -35,6 +35,16 @@ export function mapFaqRow(row: FaqRow, index: number): RuntimeContentRecord {
   };
 }
 
+function duplicateValues(values: string[]): Set<string> {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  for (const item of values) {
+    if (seen.has(item)) duplicates.add(item);
+    else seen.add(item);
+  }
+  return duplicates;
+}
+
 async function loadFaqs(): Promise<{
   content: RuntimeContentRecord[];
   source: "sheet" | "fallback";
@@ -47,10 +57,26 @@ async function loadFaqs(): Promise<{
     };
   }
 
+  const published = rows.map(mapFaqRow).filter((record) => record.published);
+  const missingIds = published.filter((record) => !record.contentId);
+  const incomplete = published.filter((record) => record.contentId && (!record.title || !record.body));
+
+  if (missingIds.length > 0) {
+    console.error("[faqs] Rejected published FAQs without FAQ ID", { count: missingIds.length });
+  }
+  if (incomplete.length > 0) {
+    console.error("[faqs] Rejected incomplete published FAQs", incomplete.map((record) => record.contentId));
+  }
+
+  const valid = published.filter((record) => record.contentId && record.title && record.body);
+  const duplicateIds = duplicateValues(valid.map((record) => record.contentId));
+  if (duplicateIds.size > 0) {
+    console.error("[faqs] Duplicate published FAQ IDs", Array.from(duplicateIds));
+  }
+
   return {
-    content: rows
-      .map(mapFaqRow)
-      .filter((record) => record.published && record.title && record.body)
+    content: valid
+      .filter((record) => !duplicateIds.has(record.contentId))
       .sort((a, b) => a.displayOrder - b.displayOrder || a.contentId.localeCompare(b.contentId)),
     source: "sheet",
   };
