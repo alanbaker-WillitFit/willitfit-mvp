@@ -130,7 +130,7 @@ export interface AffiliateSlot {
 
 export interface LabConfiguration {
   configId: string; gameId: string; gameName: string; gamePath: string; triggerType: string;
-  bagTypes: BagType[]; resultStates: FitVerdict[]; priority: number;
+  triggerValue: string; bagTypes: BagType[]; resultStates: FitVerdict[]; priority: number;
   implementationReference: string; invitationTitle: string; invitationBody: string; cta: string;
   active: boolean; reviewStatus: string; published: boolean; source: "sheet" | "fallback";
 }
