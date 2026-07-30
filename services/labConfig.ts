@@ -61,13 +61,13 @@ function value(row: LabRow, ...names: string[]) {
 }
 
 export function mapLabConfiguration(row: LabRow): LabConfiguration {
-  const configId = value(row, "ConfigID", "Config ID");
-  const gameId = value(row, "GameID", "Game ID");
-  const fallback = STATIC_LAB_GAMES.find((item) => item.configId === configId || item.gameId === gameId);
+  const configId = value(row, "Lab ID", "LabID", "Config ID", "ConfigID");
+  const gameId = value(row, "Game ID", "GameID");
+  const fallback = STATIC_LAB_GAMES.find((item) => item.gameId === gameId);
 
   return {
-    configId: configId || fallback?.configId || "",
-    gameId: gameId || fallback?.gameId || "",
+    configId,
+    gameId,
     gameName: value(row, "Game Name", "GameName") || fallback?.gameName || "",
     gamePath: value(row, "Game Path", "GamePath", "Destination URL", "Game URL") || fallback?.gamePath || "",
     triggerType: value(row, "Trigger Type", "TriggerType") || "Code",
@@ -79,7 +79,7 @@ export function mapLabConfiguration(row: LabRow): LabConfiguration {
     invitationTitle: value(row, "Invitation Title", "Title") || fallback?.invitationTitle || "",
     invitationBody: value(row, "Invitation Body", "Content") || fallback?.invitationBody || "",
     cta: value(row, "CTA", "CTA Text") || fallback?.cta || "",
-    active: value(row, "Active") ? runtimeBoolean(value(row, "Active")) : true,
+    active: runtimeBoolean(value(row, "Active")),
     reviewStatus: value(row, "Review Status", "Status"),
     published: runtimePublished(row),
     source: "sheet",
@@ -134,10 +134,48 @@ function parseResultStates(input: string): LabConfiguration["resultStates"] {
   })));
 }
 
+function duplicateValues(values: string[]): Set<string> {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  for (const item of values) {
+    if (seen.has(item)) duplicates.add(item);
+    else seen.add(item);
+  }
+  return duplicates;
+}
+
 async function loadLabConfigurations(): Promise<LabConfiguration[]> {
   const { rows } = await readFirstAvailableRuntimeTab<LabRow>(LAB_CONFIG_TABS);
   if (!rows) return STATIC_LAB_GAMES;
-  return rows.map(mapLabConfiguration).filter(isValidLabConfiguration);
+
+  const published = rows.map(mapLabConfiguration).filter((config) => config.published);
+  const missingIds = published.filter((config) => !config.configId || !config.gameId);
+  const inactive = published.filter((config) => config.configId && config.gameId && !config.active);
+  const invalid = published.filter((config) => config.configId && config.gameId && config.active && !isValidLabConfiguration(config));
+
+  if (missingIds.length > 0) {
+    console.error("[lab] Rejected published Lab configurations without Lab ID or Game ID", { count: missingIds.length });
+  }
+  if (inactive.length > 0) {
+    console.error("[lab] Rejected published Lab configurations without explicit Active approval", inactive.map((config) => config.configId));
+  }
+  if (invalid.length > 0) {
+    console.error("[lab] Rejected incomplete or invalid published Lab configurations", invalid.map((config) => config.configId));
+  }
+
+  const valid = published.filter(isValidLabConfiguration);
+  const duplicateConfigIds = duplicateValues(valid.map((config) => config.configId));
+  const duplicateGameIds = duplicateValues(valid.map((config) => config.gameId));
+  if (duplicateConfigIds.size || duplicateGameIds.size) {
+    console.error("[lab] Duplicate published Lab configuration data", {
+      configIds: Array.from(duplicateConfigIds),
+      gameIds: Array.from(duplicateGameIds),
+    });
+  }
+
+  return valid.filter(
+    (config) => !duplicateConfigIds.has(config.configId) && !duplicateGameIds.has(config.gameId),
+  );
 }
 
 export const getLabConfigurations = cache(loadLabConfigurations);
