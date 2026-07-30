@@ -10,7 +10,10 @@ function triggerNumbers(value: string): number[] {
 }
 
 function matchesDimensionTrigger(config: LabConfiguration, result: FitResult) {
-  const expected = triggerNumbers(config.triggerValue);
+  const triggerValue = config.triggerValue.trim();
+  if (!triggerValue) return true;
+
+  const expected = triggerNumbers(triggerValue);
   if (expected.length !== 3) return false;
 
   const entered = [
