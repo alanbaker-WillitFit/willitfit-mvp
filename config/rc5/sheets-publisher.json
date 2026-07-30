@@ -1,0 +1,27 @@
+{
+  "motherSpreadsheetId": "1OO5QjofjOOsNgRlS4pgAdLDqPwXxguTWXxzCH_5gvfQ",
+  "allowedRuntimeSpreadsheetIds": [
+    "1pi8u7ddOaBeC9plEzh-TDck3pvVhw9mQg1Q24E7K4yU"
+  ],
+  "tabs": [
+    "00.13_Affiliate_Programmes",
+    "01_Settings",
+    "02_Airlines",
+    "03_Airline Rules",
+    "04_Special Baggage All",
+    "04.1_Special Baggage Results",
+    "05_FAQs",
+    "06_Tips",
+    "07_Site Content",
+    "08_SEO Pages",
+    "08.1_Travel Notifications",
+    "08.2_Articles",
+    "09_Affiliate_Placements",
+    "10_Lab",
+    "11_Countries_Base",
+    "11.1_Country_Travel_Facts",
+    "15_Redirects"
+  ],
+  "maxColumns": "AZ",
+  "maxRows": 5000
+}
