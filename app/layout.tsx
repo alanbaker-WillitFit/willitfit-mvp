@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "@/styles/rc5-ku-refinements.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { siteUrl } from "@/lib/utils";
