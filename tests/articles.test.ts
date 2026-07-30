@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildGovernedArticles, capArticleBlurb } from "@/services/articles";
+import { buildGovernedArticles, capArticleBlurb, normaliseArticleSlug } from "@/services/articles";
 import type { RuntimeContentRecord } from "@/types";
 
 function record(overrides: Partial<RuntimeContentRecord> = {}): RuntimeContentRecord {
@@ -23,6 +23,11 @@ function record(overrides: Partial<RuntimeContentRecord> = {}): RuntimeContentRe
 }
 
 describe("Articles governed contract", () => {
+  it("normalises article slugs canonically", () => {
+    expect(normaliseArticleSlug("  Packing Smart!  ")).toBe("packing-smart");
+    expect(normaliseArticleSlug("---")).toBe("");
+  });
+
   it("caps card blurbs at thirty words", () => {
     const text = Array.from({ length: 35 }, (_, index) => `word${index + 1}`).join(" ");
     const blurb = capArticleBlurb(text);
@@ -42,11 +47,31 @@ describe("Articles governed contract", () => {
     expect(articles[0]?.sections.map((section) => section.contentId)).toEqual(["ART001", "ART002"]);
   });
 
-  it("fails closed for unpublished, inactive, empty-body, untitled or unsluggable records", () => {
+  it("fails closed for unpublished, inactive, incomplete or unsluggable records", () => {
     expect(buildGovernedArticles([record({ published: false })])).toEqual([]);
     expect(buildGovernedArticles([record({ active: false })])).toEqual([]);
     expect(buildGovernedArticles([record({ body: "" })])).toEqual([]);
     expect(buildGovernedArticles([record({ title: "" })])).toEqual([]);
+    expect(buildGovernedArticles([record({ contentId: "" })])).toEqual([]);
     expect(buildGovernedArticles([record({ page: "articles", section: "", title: "", contentId: "" })])).toEqual([]);
+  });
+
+  it("rejects ambiguous duplicate section identifiers", () => {
+    const articles = buildGovernedArticles([
+      record({ contentId: "ART001", body: "First version." }),
+      record({ contentId: "ART001", body: "Conflicting version.", displayOrder: 2 }),
+    ]);
+
+    expect(articles).toEqual([]);
+  });
+
+  it("keeps valid sections while excluding invalid records from the same article", () => {
+    const articles = buildGovernedArticles([
+      record(),
+      record({ contentId: "ART002", published: false, displayOrder: 2 }),
+      record({ contentId: "ART003", body: "", displayOrder: 3 }),
+    ]);
+
+    expect(articles[0]?.sections.map((section) => section.contentId)).toEqual(["ART001"]);
   });
 });
