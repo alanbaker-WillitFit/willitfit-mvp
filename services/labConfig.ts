@@ -61,29 +61,48 @@ function value(row: LabRow, ...names: string[]) {
 }
 
 export function mapLabConfiguration(row: LabRow): LabConfiguration {
-  const fallback = STATIC_LAB_GAMES.find((item) =>
-    item.configId === value(row, "ConfigID", "Config ID")
-    || item.gameId === value(row, "GameID", "Game ID")
-  ) ?? STATIC_LAB_GAMES[0]!;
+  const configId = value(row, "ConfigID", "Config ID");
+  const gameId = value(row, "GameID", "Game ID");
+  const fallback = STATIC_LAB_GAMES.find((item) => item.configId === configId || item.gameId === gameId);
+
   return {
-    configId: value(row, "ConfigID", "Config ID") || fallback.configId,
-    gameId: value(row, "GameID", "Game ID") || fallback.gameId,
-    gameName: value(row, "Game Name", "GameName") || fallback.gameName,
-    gamePath: value(row, "Game Path", "GamePath", "Destination URL", "Game URL") || fallback.gamePath,
+    configId: configId || fallback?.configId || "",
+    gameId: gameId || fallback?.gameId || "",
+    gameName: value(row, "Game Name", "GameName") || fallback?.gameName || "",
+    gamePath: value(row, "Game Path", "GamePath", "Destination URL", "Game URL") || fallback?.gamePath || "",
     triggerType: value(row, "Trigger Type", "TriggerType") || "Code",
     triggerValue: value(row, "Trigger Value", "TriggerValue", "Code", "Unlock Code"),
     bagTypes: parseBagTypes(value(row, "Bag Type", "Bag Types", "Applies To Bag")),
     resultStates: parseResultStates(value(row, "Result State", "Result States", "Applies To Result")),
-    priority: toNumber(value(row, "Priority", "Display Order"), fallback.priority),
-    implementationReference: value(row, "Implementation Reference", "Reference Date"),
-    invitationTitle: value(row, "Invitation Title", "Title") || fallback.invitationTitle,
-    invitationBody: value(row, "Invitation Body", "Content") || fallback.invitationBody,
-    cta: value(row, "CTA", "CTA Text") || fallback.cta,
+    priority: toNumber(value(row, "Priority", "Display Order"), fallback?.priority ?? 999),
+    implementationReference: value(row, "Implementation Reference", "Reference Date") || fallback?.implementationReference || "",
+    invitationTitle: value(row, "Invitation Title", "Title") || fallback?.invitationTitle || "",
+    invitationBody: value(row, "Invitation Body", "Content") || fallback?.invitationBody || "",
+    cta: value(row, "CTA", "CTA Text") || fallback?.cta || "",
     active: value(row, "Active") ? runtimeBoolean(value(row, "Active")) : true,
     reviewStatus: value(row, "Review Status", "Status"),
     published: runtimePublished(row),
     source: "sheet",
   };
+}
+
+export function isValidLabConfiguration(config: LabConfiguration): boolean {
+  return Boolean(
+    config.source === "sheet" &&
+    config.configId.trim() &&
+    config.gameId.trim() &&
+    config.gameName.trim() &&
+    config.gamePath.startsWith("/lab/") &&
+    config.triggerType.trim().toLowerCase() === "code" &&
+    config.triggerValue.trim() &&
+    config.bagTypes.length &&
+    config.resultStates.length &&
+    config.invitationTitle.trim() &&
+    config.invitationBody.trim() &&
+    config.cta.trim() &&
+    config.active &&
+    config.published
+  );
 }
 
 function tokens(input: string): string[] {
@@ -118,7 +137,7 @@ function parseResultStates(input: string): LabConfiguration["resultStates"] {
 async function loadLabConfigurations(): Promise<LabConfiguration[]> {
   const { rows } = await readFirstAvailableRuntimeTab<LabRow>(LAB_CONFIG_TABS);
   if (!rows) return STATIC_LAB_GAMES;
-  return rows.map(mapLabConfiguration).filter((row) => row.published && row.active);
+  return rows.map(mapLabConfiguration).filter(isValidLabConfiguration);
 }
 
 export const getLabConfigurations = cache(loadLabConfigurations);
