@@ -29,6 +29,9 @@ export function runtimePublished(row: RuntimeRow): boolean {
   const publishValue = value(row, "Publish", "Runtime Publish Status", "Published", "Publish Status");
   const reviewValue = value(row, "Review Status", "ReviewStatus", "Workflow Status");
   const legacyStatusValue = value(row, "Status", "Content Status");
+  const hasGovernanceSignal = Boolean(activeValue || publishValue || reviewValue || legacyStatusValue);
+  if (!hasGovernanceSignal) return false;
+
   const active = activeValue ? runtimeBoolean(activeValue) : true;
   const publishApproved = publishValue ? runtimeBoolean(publishValue) : true;
   const reviewApproved = reviewValue
