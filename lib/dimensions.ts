@@ -1,4 +1,4 @@
-import { Airline, Dimensions } from "@/types";
+import { Airline, BagType, Dimensions } from "@/types";
 
 export type DimensionField = "heightCm" | "widthCm" | "depthCm";
 
@@ -67,8 +67,13 @@ export function hasValidDimensions(
 
 export function airlineHasBagType(
   airline: Airline,
-  bagType: "cabinBag" | "personalItem"
+  bagType: BagType
 ): boolean {
-  const explicit = bagType === "cabinBag" ? airline.hasCabinBag : airline.hasPersonalItem;
+  const explicit = bagType === "cabinBag"
+    ? airline.hasCabinBag
+    : bagType === "personalItem"
+      ? airline.hasPersonalItem
+      : airline.hasCheckedBag;
+
   return explicit ?? hasValidDimensions(airline[bagType]);
 }
