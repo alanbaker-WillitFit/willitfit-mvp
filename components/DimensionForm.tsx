@@ -29,6 +29,12 @@ function availableBagType(airline: Airline) {
   return BAG_TYPES.find((item) => airlineHasBagType(airline, item.type))?.type ?? "personalItem";
 }
 
+function decimalInput(value: string): string {
+  const cleaned = value.replace(/[^0-9.]/g, "");
+  const [whole = "", ...decimalParts] = cleaned.split(".");
+  return decimalParts.length ? `${whole}.${decimalParts.join("")}` : whole;
+}
+
 export default function DimensionForm({
   airlines,
   initialAirline = null,
@@ -60,6 +66,7 @@ export default function DimensionForm({
 
   const weightLimitKg = bagType === "checkedBag" ? airline?.checkedWeightLimitKg ?? null : airline?.weightLimitKg ?? null;
   const weightSupported = weightLimitKg !== null;
+  const showWeightStep = bagType === "checkedBag" || weightSupported;
   const weightValue = weightRaw === "" ? null : Number(weightRaw);
   const weightError = weightRaw !== "" && (!Number.isFinite(weightValue) || weightValue! <= 0 || weightValue! > 999)
     ? "Enter a valid weight in kilograms."
@@ -106,11 +113,15 @@ export default function DimensionForm({
     setFareClass(null);
     setWeightRaw("");
     setWeightTouched(false);
+    setAdvancedOpen(false);
     setSelectedSpecial(null);
     setResult(null);
   }
 
   const state = result?.verdict === "fits" ? "is-success" : result?.verdict === "close" ? "is-warning" : result ? "is-error" : "";
+  const selectedSpecialResult = selectedSpecial
+    ? specialBaggageResults.find((item) => item.resultId === selectedSpecial) ?? null
+    : null;
 
   return (
     <div className="wf-primary-journey">
@@ -180,33 +191,49 @@ export default function DimensionForm({
               </div>
             </fieldset>
 
-            {weightSupported && (
+            {showWeightStep && (
               <div className="wf-checker-step wf-checker-step--weight">
-                <label htmlFor="weightKg"><b>4</b> Weight <span><input id="weightKg" value={weightRaw} inputMode="decimal" maxLength={5} onChange={event => { setWeightRaw(event.target.value.replace(/[^0-9.]/g, "")); invalidate(); }} onBlur={() => setWeightTouched(true)} /><i>kg</i></span></label>
-                {weightTouched && weightError ? <p className="wf-form-error" role="alert">{weightError}</p> : null}
-                <small>Published limit: {weightLimitKg} kg</small>
+                {weightSupported ? (
+                  <>
+                    <label htmlFor="weightKg"><b>4</b> Weight <span><input id="weightKg" value={weightRaw} inputMode="decimal" maxLength={5} autoComplete="off" onChange={event => { setWeightRaw(decimalInput(event.target.value)); invalidate(); }} onBlur={() => setWeightTouched(true)} /><i>kg</i></span></label>
+                    {weightTouched && weightError ? <p className="wf-form-error" role="alert">{weightError}</p> : null}
+                    <small>Published limit: {weightLimitKg} kg</small>
+                  </>
+                ) : (
+                  <p role="status"><b>4</b> Weight limit not published. Check the airline&apos;s current checked-baggage policy before travel.</p>
+                )}
               </div>
             )}
 
             <section className="wf-checker-step wf-checker-step--advanced" aria-labelledby="advanced-baggage-heading">
-              <button type="button" aria-expanded={advancedOpen} onClick={() => setAdvancedOpen(open => !open)} className="wf-reset-button">
-                <span id="advanced-baggage-heading">Advanced / Oversized</span> <span aria-hidden="true">{advancedOpen ? "−" : "+"}</span>
+              <button type="button" aria-expanded={advancedOpen} aria-controls="advanced-baggage-options" onClick={() => setAdvancedOpen(open => !open)} className="wf-reset-button">
+                <span id="advanced-baggage-heading">Advanced / Oversized baggage</span> <span aria-hidden="true">{advancedOpen ? "−" : "+"}</span>
               </button>
               {advancedOpen && (
-                specialBaggageResults.length === 14 ? (
-                  <div className="wf-bag-types" role="list" aria-label="Special and oversized baggage categories">
-                    {specialBaggageResults.map(item => (
-                      <button key={item.resultId} type="button" role="listitem" aria-pressed={selectedSpecial === item.resultId} className={cn("wf-bag-type", selectedSpecial === item.resultId && "is-selected")} onClick={() => setSelectedSpecial(item.resultId)}>
-                        {item.title}
-                      </button>
-                    ))}
-                  </div>
-                ) : <p className="wf-form-error" role="status">Special baggage guidance is temporarily unavailable.</p>
+                <div id="advanced-baggage-options">
+                  {specialBaggageResults.length === 14 ? (
+                    <div className="wf-bag-types" role="list" aria-label="Special and oversized baggage categories">
+                      {specialBaggageResults.map(item => (
+                        <button key={item.resultId} type="button" role="listitem" aria-pressed={selectedSpecial === item.resultId} className={cn("wf-bag-type", selectedSpecial === item.resultId && "is-selected")} onClick={() => setSelectedSpecial(item.resultId)}>
+                          {item.title}
+                        </button>
+                      ))}
+                    </div>
+                  ) : <p className="wf-form-error" role="status">Special baggage guidance is temporarily unavailable.</p>}
+                </div>
               )}
-              {selectedSpecial && (() => {
-                const item = specialBaggageResults.find(resultItem => resultItem.resultId === selectedSpecial);
-                return item ? <aside className="wf-card wf-card--compact mt-4 p-4"><strong>{item.title}</strong><p>{item.summary}</p><p>{item.preparationGuidance}</p><p>{item.feeGuidance}</p></aside> : null;
-              })()}
+              {selectedSpecialResult && (
+                <aside className="wf-card wf-card--compact mt-4 p-4" aria-live="polite">
+                  <strong>{selectedSpecialResult.title}</strong>
+                  <p>{selectedSpecialResult.summary}</p>
+                  {selectedSpecialResult.preparationGuidance && <p><strong>Prepare:</strong> {selectedSpecialResult.preparationGuidance}</p>}
+                  {selectedSpecialResult.feeGuidance && <p><strong>Fees:</strong> {selectedSpecialResult.feeGuidance}</p>}
+                  {selectedSpecialResult.mobilityOrMedical && <p><strong>Accessibility:</strong> Contact the airline before travel to confirm assistance and carriage arrangements.</p>}
+                  {selectedSpecialResult.policyLinkSource.startsWith("https://") && (
+                    <p><a href={selectedSpecialResult.policyLinkSource} target="_blank" rel="noopener noreferrer">{selectedSpecialResult.policyLinkLabel || "Read the airline policy"}</a></p>
+                  )}
+                </aside>
+              )}
             </section>
           </div>
 
