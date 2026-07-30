@@ -154,6 +154,23 @@ function duplicateValues(values: string[]): Set<string> {
   return duplicates;
 }
 
+export function validPublishedBaggageRules(rules: BaggageRuleRow[]): BaggageRuleRow[] {
+  const missingRuleIds = rules.filter((rule) => !rule.RuleID.trim());
+  if (missingRuleIds.length > 0) {
+    console.error("[airlines] Rejected published baggage rules without RuleID", {
+      count: missingRuleIds.length,
+    });
+  }
+
+  const identifiedRules = rules.filter((rule) => rule.RuleID.trim());
+  const duplicateRuleIds = duplicateValues(identifiedRules.map((rule) => rule.RuleID.trim()));
+  if (duplicateRuleIds.size > 0) {
+    console.error("[airlines] Duplicate published baggage rule IDs", Array.from(duplicateRuleIds));
+  }
+
+  return identifiedRules.filter((rule) => !duplicateRuleIds.has(rule.RuleID.trim()));
+}
+
 export function mapRuntimeAirline(airline: AirlineRow, baggageRows: BaggageRuleRow[]): Airline {
   const airlineId = airline.AirlineID.trim();
   const airlineRules = baggageRows.filter((rule) => rule.AirlineID.trim() === airlineId && isLiveRule(rule));
@@ -194,7 +211,9 @@ export async function getAirlines(): Promise<{ airlines: Airline[]; source: "she
     readFirstAvailableRuntimeTab<RuntimeRow>(BAGGAGE_RULE_TABS),
   ]);
   const airlineRows = airlineRead.rows?.filter(runtimePublished).map(adaptAirlineRow) ?? null;
-  const baggageRows = baggageRead.rows?.filter(runtimePublished).map(adaptBaggageRuleRow) ?? null;
+  const baggageRows = baggageRead.rows
+    ? validPublishedBaggageRules(baggageRead.rows.filter(runtimePublished).map(adaptBaggageRuleRow))
+    : null;
 
   if (!airlineRows || !baggageRows) {
     return { airlines: FALLBACK_AIRLINES, source: "fallback" };
