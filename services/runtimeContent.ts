@@ -21,7 +21,7 @@ function value(row: RuntimeRow, ...names: string[]): string {
 }
 
 export function runtimeBoolean(input: unknown): boolean {
-  return ["1", "active", "yes", "true", "live", "published"].includes(clean(input).toLowerCase());
+  return ["1", "active", "approved", "yes", "true", "live", "published"].includes(clean(input).toLowerCase());
 }
 
 export function runtimePublished(row: RuntimeRow): boolean {
