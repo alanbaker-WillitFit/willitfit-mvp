@@ -9,7 +9,7 @@ export interface Article {
   sections: RuntimeContentRecord[];
 }
 
-function slugify(value: string): string {
+export function normaliseArticleSlug(value: string): string {
   return value
     .trim()
     .toLowerCase()
@@ -19,9 +19,9 @@ function slugify(value: string): string {
 
 function articleSlug(record: RuntimeContentRecord): string {
   const page = record.page.trim().toLowerCase();
-  if (page && page !== "articles" && page !== "article") return slugify(record.page);
-  if (record.section) return slugify(record.section);
-  return slugify(record.title || record.contentId);
+  if (page && page !== "articles" && page !== "article") return normaliseArticleSlug(record.page);
+  if (record.section) return normaliseArticleSlug(record.section);
+  return normaliseArticleSlug(record.title || record.contentId);
 }
 
 export function capArticleBlurb(value: string, maximum = 30): string {
@@ -31,7 +31,19 @@ export function capArticleBlurb(value: string, maximum = 30): string {
 }
 
 function validArticleSections(sections: RuntimeContentRecord[]): RuntimeContentRecord[] {
-  return sections.filter((section) => section.published && section.active && section.body.trim());
+  const counts = new Map<string, number>();
+  sections.forEach((section) => counts.set(section.contentId, (counts.get(section.contentId) ?? 0) + 1));
+  const duplicateIds = new Set(Array.from(counts).filter(([, count]) => count > 1).map(([id]) => id));
+
+  return sections.filter(
+    (section) =>
+      section.published &&
+      section.active &&
+      section.contentId.trim() &&
+      section.title.trim() &&
+      section.body.trim() &&
+      !duplicateIds.has(section.contentId)
+  );
 }
 
 export function buildGovernedArticles(content: RuntimeContentRecord[]): Article[] {
@@ -50,7 +62,7 @@ export function buildGovernedArticles(content: RuntimeContentRecord[]): Article[
       (a, b) => a.displayOrder - b.displayOrder || a.contentId.localeCompare(b.contentId)
     );
     const lead = ordered[0];
-    if (!lead?.title.trim() || !ordered.length) return null;
+    if (!lead) return null;
 
     return {
       slug,
@@ -80,6 +92,9 @@ export const getArticles = cache(async (): Promise<{
 });
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
+  const canonicalSlug = normaliseArticleSlug(slug);
+  if (!canonicalSlug) return null;
+
   const { articles } = await getArticles();
-  return articles.find((article) => article.slug === slug) ?? null;
+  return articles.find((article) => article.slug === canonicalSlug) ?? null;
 }
