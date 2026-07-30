@@ -47,6 +47,7 @@ function derivedModule(row: RuntimeRow): string {
   const page = value(row, "Page").toLowerCase();
   if (type.includes("hint")) return "Hints";
   if (type.includes("notice")) return "Notices";
+  if (type.includes("article") || page === "articles" || page.startsWith("article")) return "Articles";
   if (page === "about") return "About";
   if (page.includes("travel tip") || page === "tips") return "Travel Tips";
   return value(row, "Page") || "General";
