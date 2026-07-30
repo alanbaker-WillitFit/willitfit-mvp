@@ -44,12 +44,12 @@ export function adaptBaggageRuleRow(row: RuntimeRow): BaggageRuleRow {
     ...row,
     RuleID: value(row, "Rule ID", "RuleID"),
     AirlineID: value(row, "Airline ID", "AirlineID"),
-    FareClass: value(row, "Fare", "FareClass"),
+    FareClass: value(row, "Fare", "Fare Class", "FareClass"),
     BagType: value(row, "Bag Type", "BagType"),
-    HeightCm: value(row, "Length cm", "HeightCm"),
+    HeightCm: value(row, "Length cm", "Height cm", "HeightCm"),
     WidthCm: value(row, "Width cm", "WidthCm"),
     DepthCm: value(row, "Depth cm", "DepthCm"),
-    WeightKg: value(row, "Weight kg", "WeightKg"),
+    WeightKg: value(row, "Weight kg", "Weight Limit kg", "Maximum Weight kg", "WeightKg"),
     Status: runtimePublished(row) ? "Live" : value(row, "Status", "Review Status"),
   };
 }
@@ -154,7 +154,7 @@ function duplicateValues(values: string[]): Set<string> {
   return duplicates;
 }
 
-function mapRows(airline: AirlineRow, baggageRows: BaggageRuleRow[]): Airline {
+export function mapRuntimeAirline(airline: AirlineRow, baggageRows: BaggageRuleRow[]): Airline {
   const airlineId = airline.AirlineID.trim();
   const airlineRules = baggageRows.filter((rule) => rule.AirlineID.trim() === airlineId && isLiveRule(rule));
   const cabinRules = airlineRules.filter(isCabinBag);
@@ -212,7 +212,7 @@ export async function getAirlines(): Promise<{ airlines: Airline[]; source: "she
 
   const airlines = liveRows
     .filter((a) => !duplicateIds.has(a.AirlineID.trim()) && !duplicateSlugs.has(slugify(a.Slug || a.AirlineName)))
-    .map((a) => mapRows(a, baggageRows))
+    .map((a) => mapRuntimeAirline(a, baggageRows))
     .filter((a) => a.slug && (a.hasCabinBag || a.hasPersonalItem || a.hasCheckedBag));
 
   return { airlines, source: "sheet" };
