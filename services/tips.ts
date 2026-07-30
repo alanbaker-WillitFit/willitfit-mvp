@@ -18,7 +18,6 @@ type TipRow = Record<string, string> & {
   Publish?: string;
 };
 
-
 function clean(value: string | undefined): string { return (value ?? "").trim(); }
 
 export function parseTipStatus(status: string | undefined): SheetStatus {
@@ -36,14 +35,14 @@ function makeTitle(content: string, airline: string, category: string): string {
   return content.slice(0, 68).trim();
 }
 
-export function mapTipRow(row: TipRow, index: number): TravelTip {
+export function mapTipRow(row: TipRow): TravelTip {
   const content = clean(row["Tip / Hint"]) || clean(row.Content) || clean(row.Tip);
   const focusAirline = clean(row["Airline ID"]) || clean(row.FocusAirline) || clean(row["Focus Airline"]) || clean(row.Airline);
   const category = clean(row.Category) || "Travel Tips";
   const title = clean(row.Title) || makeTitle(content, focusAirline, category);
-  const slug = slugify(clean(row.Slug) || `${focusAirline || "travel"}-${title || index}`);
+  const slug = slugify(clean(row.Slug) || `${focusAirline || "travel"}-${title}`);
   return {
-    tipId: clean(row.TipID) || clean(row["Tip ID"]) || `tip-${index + 1}`,
+    tipId: clean(row.TipID) || clean(row["Tip ID"]),
     title, slug, content, category,
     seoKeyword: clean(row["Search Terms"]) || clean(row.SEOKeyword) || clean(row["SEO Primary Keyword"]),
     cta: clean(row.CTA) || "Check your bag size",
@@ -71,7 +70,18 @@ export async function getTravelTips(): Promise<{ tips: TravelTip[]; source: "she
   const rows = await readTipRows();
   if (!rows) return { tips: FALLBACK_TIPS, source: "fallback" };
 
-  const live = rows.filter(runtimePublished).map(mapTipRow).filter((tip) => tip.slug && tip.title && tip.content && tip.status === "Live");
+  const published = rows.filter(runtimePublished).map(mapTipRow);
+  const missingIds = published.filter((tip) => !tip.tipId);
+  const incomplete = published.filter((tip) => tip.tipId && (!tip.slug || !tip.title || !tip.content));
+
+  if (missingIds.length > 0) {
+    console.error("[tips] Rejected published tips without Tip ID", { count: missingIds.length });
+  }
+  if (incomplete.length > 0) {
+    console.error("[tips] Rejected incomplete published tips", incomplete.map((tip) => tip.tipId));
+  }
+
+  const live = published.filter((tip) => tip.tipId && tip.slug && tip.title && tip.content && tip.status === "Live");
   const duplicateIds = duplicateValues(live.map((tip) => tip.tipId));
   const duplicateSlugs = duplicateValues(live.map((tip) => tip.slug));
   if (duplicateIds.size || duplicateSlugs.size) {
