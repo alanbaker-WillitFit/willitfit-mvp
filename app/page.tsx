@@ -10,6 +10,7 @@ import { ShieldCheckIcon, LockIcon, GlobeIcon } from "@/components/icons";
 import { getRuntimeContent } from "@/services/runtimeContent";
 import { getAffiliateSlots } from "@/services/runtimeAffiliates";
 import { getLabConfigurations } from "@/services/labConfig";
+import { getSpecialBaggageResults } from "@/services/specialBaggage";
 
 export const revalidate = 3600;
 
@@ -23,7 +24,7 @@ const NEXT_STEPS = [
 ] as const;
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ airline?: string }> }) {
-  const [{ airlines, source }, { tips }, { airline: airlineParam }, { content: notices }, { content: hints }, { slots: affiliateSlots }, labConfigs] = await Promise.all([
+  const [{ airlines, source }, { tips }, { airline: airlineParam }, { content: notices }, { content: hints }, { slots: affiliateSlots }, labConfigs, specialBaggageResults] = await Promise.all([
     getAirlines(),
     getTravelTips(),
     searchParams,
@@ -31,6 +32,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     getRuntimeContent({ module: "Hints", page: "checker", section: "pre-check" }),
     getAffiliateSlots(),
     getLabConfigurations(),
+    getSpecialBaggageResults(),
   ]);
   const preselectedAirline = airlineParam ? airlines.find(airline => airline.slug === airlineParam) ?? null : null;
   const priorityAirlines = airlines.slice(0, 5);
@@ -42,14 +44,14 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <div className="wf-home-hero__image" aria-hidden="true" />
         <div className="wf-container wf-home-hero__content">
           <h1 id="home-heading">Know<br />Before You <span>Go.</span></h1>
-          <p>Check your cabin bag and personal item against official airline rules.</p>
+          <p>Check personal items, cabin bags and checked bags against official airline rules.</p>
         </div>
       </section>
 
       <div className="wf-home-main wf-container">
         <div className="wf-home-workspace">
           <main className="wf-home-workspace__main">
-            <DimensionForm airlines={airlines} initialAirline={preselectedAirline} notices={notices} hints={hints} affiliateSlots={affiliateSlots} labConfigs={labConfigs} />
+            <DimensionForm airlines={airlines} initialAirline={preselectedAirline} notices={notices} hints={hints} affiliateSlots={affiliateSlots} labConfigs={labConfigs} specialBaggageResults={specialBaggageResults} />
 
             <section className="wf-home-tips" aria-labelledby="home-tips-heading">
               <div className="wf-section-heading"><h2 id="home-tips-heading">Travel Tips</h2><Link href="/tips">View all tips →</Link></div>
