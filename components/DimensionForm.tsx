@@ -35,6 +35,19 @@ function decimalInput(value: string): string {
   return decimalParts.length ? `${whole}.${decimalParts.join("")}` : whole;
 }
 
+export function selectedWeightLimit(airline: Airline | null, bagType: typeof BAG_TYPES[number]["type"], fareClass: string | null): number | null {
+  if (!airline) return null;
+  const fare = fareClass
+    ? airline.fareClasses.find((item) => item.fareClass.toLowerCase() === fareClass.toLowerCase() && item[bagType])
+    : null;
+
+  if (fare) {
+    return bagType === "checkedBag" ? fare.checkedWeightLimitKg ?? null : fare.weightLimitKg;
+  }
+
+  return bagType === "checkedBag" ? airline.checkedWeightLimitKg ?? null : airline.weightLimitKg;
+}
+
 export default function DimensionForm({
   airlines,
   initialAirline = null,
@@ -64,7 +77,7 @@ export default function DimensionForm({
   const resultRef = useRef<HTMLDivElement>(null);
   const fieldRefs = useRef<Record<typeof FIELDS[number]["key"], HTMLInputElement | null>>({ heightCm: null, widthCm: null, depthCm: null });
 
-  const weightLimitKg = bagType === "checkedBag" ? airline?.checkedWeightLimitKg ?? null : airline?.weightLimitKg ?? null;
+  const weightLimitKg = selectedWeightLimit(airline, bagType, fareClass);
   const weightSupported = weightLimitKg !== null;
   const showWeightStep = bagType === "checkedBag" || weightSupported;
   const weightValue = weightRaw === "" ? null : Number(weightRaw);
