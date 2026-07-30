@@ -25,4 +25,42 @@ function articleSlug(record: RuntimeContentRecord): string {
 }
 
 export const getArticles = cache(async (): Promise<{
-  articles: Article
+  articles: Article[];
+  source: "sheet" | "fallback";
+}> => {
+  const { content, source } = await getRuntimeContent({ module: "Articles" });
+  const grouped = new Map<string, RuntimeContentRecord[]>();
+
+  for (const record of content) {
+    const slug = articleSlug(record);
+    if (!slug) continue;
+    const records = grouped.get(slug) ?? [];
+    records.push(record);
+    grouped.set(slug, records);
+  }
+
+  const articles = Array.from(grouped, ([slug, sections]) => {
+    const ordered = [...sections].sort(
+      (a, b) => a.displayOrder - b.displayOrder || a.contentId.localeCompare(b.contentId)
+    );
+    const lead = ordered[0];
+
+    return {
+      slug,
+      title: lead?.title || slug.replace(/-/g, " "),
+      summary: lead?.supportingText || lead?.body || "",
+      sections: ordered,
+    };
+  }).sort((a, b) => {
+    const aOrder = a.sections[0]?.displayOrder ?? 999;
+    const bOrder = b.sections[0]?.displayOrder ?? 999;
+    return aOrder - bOrder || a.title.localeCompare(b.title);
+  });
+
+  return { articles, source };
+});
+
+export async function getArticleBySlug(slug: string): Promise<Article | null> {
+  const { articles } = await getArticles();
+  return articles.find((article) => article.slug === slug) ?? null;
+}
