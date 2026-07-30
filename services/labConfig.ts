@@ -8,7 +8,7 @@ export { isLabInvitationActive } from "@/lib/lab";
 
 type LabRow = Record<string, string>;
 
-// Static route catalogue for the two certified game assets. These entries are
+// Static route catalogue for certified game assets. These entries are
 // deliberately unpublished and can never create a result-card invitation.
 export const STATIC_LAB_GAMES: LabConfiguration[] = [
   {
@@ -17,6 +17,7 @@ export const STATIC_LAB_GAMES: LabConfiguration[] = [
     gameName: "WillItFly",
     gamePath: "/lab/index.html",
     triggerType: "Code",
+    triggerValue: "15 06 26",
     bagTypes: ["cabinBag", "personalItem"],
     resultStates: ["fits", "close", "no-fit"],
     priority: 20,
@@ -35,6 +36,7 @@ export const STATIC_LAB_GAMES: LabConfiguration[] = [
     gameName: "Gate Rush",
     gamePath: "/lab/gate-rush.html",
     triggerType: "Code",
+    triggerValue: "",
     bagTypes: ["cabinBag", "personalItem"],
     resultStates: ["fits", "close", "no-fit"],
     priority: 10,
@@ -67,8 +69,9 @@ export function mapLabConfiguration(row: LabRow): LabConfiguration {
     configId: value(row, "ConfigID", "Config ID") || fallback.configId,
     gameId: value(row, "GameID", "Game ID") || fallback.gameId,
     gameName: value(row, "Game Name", "GameName") || fallback.gameName,
-    gamePath: value(row, "Game Path", "GamePath", "Destination URL") || fallback.gamePath,
+    gamePath: value(row, "Game Path", "GamePath", "Destination URL", "Game URL") || fallback.gamePath,
     triggerType: value(row, "Trigger Type", "TriggerType") || "Code",
+    triggerValue: value(row, "Trigger Value", "TriggerValue", "Code", "Unlock Code"),
     bagTypes: parseBagTypes(value(row, "Bag Type", "Bag Types", "Applies To Bag")),
     resultStates: parseResultStates(value(row, "Result State", "Result States", "Applies To Result")),
     priority: toNumber(value(row, "Priority", "Display Order"), fallback.priority),
