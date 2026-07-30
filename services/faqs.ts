@@ -16,7 +16,7 @@ function value(row: FaqRow, ...names: string[]): string {
   return "";
 }
 
-export function mapFaqRow(row: FaqRow): RuntimeContentRecord {
+export function mapFaqRow(row: FaqRow, _index?: number): RuntimeContentRecord {
   return {
     contentId: value(row, "FAQ ID", "FAQID"),
     module: "FAQs",
