@@ -56,9 +56,9 @@ function derivedModule(row: RuntimeRow): string {
   return value(row, "Page") || "General";
 }
 
-export function mapRuntimeContentRow(row: RuntimeRow, index: number): RuntimeContentRecord {
+export function mapRuntimeContentRow(row: RuntimeRow, _index: number): RuntimeContentRecord {
   return {
-    contentId: value(row, "ContentID", "Content ID", "Content_ID") || `runtime-content-${index + 1}`,
+    contentId: value(row, "ContentID", "Content ID", "Content_ID"),
     module: derivedModule(row),
     page: value(row, "Page"),
     section: value(row, "Section"),
