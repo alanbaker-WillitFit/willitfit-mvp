@@ -7,6 +7,7 @@
 export const RUNTIME_TABS = {
   airlines: ["02_Airlines"],
   baggageRules: ["03_Airline Rules"],
+  specialBaggageResults: ["04.1_Special Baggage Results"],
   tips: ["06_Tips"],
   faqs: ["05_FAQs"],
   siteContent: ["07_Site Content"],
@@ -16,6 +17,7 @@ export const RUNTIME_TABS = {
 
 export const AIRLINE_TABS = RUNTIME_TABS.airlines;
 export const BAGGAGE_RULE_TABS = RUNTIME_TABS.baggageRules;
+export const SPECIAL_BAGGAGE_RESULT_TABS = RUNTIME_TABS.specialBaggageResults;
 export const TIP_TABS = RUNTIME_TABS.tips;
 export const FAQ_TABS = RUNTIME_TABS.faqs;
 export const SITE_CONTENT_TABS = RUNTIME_TABS.siteContent;

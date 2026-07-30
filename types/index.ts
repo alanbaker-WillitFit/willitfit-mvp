@@ -41,6 +41,41 @@ export interface Dimensions {
   depthCm: number;
 }
 
+export type SpecialBaggageCategoryId =
+  | "buggies-prams"
+  | "bicycles"
+  | "wheelchairs"
+  | "mobility-scooters"
+  | "golf-bags"
+  | "skis-snowboards"
+  | "child-car-seats"
+  | "surfboards-longboards"
+  | "musical-instruments"
+  | "scuba-diving-equipment"
+  | "fishing-equipment"
+  | "large-musical-instruments"
+  | "kiteboards-wakeboards"
+  | "medical-equipment-cases";
+
+export interface SpecialBaggageResult {
+  resultId: string;
+  rank: number;
+  categoryId: SpecialBaggageCategoryId;
+  category: string;
+  linkedItemIds: string[];
+  title: string;
+  summary: string;
+  preparationGuidance: string;
+  feeGuidance: string;
+  policyLinkLabel: string;
+  policyLinkSource: string;
+  mobilityOrMedical: boolean;
+  reviewStatus: string;
+  published: boolean;
+  notes: string;
+  source: "sheet";
+}
+
 export interface TravelTip {
   tipId: string;
   title: string;

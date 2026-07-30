@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Dimensions } from "@/types";
+import { BagType, Dimensions } from "@/types";
 import {
   DimensionField,
   dimensionError,
@@ -9,7 +9,6 @@ import {
   sanitiseDimensionInput,
 } from "@/lib/dimensions";
 
-export type BagType = "cabinBag" | "personalItem";
 export type RawInputs = Record<DimensionField, string>;
 export type TouchedFields = Record<DimensionField, boolean>;
 
@@ -20,7 +19,7 @@ const UNTOUCHED: TouchedFields = {
   depthCm: false,
 };
 
-export function useDimensionForm(initialBagType: BagType = "cabinBag") {
+export function useDimensionForm(initialBagType: BagType = "personalItem") {
   const [bagType, setBagType] = useState<BagType>(initialBagType);
   const [raw, setRaw] = useState<RawInputs>(EMPTY);
   const [touchedFields, setTouchedFields] = useState<TouchedFields>(UNTOUCHED);

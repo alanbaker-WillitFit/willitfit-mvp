@@ -1,0 +1,130 @@
+/* RC5 approved Key User graphical refinements — 30 July 2026. */
+
+/* Preserve the existing mark while preventing the bag outline from clipping. */
+.wf-header__inner {
+  padding-top: 4px;
+}
+
+.wf-brand svg {
+  width: 42px;
+  height: 50px;
+  overflow: visible;
+}
+
+/* Restore a clear visual break between the hero and the home workspace. */
+.wf-home-main {
+  margin-top: 0;
+  padding-top: 32px;
+}
+
+/* Reuse the established content-card treatment for airline destinations. */
+.wf-airline-card {
+  display: flex;
+  min-height: 180px;
+  flex-direction: column;
+  border: 1px solid #dce3ee;
+  border-radius: 14px;
+  background: #fff;
+  padding: 20px;
+  color: var(--wf-navy);
+  box-shadow: 0 8px 24px rgba(13, 27, 61, .06);
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+.wf-airline-card:hover {
+  border-color: #9ed9a8;
+  box-shadow: 0 12px 30px rgba(13, 27, 61, .1);
+  transform: translateY(-2px);
+}
+
+.wf-airline-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wf-airline-card__header h3 {
+  font-size: 17px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.wf-airline-card__country {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #eef8ef;
+  padding: 5px 8px;
+  color: #168b2c;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.wf-airline-card__allowances {
+  display: grid;
+  gap: 9px;
+  margin-top: 18px;
+  color: #52617d;
+  font-size: 12px;
+}
+
+.wf-airline-card__allowances div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid #edf0f5;
+  padding-top: 9px;
+}
+
+.wf-airline-card__allowances dt {
+  font-weight: 700;
+}
+
+.wf-airline-card__allowances dd {
+  color: var(--wf-navy);
+  font-family: var(--font-mono, monospace);
+  text-align: right;
+}
+
+.wf-airline-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 18px;
+  color: #52617d;
+  font-size: 11px;
+}
+
+.wf-airline-card__cta {
+  color: #168b2c;
+  font-weight: 750;
+}
+
+/* Desktop cards show the complete product image without affecting mobile. */
+@media (min-width: 769px) {
+  .wf-travel-essentials--rail .wf-essential-card__image {
+    aspect-ratio: 1.65;
+    padding: 8px;
+  }
+
+  .wf-travel-essentials--rail .wf-essential-card__image img {
+    object-fit: contain;
+  }
+}
+
+@media (max-width: 768px) {
+  .wf-header__inner {
+    padding-top: 3px;
+  }
+
+  .wf-brand svg {
+    width: 39px;
+    height: 47px;
+  }
+
+  .wf-home-main {
+    padding-top: 22px;
+  }
+}
