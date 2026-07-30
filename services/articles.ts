@@ -24,38 +24,55 @@ function articleSlug(record: RuntimeContentRecord): string {
   return slugify(record.title || record.contentId);
 }
 
+function capWords(value: string, maximum = 30): string {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  if (words.length <= maximum) return words.join(" ");
+  return `${words.slice(0, maximum).join(" ")}…`;
+}
+
+function validArticleSections(sections: RuntimeContentRecord[]): RuntimeContentRecord[] {
+  return sections.filter((section) => section.published && section.active && section.body.trim());
+}
+
 export const getArticles = cache(async (): Promise<{
   articles: Article[];
   source: "sheet" | "fallback";
 }> => {
   const { content, source } = await getRuntimeContent({ module: "Articles" });
+
+  // Articles are governed content. Never publish bundled fallback records as live articles.
+  if (source !== "sheet") return { articles: [], source };
+
   const grouped = new Map<string, RuntimeContentRecord[]>();
 
   for (const record of content) {
     const slug = articleSlug(record);
-    if (!slug) continue;
+    if (!slug || !record.title.trim()) continue;
     const records = grouped.get(slug) ?? [];
     records.push(record);
     grouped.set(slug, records);
   }
 
   const articles = Array.from(grouped, ([slug, sections]) => {
-    const ordered = [...sections].sort(
+    const ordered = validArticleSections(sections).sort(
       (a, b) => a.displayOrder - b.displayOrder || a.contentId.localeCompare(b.contentId)
     );
     const lead = ordered[0];
+    if (!lead?.title.trim() || !ordered.length) return null;
 
     return {
       slug,
-      title: lead?.title || slug.replace(/-/g, " "),
-      summary: lead?.supportingText || lead?.body || "",
+      title: lead.title.trim(),
+      summary: capWords(lead.supportingText || lead.body),
       sections: ordered,
     };
-  }).sort((a, b) => {
-    const aOrder = a.sections[0]?.displayOrder ?? 999;
-    const bOrder = b.sections[0]?.displayOrder ?? 999;
-    return aOrder - bOrder || a.title.localeCompare(b.title);
-  });
+  })
+    .filter((article): article is Article => article !== null)
+    .sort((a, b) => {
+      const aOrder = a.sections[0]?.displayOrder ?? 999;
+      const bOrder = b.sections[0]?.displayOrder ?? 999;
+      return aOrder - bOrder || a.title.localeCompare(b.title);
+    });
 
   return { articles, source };
 });
