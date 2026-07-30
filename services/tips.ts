@@ -35,7 +35,7 @@ function makeTitle(content: string, airline: string, category: string): string {
   return content.slice(0, 68).trim();
 }
 
-export function mapTipRow(row: TipRow): TravelTip {
+export function mapTipRow(row: TipRow, _index?: number): TravelTip {
   const content = clean(row["Tip / Hint"]) || clean(row.Content) || clean(row.Tip);
   const focusAirline = clean(row["Airline ID"]) || clean(row.FocusAirline) || clean(row["Focus Airline"]) || clean(row.Airline);
   const category = clean(row.Category) || "Travel Tips";
