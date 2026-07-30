@@ -24,7 +24,7 @@ function articleSlug(record: RuntimeContentRecord): string {
   return slugify(record.title || record.contentId);
 }
 
-function capWords(value: string, maximum = 30): string {
+export function capArticleBlurb(value: string, maximum = 30): string {
   const words = value.trim().split(/\s+/).filter(Boolean);
   if (words.length <= maximum) return words.join(" ");
   return `${words.slice(0, maximum).join(" ")}…`;
@@ -32,6 +32,39 @@ function capWords(value: string, maximum = 30): string {
 
 function validArticleSections(sections: RuntimeContentRecord[]): RuntimeContentRecord[] {
   return sections.filter((section) => section.published && section.active && section.body.trim());
+}
+
+export function buildGovernedArticles(content: RuntimeContentRecord[]): Article[] {
+  const grouped = new Map<string, RuntimeContentRecord[]>();
+
+  for (const record of content) {
+    const slug = articleSlug(record);
+    if (!slug || !record.title.trim()) continue;
+    const records = grouped.get(slug) ?? [];
+    records.push(record);
+    grouped.set(slug, records);
+  }
+
+  return Array.from(grouped, ([slug, sections]) => {
+    const ordered = validArticleSections(sections).sort(
+      (a, b) => a.displayOrder - b.displayOrder || a.contentId.localeCompare(b.contentId)
+    );
+    const lead = ordered[0];
+    if (!lead?.title.trim() || !ordered.length) return null;
+
+    return {
+      slug,
+      title: lead.title.trim(),
+      summary: capArticleBlurb(lead.supportingText || lead.body),
+      sections: ordered,
+    };
+  })
+    .filter((article): article is Article => article !== null)
+    .sort((a, b) => {
+      const aOrder = a.sections[0]?.displayOrder ?? 999;
+      const bOrder = b.sections[0]?.displayOrder ?? 999;
+      return aOrder - bOrder || a.title.localeCompare(b.title);
+    });
 }
 
 export const getArticles = cache(async (): Promise<{
@@ -43,38 +76,7 @@ export const getArticles = cache(async (): Promise<{
   // Articles are governed content. Never publish bundled fallback records as live articles.
   if (source !== "sheet") return { articles: [], source };
 
-  const grouped = new Map<string, RuntimeContentRecord[]>();
-
-  for (const record of content) {
-    const slug = articleSlug(record);
-    if (!slug || !record.title.trim()) continue;
-    const records = grouped.get(slug) ?? [];
-    records.push(record);
-    grouped.set(slug, records);
-  }
-
-  const articles = Array.from(grouped, ([slug, sections]) => {
-    const ordered = validArticleSections(sections).sort(
-      (a, b) => a.displayOrder - b.displayOrder || a.contentId.localeCompare(b.contentId)
-    );
-    const lead = ordered[0];
-    if (!lead?.title.trim() || !ordered.length) return null;
-
-    return {
-      slug,
-      title: lead.title.trim(),
-      summary: capWords(lead.supportingText || lead.body),
-      sections: ordered,
-    };
-  })
-    .filter((article): article is Article => article !== null)
-    .sort((a, b) => {
-      const aOrder = a.sections[0]?.displayOrder ?? 999;
-      const bOrder = b.sections[0]?.displayOrder ?? 999;
-      return aOrder - bOrder || a.title.localeCompare(b.title);
-    });
-
-  return { articles, source };
+  return { articles: buildGovernedArticles(content), source };
 });
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
