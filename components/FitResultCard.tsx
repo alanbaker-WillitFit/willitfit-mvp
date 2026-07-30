@@ -14,13 +14,18 @@ const PRESENTATION = {
 } as const;
 
 function resultDetail(result: FitResult) {
+  if (result.weightVerdict === "no-fit" && result.userWeightKg !== null && result.weightLimitKg !== null) {
+    return `${Math.round((result.userWeightKg - result.weightLimitKg) * 10) / 10} kg over the published weight limit`;
+  }
   if (result.verdict === "fits") {
-    const spare = Math.min(...Object.values(result.spareCm).filter((value): value is number => typeof value === "number"));
+    const spareValues = Object.values(result.spareCm).filter((value): value is number => typeof value === "number");
+    const spare = spareValues.length ? Math.min(...spareValues) : 0;
     return spare > 0 ? `You have ${spare} cm to spare` : "Your bag matches the allowance exactly";
   }
   if (result.verdict === "close") return `Within ${result.withinCm} cm of the allowance`;
-  const over = Math.max(...Object.values(result.overBy).filter((value): value is number => typeof value === "number"));
-  return `${over} cm over the allowance`;
+  const overValues = Object.values(result.overBy).filter((value): value is number => typeof value === "number");
+  const over = overValues.length ? Math.max(...overValues) : 0;
+  return over > 0 ? `${over} cm over the allowance` : "Your bag exceeds the published allowance";
 }
 
 export default function FitResultCard({ result, labConfigs = [] }: { result: FitResult; labConfigs?: LabConfiguration[] }) {
@@ -46,7 +51,8 @@ export default function FitResultCard({ result, labConfigs = [] }: { result: Fit
       <dl className="wf-result-facts">
         <div><dt>Total dimensions (including wheels &amp; handles)</dt><dd>{result.userDimensions.heightCm} × {result.userDimensions.widthCm} × {result.userDimensions.depthCm} cm</dd></div>
         <div><dt>Airline allowance</dt><dd>{result.limit.heightCm} × {result.limit.widthCm} × {result.limit.depthCm} cm</dd></div>
-        {result.weightLimitKg && <div><dt>Maximum published weight</dt><dd>{result.weightLimitKg} kg</dd></div>}
+        {result.weightLimitKg !== null && <div><dt>Maximum published weight</dt><dd>{result.weightLimitKg} kg</dd></div>}
+        {result.userWeightKg !== null && <div><dt>Your entered weight</dt><dd>{result.userWeightKg} kg</dd></div>}
       </dl>
       <p className="wf-result-notice"><span aria-hidden="true">i</span> Always check {result.airline.airlineName}&apos;s latest rules before you fly.</p>
       {labInvitation && (
