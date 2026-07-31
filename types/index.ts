@@ -5,11 +5,30 @@
 export type SheetStatus = "Live" | "Draft" | "Archived";
 export type BagType = "cabinBag" | "personalItem" | "checkedBag";
 
+export interface Dimensions {
+  heightCm: number;
+  widthCm: number;
+  depthCm: number;
+}
+
+export type LinearLimitOperator = "lt" | "lte";
+
+export type BaggageSizingRule =
+  | {
+      method: "fixed-dimensions";
+      dimensions: Dimensions;
+    }
+  | {
+      method: "linear-total";
+      linearLimitCm: number;
+      operator: LinearLimitOperator;
+    };
+
 export interface FareClassAllowance {
   fareClass: string;
   cabinBag: Dimensions | null;
   personalItem: Dimensions | null;
-  checkedBag?: Dimensions | null;
+  checkedBag?: BaggageSizingRule | null;
   weightLimitKg: number | null;
   checkedWeightLimitKg?: number | null;
 }
@@ -22,7 +41,7 @@ export interface Airline {
   logoUrl: string;
   personalItem: Dimensions;
   cabinBag: Dimensions;
-  checkedBag?: Dimensions;
+  checkedBag?: BaggageSizingRule;
   weightLimitKg: number | null;
   checkedWeightLimitKg?: number | null;
   fareClasses: FareClassAllowance[];
@@ -33,12 +52,6 @@ export interface Airline {
   hasCabinBag?: boolean;
   hasPersonalItem?: boolean;
   hasCheckedBag?: boolean;
-}
-
-export interface Dimensions {
-  heightCm: number;
-  widthCm: number;
-  depthCm: number;
 }
 
 export type SpecialBaggageCategoryId =
@@ -145,7 +158,12 @@ export interface FitResult {
   airline: Airline;
   bagType: BagType;
   userDimensions: Dimensions;
-  limit: Dimensions;
+  sizingRule: BaggageSizingRule;
+  limit: Dimensions | null;
+  userLinearTotalCm: number | null;
+  linearLimitCm: number | null;
+  linearOperator: LinearLimitOperator | null;
+  linearMarginCm: number | null;
   weightLimitKg: number | null;
   userWeightKg: number | null;
   weightVerdict: WeightVerdict;
@@ -153,7 +171,7 @@ export interface FitResult {
   overBy: Partial<Dimensions>;
   spareCm: Partial<Dimensions>;
   withinCm: number | null;
-  orientationUsed: Dimensions;
+  orientationUsed: Dimensions | null;
 }
 
 // ── Data fetch envelope ──────────────────────────────────────────────────────
