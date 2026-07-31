@@ -3,7 +3,7 @@
 import Image from "next/image";
 import React, { useEffect, useRef, useState } from "react";
 import { Airline, AffiliateSlot, FitResult, LabConfiguration, SpecialBaggageResult } from "@/types";
-import { checkFit } from "@/lib/fitCalculator";
+import { checkFit, resolveLimit } from "@/lib/fitCalculator";
 import { checkerPreset } from "@/lib/checkerPreset";
 import { useDimensionForm } from "@/hooks/useDimensionForm";
 import { cn } from "@/lib/utils";
@@ -77,6 +77,10 @@ export default function DimensionForm({
   const resultRef = useRef<HTMLDivElement>(null);
   const fieldRefs = useRef<Record<typeof FIELDS[number]["key"], HTMLInputElement | null>>({ heightCm: null, widthCm: null, depthCm: null });
 
+  const sizingRule = airline && airlineHasBagType(airline, bagType)
+    ? resolveLimit(airline, bagType, fareClass).sizingRule
+    : null;
+  const linearRule = sizingRule?.method === "linear-total" ? sizingRule : null;
   const weightLimitKg = selectedWeightLimit(airline, bagType, fareClass);
   const weightSupported = weightLimitKg !== null;
   const showWeightStep = bagType === "checkedBag" || weightSupported;
@@ -109,6 +113,8 @@ export default function DimensionForm({
     setSelectedSpecial(null);
     if (selectedAirline && airlineHasBagType(selectedAirline, selectedBagType)) {
       loadDimensions(checkerPreset(selectedAirline, selectedBagType, selectedFare));
+    } else {
+      loadDimensions(null);
     }
   }
   function onSubmit(event: React.FormEvent) {
@@ -215,6 +221,13 @@ export default function DimensionForm({
                   {airline.fareClasses.filter(item => item[bagType]).map(item => <option key={item.fareClass}>{item.fareClass}</option>)}
                 </select>
               </div>
+            )}
+
+            {linearRule && (
+              <aside className="wf-card wf-card--compact p-4" role="status" aria-live="polite">
+                <strong>Total-size rule</strong>
+                <p>This airline uses a total-size limit rather than fixed dimensions. Enter your bag&apos;s length, width and depth. Together they must total {linearRule.operator === "lt" ? "less than" : "no more than"} {linearRule.linearLimitCm} cm.</p>
+              </aside>
             )}
 
             <fieldset className="wf-checker-step wf-checker-step--dimensions">
