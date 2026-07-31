@@ -75,5 +75,7 @@ export function airlineHasBagType(
       ? airline.hasPersonalItem
       : airline.hasCheckedBag;
 
-  return explicit ?? hasValidDimensions(airline[bagType]);
+  if (explicit !== undefined) return explicit;
+  if (bagType === "checkedBag") return Boolean(airline.checkedBag);
+  return hasValidDimensions(airline[bagType]);
 }
