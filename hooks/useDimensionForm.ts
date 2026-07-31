@@ -53,8 +53,16 @@ export function useDimensionForm(initialBagType: BagType = "personalItem") {
     setSubmitted(false);
   }
 
-  function loadDimensions(dimensions: Dimensions) {
-    setRaw({ heightCm: String(dimensions.heightCm), widthCm: String(dimensions.widthCm), depthCm: String(dimensions.depthCm) });
+  function loadDimensions(dimensions: Dimensions | null) {
+    if (!dimensions) {
+      reset();
+      return;
+    }
+    setRaw({
+      heightCm: String(dimensions.heightCm),
+      widthCm: String(dimensions.widthCm),
+      depthCm: String(dimensions.depthCm),
+    });
     setTouchedFields(UNTOUCHED);
     setSubmitted(false);
   }
