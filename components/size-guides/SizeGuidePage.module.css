@@ -1,0 +1,283 @@
+.page {
+  padding: 3rem 0 4rem;
+}
+
+.hero {
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  color: #22c55e;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  color: #0d1b3d;
+  font-size: clamp(2.25rem, 5vw, 4rem);
+  font-weight: 850;
+  line-height: 0.98;
+  text-transform: uppercase;
+}
+
+.intro {
+  max-width: 46rem;
+  margin: 1rem auto 0;
+  color: #334155;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+}
+
+.bagStage {
+  position: relative;
+  width: min(100%, 34rem);
+  min-height: 25rem;
+  margin: 2.25rem auto 2.75rem;
+}
+
+.bagImage {
+  object-fit: contain;
+}
+
+.measurement {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #22c55e;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.measurement::before,
+.measurement::after {
+  content: "";
+  display: block;
+  flex: 1;
+  border-top: 2px dashed currentColor;
+}
+
+.measurement span {
+  padding: 0 0.6rem;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.height {
+  top: 13%;
+  bottom: 7%;
+  left: 4%;
+  width: 2rem;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.height::before,
+.height::after {
+  border-top: 0;
+  border-left: 2px dashed currentColor;
+}
+
+.width {
+  right: 13%;
+  bottom: 5%;
+  left: 13%;
+}
+
+.depth {
+  right: -4%;
+  bottom: 16%;
+  width: 42%;
+  transform: rotate(-28deg);
+}
+
+.sectionTitle {
+  margin: 0 0 1.25rem;
+  color: #0d1b3d;
+  font-size: clamp(1.35rem, 2.4vw, 2rem);
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.card {
+  min-width: 0;
+  padding: 1rem 0.8rem;
+  border: 1px solid #dbe4ee;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(13, 27, 61, 0.06);
+}
+
+.metric {
+  display: block;
+  color: #0d1b3d;
+  font-size: 0.98rem;
+  line-height: 1.25;
+}
+
+.imperial {
+  display: block;
+  margin-top: 0.3rem;
+  color: #64748b;
+  font-size: 0.74rem;
+}
+
+.airlines {
+  margin: 0.85rem 0 0;
+  padding-top: 0.8rem;
+  border-top: 1px solid #dbe4ee;
+  list-style: none;
+}
+
+.airlines li + li {
+  margin-top: 0.35rem;
+}
+
+.airlines a {
+  color: #334155;
+  font-size: 0.83rem;
+  text-decoration: none;
+}
+
+.airlines a:hover,
+.airlines a:focus-visible {
+  color: #16a34a;
+  text-decoration: underline;
+}
+
+.more {
+  margin-top: 0.6rem;
+}
+
+.more summary {
+  color: #15803d;
+  font-size: 0.78rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.cta {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  border: 1px solid #dbe4ee;
+  border-radius: 1rem;
+  background: #fff;
+  text-align: center;
+}
+
+.cta h2 {
+  margin: 0;
+  color: #0d1b3d;
+  font-size: 1.5rem;
+}
+
+.cta p {
+  margin: 0.55rem auto 1rem;
+  color: #475569;
+}
+
+.cta a {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.75rem;
+  background: #22c55e;
+  color: #0d1b3d;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.knowledge {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 2rem 0;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: #f2f5f8;
+}
+
+.knowledge article {
+  min-width: 0;
+  padding: 0.5rem;
+}
+
+.knowledge strong {
+  display: block;
+  color: #0d1b3d;
+}
+
+.knowledge p {
+  margin: 0.3rem 0 0;
+  color: #475569;
+  font-size: 0.86rem;
+}
+
+.page :global(.wf-travel-essentials__cards) {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.page :global(.wf-essential-card) {
+  min-width: 0;
+}
+
+.source {
+  margin-top: 1rem;
+  color: #64748b;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+@media (max-width: 1100px) {
+  .grid,
+  .page :global(.wf-travel-essentials__cards) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding-top: 2rem;
+  }
+
+  .bagStage {
+    min-height: 20rem;
+    margin-bottom: 2rem;
+  }
+
+  .grid,
+  .page :global(.wf-travel-essentials__cards) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .knowledge {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .card {
+    padding: 0.85rem 0.65rem;
+  }
+
+  .airlines a {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .grid,
+  .knowledge,
+  .page :global(.wf-travel-essentials__cards) {
+    grid-template-columns: 1fr;
+  }
+}
