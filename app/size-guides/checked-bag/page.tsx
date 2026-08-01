@@ -22,8 +22,9 @@ export default async function CheckedBagSizeGuidePage() {
     <SizeGuidePage
       title="Checked Bag Size Guide"
       intro="Compare the checked baggage size rules used by different airlines."
-      bagImageSrc="/assets/icons/cabin-bag-photo-rc4.jpg"
-      bagImageAlt="White checked suitcase shown with height, width and depth measurement guides."
+      bagImageSrc="/assets/icons/cabin-bag-measurement-rc4.jpg"
+      bagImageAlt="Checked suitcase with height, width and depth measurement arrows."
+      imageScale="zoomed"
       sectionTitle="Common Checked Bag Size Rules"
       bagTypeQuery="checkedBag"
       checkerLabel="Check My Checked Bag"
