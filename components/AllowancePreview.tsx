@@ -18,6 +18,7 @@ export default function AllowancePreview({ airline, bagType, fareClass = null }:
   const bagLabel = bagType === "cabinBag" ? "Cabin Bag" : "Personal Item";
 
   if (!airline) {
+
     return (
       <div className="wf-card wf-card--compact flex h-full flex-col justify-center bg-navy-50 text-center">
         <p className="font-body text-sm text-navy-400">
@@ -27,10 +28,17 @@ export default function AllowancePreview({ airline, bagType, fareClass = null }:
     );
   }
 
-  const { sizingRule, fareClass: resolvedFareClass } = resolveLimit(airline, bagType, fareClass);
-  if (sizingRule.method !== "fixed-dimensions") return null;
-  const limit = sizingRule.dimensions;
+const { sizingRule, fareClass: resolvedFareClass } = resolveLimit(
+  airline,
+  bagType,
+  fareClass
+);
 
+if (sizingRule.method !== "fixed-dimensions") {
+  return null;
+}
+
+const limit = sizingRule.dimensions;
   return (
     <div className="wf-card wf-card--compact bg-navy-50">
       <p className="font-body text-xs font-semibold uppercase tracking-wide text-navy-400">

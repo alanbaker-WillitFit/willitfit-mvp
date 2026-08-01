@@ -21,18 +21,34 @@ function round1(value: number): number {
 }
 
 export function buildDimensionComparison(result: FitResult): DimensionComparisonRow[] {
-  return (["heightCm", "widthCm", "depthCm"] as DimensionKey[]).map((key) => ({
-    key,
-    label: DIMENSION_LABELS[key],
-    userCm: result.orientationUsed[key],
-    limitCm: result.limit[key],
-    differenceCm: round1(result.orientationUsed[key] - result.limit[key]),
-  }));
+  if (
+    result.sizingRule.method !== "fixed-dimensions" ||
+    !result.limit ||
+    !result.orientationUsed
+  ) {
+    return [];
+  }
+
+const limit = result.limit;
+const orientation = result.orientationUsed;
+
+return (["heightCm", "widthCm", "depthCm"] as DimensionKey[]).map((key) => ({
+  key,
+  label: DIMENSION_LABELS[key],
+  userCm: orientation[key],
+  limitCm: limit[key],
+  differenceCm: round1(orientation[key] - limit[key]),
+}));
 }
 
 export function wasRotated(result: FitResult): boolean {
+  if (!result.orientationUsed) {
+    return false;
+  }
+
   const original = result.userDimensions;
   const used = result.orientationUsed;
+
   return (
     original.heightCm !== used.heightCm ||
     original.widthCm !== used.widthCm ||

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { adaptAirlineRow, adaptBaggageRuleRow, mapRuntimeAirline } from "../services/airlines";
+import {
+  adaptAirlineRow,
+  adaptBaggageRuleRow,
+  mapRuntimeAirline,
+} from "../services/airlines";
 
 const airlineRow = adaptAirlineRow({
   "Airline ID": "AIR001",
@@ -18,6 +22,7 @@ describe("RC5 airline runtime mapping", () => {
       "Airline ID": "AIR001",
       "Fare Class": "Standard",
       "Bag Type": "Checked baggage",
+      "Sizing Method": "Fixed Dimensions",
       "Height cm": "80",
       "Width cm": "55",
       "Depth cm": "35",
@@ -27,6 +32,7 @@ describe("RC5 airline runtime mapping", () => {
 
     expect(rule).toMatchObject({
       FareClass: "Standard",
+      SizingMethod: "Fixed Dimensions",
       HeightCm: "80",
       WidthCm: "55",
       DepthCm: "35",
@@ -63,6 +69,7 @@ describe("RC5 airline runtime mapping", () => {
         "Airline ID": "AIR001",
         Fare: "Standard",
         "Bag Type": "Hold luggage",
+        "Sizing Method": "Fixed Dimensions",
         "Length cm": "80",
         "Width cm": "55",
         "Depth cm": "35",
@@ -74,28 +81,46 @@ describe("RC5 airline runtime mapping", () => {
     const airline = mapRuntimeAirline(airlineRow, rules);
 
     expect(airline.hasCheckedBag).toBe(true);
-    expect(airline.checkedBag).toEqual({ heightCm: 80, widthCm: 55, depthCm: 35 });
+    expect(airline.checkedBag).toEqual({
+      method: "fixed-dimensions",
+      dimensions: {
+        heightCm: 80,
+        widthCm: 55,
+        depthCm: 35,
+      },
+    });
     expect(airline.checkedWeightLimitKg).toBe(23);
     expect(airline.fareClasses[0]).toMatchObject({
       fareClass: "Standard",
-      checkedBag: { heightCm: 80, widthCm: 55, depthCm: 35 },
+      checkedBag: {
+        method: "fixed-dimensions",
+        dimensions: {
+          heightCm: 80,
+          widthCm: 55,
+          depthCm: 35,
+        },
+      },
       checkedWeightLimitKg: 23,
     });
   });
 
   it("does not expose checked baggage when dimensions are incomplete", () => {
-    const rules = [adaptBaggageRuleRow({
-      "Rule ID": "R4",
-      "Airline ID": "AIR001",
-      "Bag Type": "Checked baggage",
-      "Length cm": "80",
-      "Width cm": "55",
-      "Depth cm": "",
-      "Weight kg": "23",
-      "Review Status": "Approved",
-    })];
+    const rules = [
+      adaptBaggageRuleRow({
+        "Rule ID": "R4",
+        "Airline ID": "AIR001",
+        "Bag Type": "Checked baggage",
+        "Sizing Method": "Fixed Dimensions",
+        "Length cm": "80",
+        "Width cm": "55",
+        "Depth cm": "",
+        "Weight kg": "23",
+        "Review Status": "Approved",
+      }),
+    ];
 
     const airline = mapRuntimeAirline(airlineRow, rules);
+
     expect(airline.hasCheckedBag).toBe(false);
     expect(airline.checkedBag).toBeUndefined();
   });

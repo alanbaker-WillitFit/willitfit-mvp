@@ -20,7 +20,15 @@ const result: FitResult = {
   },
   bagType: "cabinBag",
   userDimensions: { heightCm: 60, widthCm: 40, depthCm: 20 },
+  sizingRule: {
+    method: "fixed-dimensions",
+    dimensions: { heightCm: 55, widthCm: 40, depthCm: 20 },
+  },
   limit: { heightCm: 55, widthCm: 40, depthCm: 20 },
+  userLinearTotalCm: null,
+  linearLimitCm: null,
+  linearOperator: null,
+  linearMarginCm: null,
   weightLimitKg: 10,
   userWeightKg: null,
   weightVerdict: "not-checked",
@@ -32,10 +40,47 @@ const result: FitResult = {
 };
 
 const baseRows = {
-  intents: [{ Intent_ID: "AFF-INT-003", Question_ID: "Q-0009", Priority: "10", Disclosure_Rule: "Affiliate disclosure", Status: "Mapped" }],
-  rules: [{ Rule_ID: "AFF-RUL-001", Intent_ID: "AFF-INT-003", Result_State: "Fail", Product_Category: "Cabin Bag", Card_ID: "REC-002", Priority: "10", Enabled: "Yes" }],
-  cards: [{ Card_ID: "REC-002", Card_Name: "Replacement", Headline_Pattern: "A bag that fits", CTA_Text: "View suitable bags", Max_Products: "2", Status: "Draft" }],
-  products: [{ AffiliateID: "PRD-1", Brand: "Test", Product: "Cabin Bag", Category: "Cabin Bag", AffiliateURL: "https://example.com/product", Status: "Live", Merchant_Priority: "1" }],
+  intents: [
+    {
+      Intent_ID: "AFF-INT-003",
+      Question_ID: "Q-0009",
+      Priority: "10",
+      Disclosure_Rule: "Affiliate disclosure",
+      Status: "Mapped",
+    },
+  ],
+  rules: [
+    {
+      Rule_ID: "AFF-RUL-001",
+      Intent_ID: "AFF-INT-003",
+      Result_State: "Fail",
+      Product_Category: "Cabin Bag",
+      Card_ID: "REC-002",
+      Priority: "10",
+      Enabled: "Yes",
+    },
+  ],
+  cards: [
+    {
+      Card_ID: "REC-002",
+      Card_Name: "Replacement",
+      Headline_Pattern: "A bag that fits",
+      CTA_Text: "View suitable bags",
+      Max_Products: "2",
+      Status: "Draft",
+    },
+  ],
+  products: [
+    {
+      AffiliateID: "PRD-1",
+      Brand: "Test",
+      Product: "Cabin Bag",
+      Category: "Cabin Bag",
+      AffiliateURL: "https://example.com/product",
+      Status: "Live",
+      Merchant_Priority: "1",
+    },
+  ],
 };
 
 describe("commercial recommendation engine", () => {
@@ -50,14 +95,21 @@ describe("commercial recommendation engine", () => {
       ...baseRows,
       products: [{ ...baseRows.products[0], Status: "Draft" }],
     });
+
     expect(decision).toBeNull();
   });
 
   it("fails closed when the affiliate link is invalid", () => {
     const decision = buildRecommendationDecision(result, {
       ...baseRows,
-      products: [{ ...baseRows.products[0], AffiliateURL: "not-a-url" }],
+      products: [
+        {
+          ...baseRows.products[0],
+          AffiliateURL: "not-a-url",
+        },
+      ],
     });
+
     expect(decision).toBeNull();
   });
 });

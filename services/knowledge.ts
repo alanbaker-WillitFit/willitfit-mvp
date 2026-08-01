@@ -145,6 +145,14 @@ function bagToken(result: FitResult): "Cabin" | "Personal" {
 }
 
 function dimensionDiff(result: FitResult): Dimensions {
+  if (!result.orientationUsed || !result.limit) {
+    return {
+      heightCm: 0,
+      widthCm: 0,
+      depthCm: 0,
+    };
+  }
+
   return {
     heightCm: result.orientationUsed.heightCm - result.limit.heightCm,
     widthCm: result.orientationUsed.widthCm - result.limit.widthCm,
