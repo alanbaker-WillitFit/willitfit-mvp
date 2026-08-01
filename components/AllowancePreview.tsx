@@ -27,7 +27,9 @@ export default function AllowancePreview({ airline, bagType, fareClass = null }:
     );
   }
 
-  const { limit, fareClass: resolvedFareClass } = resolveLimit(airline, bagType, fareClass);
+  const { sizingRule, fareClass: resolvedFareClass } = resolveLimit(airline, bagType, fareClass);
+  if (sizingRule.method !== "fixed-dimensions") return null;
+  const limit = sizingRule.dimensions;
 
   return (
     <div className="wf-card wf-card--compact bg-navy-50">
