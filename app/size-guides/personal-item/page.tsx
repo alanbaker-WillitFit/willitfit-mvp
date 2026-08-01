@@ -22,8 +22,8 @@ export default async function PersonalItemSizeGuidePage() {
     <SizeGuidePage
       title="Personal Item Size Guide"
       intro="Find which airlines use the same personal item dimensions."
-      bagImageSrc="/assets/icons/personal-item-photo-rc4.jpg"
-      bagImageAlt="White personal item travel bag shown with height, width and depth measurement guides."
+      bagImageSrc="/assets/icons/personal-item-measurement-rc4.jpg"
+      bagImageAlt="Personal item travel bag with height, width and depth measurement arrows."
       sectionTitle="Most Common Personal Item Sizes"
       bagTypeQuery="personalItem"
       checkerLabel="Check My Personal Item"
