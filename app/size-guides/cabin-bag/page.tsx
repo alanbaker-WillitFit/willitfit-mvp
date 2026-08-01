@@ -22,8 +22,8 @@ export default async function CabinBagSizeGuidePage() {
     <SizeGuidePage
       title="Cabin Bag Size Guide"
       intro="Find which airlines use the same cabin bag dimensions."
-      bagImageSrc="/assets/icons/cabin-bag-photo-rc4.jpg"
-      bagImageAlt="White cabin suitcase shown with height, width and depth measurement guides."
+      bagImageSrc="/assets/icons/cabin-bag-measurement-rc4.jpg"
+      bagImageAlt="Cabin suitcase with height, width and depth measurement arrows."
       sectionTitle="Most Common Cabin Bag Sizes"
       bagTypeQuery="cabinBag"
       checkerLabel="Check My Cabin Bag"
