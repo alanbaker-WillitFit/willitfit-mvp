@@ -8,6 +8,7 @@ import { AIRLINE_TABS, BAGGAGE_RULE_TABS } from "./runtimeSources";
 export { AIRLINE_TABS, BAGGAGE_RULE_TABS } from "./runtimeSources";
 
 type RuntimeRow = Record<string, string>;
+type GovernedBagType = "personal" | "cabin" | "checked";
 type AirlineRow = RuntimeRow & {
   AirlineID: string; AirlineName: string; Slug: string; Country: string;
   OfficialBaggageURL: string; Status: string; LastChecked: string; Notes: string;
@@ -65,22 +66,28 @@ export function parseStatus(value: string | undefined): SheetStatus {
   return "Draft";
 }
 
+export function parseGovernedBagType(value: string | undefined): GovernedBagType | null {
+  const bagType = normalise(value);
+  if (bagType === "personal" || bagType === "personal item") return "personal";
+  if (bagType === "cabin" || bagType === "cabin bag") return "cabin";
+  if (bagType === "checked" || bagType === "checked bag") return "checked";
+  return null;
+}
+
 function isLiveRule(rule: BaggageRuleRow): boolean {
   return parseStatus(rule.Status) === "Live";
 }
 
 function isCabinBag(rule: BaggageRuleRow): boolean {
-  return normalise(rule.BagType).includes("cabin");
+  return parseGovernedBagType(rule.BagType) === "cabin";
 }
 
 function isPersonalItem(rule: BaggageRuleRow): boolean {
-  const bagType = normalise(rule.BagType);
-  return bagType.includes("personal") || bagType.includes("underseat") || bagType.includes("handbag");
+  return parseGovernedBagType(rule.BagType) === "personal";
 }
 
 function isCheckedBag(rule: BaggageRuleRow): boolean {
-  const bagType = normalise(rule.BagType);
-  return bagType.includes("checked") || bagType.includes("hold") || bagType.includes("check-in");
+  return parseGovernedBagType(rule.BagType) === "checked";
 }
 
 function toDimensions(rule: BaggageRuleRow | undefined): Dimensions | null {
@@ -194,11 +201,32 @@ export async function getAirlines(): Promise<{ airlines: Airline[]; source: "she
     readFirstAvailableRuntimeTab<RuntimeRow>(BAGGAGE_RULE_TABS),
   ]);
   const airlineRows = airlineRead.rows?.filter(runtimePublished).map(adaptAirlineRow) ?? null;
-  const baggageRows = baggageRead.rows?.filter(runtimePublished).map(adaptBaggageRuleRow) ?? null;
+  const publishedBaggageRows = baggageRead.rows?.filter(runtimePublished).map(adaptBaggageRuleRow) ?? null;
 
-  if (!airlineRows || !baggageRows) {
+  if (!airlineRows || !publishedBaggageRows) {
     return { airlines: FALLBACK_AIRLINES, source: "fallback" };
   }
+
+  const duplicateRuleIds = duplicateValues(
+    publishedBaggageRows.map((rule) => rule.RuleID.trim()).filter(Boolean)
+  );
+  const invalidRules = publishedBaggageRows.filter((rule) =>
+    !rule.RuleID.trim() || !rule.AirlineID.trim() || parseGovernedBagType(rule.BagType) === null
+  );
+
+  if (duplicateRuleIds.size || invalidRules.length) {
+    console.error("[airlines] Invalid published baggage rules", {
+      duplicateRuleIds: Array.from(duplicateRuleIds),
+      invalidRuleIds: invalidRules.map((rule) => rule.RuleID || "<blank>"),
+    });
+  }
+
+  const baggageRows = publishedBaggageRows.filter((rule) =>
+    Boolean(rule.RuleID.trim()) &&
+    Boolean(rule.AirlineID.trim()) &&
+    parseGovernedBagType(rule.BagType) !== null &&
+    !duplicateRuleIds.has(rule.RuleID.trim())
+  );
 
   const liveRows = airlineRows.filter((a) => a.AirlineID?.trim() && a.AirlineName?.trim() && parseStatus(a.Status) === "Live");
   const duplicateIds = duplicateValues(liveRows.map((a) => a.AirlineID.trim()));
