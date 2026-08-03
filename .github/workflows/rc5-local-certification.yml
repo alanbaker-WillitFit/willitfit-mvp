@@ -6,13 +6,18 @@ on:
       - rc5-cleanse-baseline
     paths:
       - '**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '**'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: rc5-local-certification
+  group: rc5-local-certification-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
