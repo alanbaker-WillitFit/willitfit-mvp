@@ -29,15 +29,21 @@ export function runtimePublished(row: RuntimeRow): boolean {
   const publishValue = value(row, "Publish", "Runtime Publish Status", "Published", "Publish Status");
   const reviewValue = value(row, "Review Status", "ReviewStatus", "Workflow Status");
   const legacyStatusValue = value(row, "Status", "Content Status");
-  const active = activeValue ? runtimeBoolean(activeValue) : true;
-  const publishApproved = publishValue ? runtimeBoolean(publishValue) : true;
-  const reviewApproved = reviewValue
-    ? ["approved", "published", "live"].includes(reviewValue.toLowerCase())
-    : true;
-  const legacyApproved = !activeValue && !publishValue && !reviewValue && legacyStatusValue
-    ? runtimeBoolean(legacyStatusValue)
-    : true;
-  return active && publishApproved && reviewApproved && legacyApproved;
+
+  const usesModernGovernance = Boolean(activeValue || publishValue || reviewValue);
+  if (usesModernGovernance) {
+    // RC5 publication is positive approval, never the absence of a rejection.
+    // Publish and Review Status are mandatory. Active is mandatory only on
+    // datasets whose schema contains it; when supplied it must also approve.
+    if (!publishValue || !reviewValue) return false;
+    if (!runtimeBoolean(publishValue)) return false;
+    if (!["approved", "published", "live"].includes(reviewValue.toLowerCase())) return false;
+    if (activeValue && !runtimeBoolean(activeValue)) return false;
+    return true;
+  }
+
+  // Legacy rows are supported only when they carry an explicit positive status.
+  return Boolean(legacyStatusValue) && runtimeBoolean(legacyStatusValue);
 }
 
 function derivedModule(row: RuntimeRow): string {
