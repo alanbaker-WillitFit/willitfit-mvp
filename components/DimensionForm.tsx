@@ -9,6 +9,7 @@ import { useDimensionForm } from "@/hooks/useDimensionForm";
 import { cn } from "@/lib/utils";
 import AirlineSelector from "./AirlineSelector";
 import FitResultCard from "./FitResultCard";
+import SpecialBaggageResultCard from "./SpecialBaggageResultCard";
 import TravelEssentials from "./TravelEssentials";
 import { airlineHasBagType } from "@/lib/dimensions";
 import type { RuntimeContentRecord } from "@/types";
@@ -72,6 +73,7 @@ export default function DimensionForm({
   const [weightTouched, setWeightTouched] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [selectedSpecial, setSelectedSpecial] = useState<string | null>(null);
+  const [publishedSpecialResult, setPublishedSpecialResult] = useState<SpecialBaggageResult | null>(null);
   const [result, setResult] = useState<FitResult | null>(null);
   const [resultKey, setResultKey] = useState(0);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -91,6 +93,10 @@ export default function DimensionForm({
     : weightRaw !== "" && (!Number.isFinite(weightValue) || weightValue! <= 0 || weightValue! > 999)
       ? "Enter a valid weight in kilograms."
       : null;
+  const selectedSpecialResult = selectedSpecial
+    ? specialBaggageResults.find((item) => item.resultId === selectedSpecial) ?? null
+    : null;
+  const hasPublishedResult = Boolean(result || publishedSpecialResult);
 
   useEffect(() => {
     if (!initialAirline || airlineHasBagType(initialAirline, bagType)) return;
@@ -100,14 +106,19 @@ export default function DimensionForm({
   }, [bagType, initialAirline, loadDimensions, setBagType]);
 
   useEffect(() => {
-    if (!result) return;
+    if (!hasPublishedResult) return;
     const frame = requestAnimationFrame(() => resultRef.current?.focus());
     return () => cancelAnimationFrame(frame);
-  }, [result, resultKey]);
+  }, [hasPublishedResult, resultKey]);
 
-  function invalidate() { setResult(null); }
+  function invalidate() {
+    setResult(null);
+    setPublishedSpecialResult(null);
+  }
+
   function applySelection(selectedAirline: Airline | null, selectedBagType: typeof bagType, selectedFare: string | null) {
     setResult(null);
+    setPublishedSpecialResult(null);
     setWeightRaw("");
     setWeightTouched(false);
     setSelectedSpecial(null);
@@ -117,8 +128,17 @@ export default function DimensionForm({
       loadDimensions(null);
     }
   }
+
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
+
+    if (airline && selectedSpecialResult) {
+      setResult(null);
+      setPublishedSpecialResult(selectedSpecialResult);
+      setResultKey(key => key + 1);
+      return;
+    }
+
     markAllTouched();
     setWeightTouched(true);
     if (!isValid || weightError) {
@@ -127,6 +147,7 @@ export default function DimensionForm({
       return;
     }
     if (!airline || !airlineHasBagType(airline, bagType)) return;
+    setPublishedSpecialResult(null);
     setResult(checkFit(dimensions as Required<typeof dimensions>, airline, bagType, fareClass, weightSupported ? weightValue : null));
     setResultKey(key => key + 1);
   }
@@ -139,13 +160,19 @@ export default function DimensionForm({
     setWeightTouched(false);
     setAdvancedOpen(false);
     setSelectedSpecial(null);
+    setPublishedSpecialResult(null);
     setResult(null);
   }
 
-  const state = result?.verdict === "fits" ? "is-success" : result?.verdict === "close" ? "is-warning" : result ? "is-error" : "";
-  const selectedSpecialResult = selectedSpecial
-    ? specialBaggageResults.find((item) => item.resultId === selectedSpecial) ?? null
-    : null;
+  const state = publishedSpecialResult
+    ? "is-warning"
+    : result?.verdict === "fits"
+      ? "is-success"
+      : result?.verdict === "close"
+        ? "is-warning"
+        : result
+          ? "is-error"
+          : "";
 
   return (
     <div className="wf-primary-journey">
@@ -269,9 +296,20 @@ export default function DimensionForm({
                   {!airline ? (
                     <p className="mt-3 text-sm font-medium text-navy-500" role="status">Select an airline to view special baggage guidance.</p>
                   ) : specialBaggageResults.length === 14 ? (
-                    <div className="wf-bag-types" role="list" aria-label="Special and oversized baggage categories">
+                    <div className="wf-bag-types" role="group" aria-label="Special and oversized baggage categories">
                       {specialBaggageResults.map(item => (
-                        <button key={item.resultId} type="button" role="listitem" aria-pressed={selectedSpecial === item.resultId} className={cn("wf-bag-type", selectedSpecial === item.resultId && "is-selected")} onClick={() => setSelectedSpecial(item.resultId)}>
+                        <button
+                          key={item.resultId}
+                          type="button"
+                          aria-pressed={selectedSpecial === item.resultId}
+                          className={cn("wf-bag-type", selectedSpecial === item.resultId && "is-selected")}
+                          onClick={() => {
+                            setSelectedSpecial(item.resultId);
+                            setResult(null);
+                            setPublishedSpecialResult(null);
+                          }}
+                        >
+                          {selectedSpecial === item.resultId && <span aria-hidden="true">✓ </span>}
                           {item.title}
                         </button>
                       ))}
@@ -279,35 +317,36 @@ export default function DimensionForm({
                   ) : (
                     <p className="mt-3 text-sm font-semibold text-amber-700" role="status">Special baggage guidance is temporarily unavailable.</p>
                   )}
-                </div>
-              )}
-              {airline && selectedSpecialResult && (
-                <aside className="wf-card wf-card--compact mt-4 p-4" aria-live="polite">
-                  <strong>{selectedSpecialResult.title}</strong>
-                  <p>{selectedSpecialResult.summary}</p>
-                  {selectedSpecialResult.preparationGuidance && <p><strong>Prepare:</strong> {selectedSpecialResult.preparationGuidance}</p>}
-                  {selectedSpecialResult.feeGuidance && <p><strong>Fees:</strong> {selectedSpecialResult.feeGuidance}</p>}
-                  {selectedSpecialResult.mobilityOrMedical && <p><strong>Accessibility:</strong> Contact the airline before travel to confirm assistance and carriage arrangements.</p>}
-                  {selectedSpecialResult.policyLinkSource.startsWith("https://") && (
-                    <p><a href={selectedSpecialResult.policyLinkSource} target="_blank" rel="noopener noreferrer">{selectedSpecialResult.policyLinkLabel || "Read the airline policy"}</a></p>
+                  {airline && selectedSpecialResult && (
+                    <p className="mt-3 text-sm font-medium text-navy-500" role="status">
+                      {selectedSpecialResult.title} selected. Press Check my bag for the airline guidance.
+                    </p>
                   )}
-                </aside>
+                </div>
               )}
             </section>
           </div>
 
           <button type="submit" className="wf-check-button">Check my bag <span aria-hidden="true">→</span></button>
           {submitted && !airline && <p className="wf-form-error" role="alert">Select an airline before checking your bag.</p>}
-          {!result && hints.length > 0 && (
+          {!hasPublishedResult && hints.length > 0 && (
             <aside className="wf-card wf-card--compact mt-4 p-4" aria-label="Before you check">
               {hints.map((hint) => <p key={hint.contentId}><strong>{hint.title}:</strong> {hint.body}</p>)}
             </aside>
           )}
         </form>
 
-        {result && <div ref={resultRef} tabIndex={-1} className="wf-result-panel"><FitResultCard key={resultKey} result={result} labConfigs={labConfigs} /></div>}
+        {hasPublishedResult && (
+          <div ref={resultRef} tabIndex={-1} className="wf-result-panel">
+            {publishedSpecialResult && airline ? (
+              <SpecialBaggageResultCard key={resultKey} airline={airline} result={publishedSpecialResult} />
+            ) : result ? (
+              <FitResultCard key={resultKey} result={result} labConfigs={labConfigs} />
+            ) : null}
+          </div>
+        )}
       </section>
-      {result && <div className="wf-travel-essentials-mobile"><TravelEssentials slots={affiliateSlots} /></div>}
+      {hasPublishedResult && <div className="wf-travel-essentials-mobile"><TravelEssentials slots={affiliateSlots} /></div>}
     </div>
   );
 }
