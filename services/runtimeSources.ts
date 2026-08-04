@@ -15,6 +15,7 @@ export const RUNTIME_TABS = {
   articleSections: ["08.2.1_Article_Sections"],
   affiliateProducts: ["09_Affiliate_Placements"],
   labConfig: ["10_Lab"],
+  labGames: ["10.1_Lab_Game_Catalogue"],
 } as const;
 
 export const AIRLINE_TABS = RUNTIME_TABS.airlines;
@@ -27,3 +28,4 @@ export const ARTICLE_TABS = RUNTIME_TABS.articles;
 export const ARTICLE_SECTION_TABS = RUNTIME_TABS.articleSections;
 export const AFFILIATE_PRODUCT_TABS = RUNTIME_TABS.affiliateProducts;
 export const LAB_CONFIG_TABS = RUNTIME_TABS.labConfig;
+export const LAB_GAME_TABS = RUNTIME_TABS.labGames;
