@@ -102,6 +102,12 @@
   font-weight: 750;
 }
 
+/* Temporarily disable Advanced / Oversized baggage while the product plan is reviewed.
+   The implementation and governed asset remain in the branch for a later controlled patch. */
+.wf-checker-step--advanced {
+  display: none !important;
+}
+
 /* Advanced / Oversized baggage is selected in the form and published in the result card. */
 #advanced-baggage-options::before,
 .wf-checker-step--advanced > .wf-card::before {
