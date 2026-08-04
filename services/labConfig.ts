@@ -2,14 +2,20 @@ import { cache } from "react";
 import type { LabConfiguration } from "@/types";
 import { readFirstAvailableRuntimeTab, runtimeBoolean, runtimePublished } from "./runtimeContent";
 import { toNumber } from "./googleSheets";
-import { LAB_CONFIG_TABS } from "./runtimeSources";
-export { LAB_CONFIG_TABS } from "./runtimeSources";
+import { LAB_CONFIG_TABS, LAB_GAME_TABS } from "./runtimeSources";
+export { LAB_CONFIG_TABS, LAB_GAME_TABS } from "./runtimeSources";
 export { isLabInvitationActive } from "@/lib/lab";
 
 type LabRow = Record<string, string>;
+type LabGame = {
+  gameId: string;
+  gameName: string;
+  gamePath: string;
+  invitationDestination: string;
+  active: boolean;
+  published: boolean;
+};
 
-// Static route catalogue for certified game assets. These entries are
-// deliberately unpublished and can never create a result-card invitation.
 export const STATIC_LAB_GAMES: LabConfiguration[] = [
   {
     configId: "LAB-WILLITFLY-001",
@@ -60,51 +66,6 @@ function value(row: LabRow, ...names: string[]) {
   return "";
 }
 
-export function mapLabConfiguration(row: LabRow): LabConfiguration {
-  const configId = value(row, "Lab ID", "LabID", "Config ID", "ConfigID");
-  const gameId = value(row, "Game ID", "GameID");
-  const fallback = STATIC_LAB_GAMES.find((item) => item.gameId === gameId);
-
-  return {
-    configId,
-    gameId,
-    gameName: value(row, "Game Name", "GameName") || fallback?.gameName || "",
-    gamePath: value(row, "Game Path", "GamePath", "Destination URL", "Game URL") || fallback?.gamePath || "",
-    triggerType: value(row, "Trigger Type", "TriggerType") || "Code",
-    triggerValue: value(row, "Trigger Value", "TriggerValue", "Code", "Unlock Code"),
-    bagTypes: parseBagTypes(value(row, "Bag Type", "Bag Types", "Applies To Bag")),
-    resultStates: parseResultStates(value(row, "Result State", "Result States", "Applies To Result")),
-    priority: toNumber(value(row, "Priority", "Display Order"), fallback?.priority ?? 999),
-    implementationReference: value(row, "Implementation Reference", "Reference Date") || fallback?.implementationReference || "",
-    invitationTitle: value(row, "Invitation Title", "Title") || fallback?.invitationTitle || "",
-    invitationBody: value(row, "Invitation Body", "Content") || fallback?.invitationBody || "",
-    cta: value(row, "CTA", "CTA Text") || fallback?.cta || "",
-    active: runtimeBoolean(value(row, "Active")),
-    reviewStatus: value(row, "Review Status", "Status"),
-    published: runtimePublished(row),
-    source: "sheet",
-  };
-}
-
-export function isValidLabConfiguration(config: LabConfiguration): boolean {
-  return Boolean(
-    config.source === "sheet" &&
-    config.configId.trim() &&
-    config.gameId.trim() &&
-    config.gameName.trim() &&
-    config.gamePath.startsWith("/lab/") &&
-    config.triggerType.trim().toLowerCase() === "code" &&
-    config.triggerValue.trim() &&
-    config.bagTypes.length &&
-    config.resultStates.length &&
-    config.invitationTitle.trim() &&
-    config.invitationBody.trim() &&
-    config.cta.trim() &&
-    config.active &&
-    config.published
-  );
-}
-
 function tokens(input: string): string[] {
   return input.split(/[,;|]/).map((item) => item.trim().toLowerCase()).filter(Boolean);
 }
@@ -134,6 +95,61 @@ function parseResultStates(input: string): LabConfiguration["resultStates"] {
   })));
 }
 
+function mapLabGame(row: LabRow): LabGame {
+  return {
+    gameId: value(row, "Game ID", "GameID"),
+    gameName: value(row, "Game Name", "GameName"),
+    gamePath: value(row, "Game Path", "GamePath"),
+    invitationDestination: value(row, "Invitation Destination", "Destination"),
+    active: runtimeBoolean(value(row, "Active")),
+    published: runtimePublished(row),
+  };
+}
+
+export function mapLabConfiguration(row: LabRow, game?: LabGame): LabConfiguration {
+  const gameId = value(row, "Game ID", "GameID") || game?.gameId || "";
+  const fallback = STATIC_LAB_GAMES.find((item) => item.gameId === gameId);
+
+  return {
+    configId: value(row, "Lab ID", "LabID", "Config ID", "ConfigID"),
+    gameId,
+    gameName: value(row, "Game Name", "GameName") || game?.gameName || fallback?.gameName || "",
+    gamePath: value(row, "Game Path", "GamePath", "Game URL") || game?.gamePath || fallback?.gamePath || "",
+    triggerType: value(row, "Trigger Type", "TriggerType") || "Code",
+    triggerValue: value(row, "Trigger Value", "TriggerValue", "Code", "Unlock Code"),
+    bagTypes: parseBagTypes(value(row, "Bag Type", "Bag Types", "Applies To Bag")),
+    resultStates: parseResultStates(value(row, "Result State", "Result States", "Applies To Result")),
+    priority: toNumber(value(row, "Priority", "Display Order"), fallback?.priority ?? 999),
+    implementationReference: value(row, "Implementation Reference", "Reference Date") || fallback?.implementationReference || "",
+    invitationTitle: value(row, "Invitation Title", "Title") || fallback?.invitationTitle || game?.gameName || "",
+    invitationBody: value(row, "Invitation Body", "Invitation Message", "Content") || fallback?.invitationBody || "",
+    cta: value(row, "CTA", "CTA Text") || fallback?.cta || (game?.gameName ? `Play ${game.gameName}` : ""),
+    active: runtimeBoolean(value(row, "Active")) && (game ? game.active : true),
+    reviewStatus: value(row, "Review Status", "Status"),
+    published: runtimePublished(row) && (game ? game.published : true),
+    source: "sheet",
+  };
+}
+
+export function isValidLabConfiguration(config: LabConfiguration): boolean {
+  return Boolean(
+    config.source === "sheet" &&
+    config.configId.trim() &&
+    config.gameId.trim() &&
+    config.gameName.trim() &&
+    config.gamePath.startsWith("/lab/") &&
+    config.triggerType.trim().toLowerCase() === "code" &&
+    config.triggerValue.trim() &&
+    config.bagTypes.length &&
+    config.resultStates.length &&
+    config.invitationTitle.trim() &&
+    config.invitationBody.trim() &&
+    config.cta.trim() &&
+    config.active &&
+    config.published
+  );
+}
+
 function duplicateValues(values: string[]): Set<string> {
   const seen = new Set<string>();
   const duplicates = new Set<string>();
@@ -145,37 +161,46 @@ function duplicateValues(values: string[]): Set<string> {
 }
 
 async function loadLabConfigurations(): Promise<LabConfiguration[]> {
-  const { rows } = await readFirstAvailableRuntimeTab<LabRow>(LAB_CONFIG_TABS);
-  if (!rows) return STATIC_LAB_GAMES;
+  const [{ rows: configRows }, { rows: gameRows }] = await Promise.all([
+    readFirstAvailableRuntimeTab<LabRow>(LAB_CONFIG_TABS),
+    readFirstAvailableRuntimeTab<LabRow>(LAB_GAME_TABS),
+  ]);
 
-  const published = rows.map(mapLabConfiguration).filter((config) => config.published);
-  const missingIds = published.filter((config) => !config.configId || !config.gameId);
-  const inactive = published.filter((config) => config.configId && config.gameId && !config.active);
-  const invalid = published.filter((config) => config.configId && config.gameId && config.active && !isValidLabConfiguration(config));
+  if (!configRows || !gameRows) return STATIC_LAB_GAMES;
 
-  if (missingIds.length > 0) {
-    console.error("[lab] Rejected published Lab configurations without Lab ID or Game ID", { count: missingIds.length });
-  }
-  if (inactive.length > 0) {
-    console.error("[lab] Rejected published Lab configurations without explicit Active approval", inactive.map((config) => config.configId));
+  const games = gameRows.map(mapLabGame);
+  const duplicateGameIds = duplicateValues(games.map((game) => game.gameId).filter(Boolean));
+  const duplicateDestinations = duplicateValues(games.map((game) => game.invitationDestination).filter(Boolean));
+  const validGames = games.filter((game) =>
+    game.gameId &&
+    game.gameName &&
+    game.gamePath.startsWith("/lab/") &&
+    game.invitationDestination.startsWith("/lab/") &&
+    !duplicateGameIds.has(game.gameId) &&
+    !duplicateDestinations.has(game.invitationDestination)
+  );
+  const gamesByDestination = new Map(validGames.map((game) => [game.invitationDestination, game]));
+
+  const mapped = configRows.map((row) => {
+    const destination = value(row, "Destination");
+    return mapLabConfiguration(row, gamesByDestination.get(destination));
+  });
+  const published = mapped.filter((config) => config.published);
+  const invalid = published.filter((config) => !isValidLabConfiguration(config));
+
+  if (duplicateGameIds.size || duplicateDestinations.size) {
+    console.error("[lab] Duplicate Lab game catalogue data", {
+      gameIds: Array.from(duplicateGameIds),
+      destinations: Array.from(duplicateDestinations),
+    });
   }
   if (invalid.length > 0) {
-    console.error("[lab] Rejected incomplete or invalid published Lab configurations", invalid.map((config) => config.configId));
+    console.error("[lab] Rejected incomplete or unsupported published Lab invitations", invalid.map((config) => config.configId));
   }
 
   const valid = published.filter(isValidLabConfiguration);
   const duplicateConfigIds = duplicateValues(valid.map((config) => config.configId));
-  const duplicateGameIds = duplicateValues(valid.map((config) => config.gameId));
-  if (duplicateConfigIds.size || duplicateGameIds.size) {
-    console.error("[lab] Duplicate published Lab configuration data", {
-      configIds: Array.from(duplicateConfigIds),
-      gameIds: Array.from(duplicateGameIds),
-    });
-  }
-
-  return valid.filter(
-    (config) => !duplicateConfigIds.has(config.configId) && !duplicateGameIds.has(config.gameId),
-  );
+  return valid.filter((config) => !duplicateConfigIds.has(config.configId));
 }
 
 export const getLabConfigurations = cache(loadLabConfigurations);
