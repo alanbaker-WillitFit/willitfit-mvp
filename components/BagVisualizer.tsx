@@ -44,11 +44,11 @@ export default function BagVisualizer({ bagType, verdict, dimensions, limit }: B
   const measurement = dimensions
     ? `: ${dimensions.heightCm} by ${dimensions.widthCm} by ${dimensions.depthCm} centimetres`
     : "";
-  const callouts = dimensions && limit
+  const callouts = dimensions
     ? ([
-        ["height", "wf-bag-measurement--height", dimensions.heightCm, limit.heightCm],
-        ["width", "wf-bag-measurement--width", dimensions.widthCm, limit.widthCm],
-        ["depth", "wf-bag-measurement--depth", dimensions.depthCm, limit.depthCm],
+        ["height", "wf-bag-measurement--height", dimensions.heightCm, limit?.heightCm],
+        ["width", "wf-bag-measurement--width", dimensions.widthCm, limit?.widthCm],
+        ["depth", "wf-bag-measurement--depth", dimensions.depthCm, limit?.depthCm],
       ] as const)
     : [];
 
@@ -62,12 +62,17 @@ export default function BagVisualizer({ bagType, verdict, dimensions, limit }: B
         sizes="(max-width: 767px) 86vw, 360px"
       />
       {callouts.map(([axis, positionClass, value, allowance]) => {
-        const state = getMeasurementState(value, allowance, verdict);
+        const state = allowance === undefined
+          ? { className: "is-fit", label: "Entered" }
+          : getMeasurementState(value, allowance, verdict);
+        const comparison = allowance === undefined
+          ? `${axis}: ${value} centimetres entered`
+          : `${axis}: ${value} centimetres, ${state.label.toLowerCase()} against the ${allowance} centimetre allowance`;
         return (
           <span
             key={axis}
             className={`wf-bag-measurement ${positionClass} ${state.className}`}
-            aria-label={`${axis}: ${value} centimetres, ${state.label.toLowerCase()} against the ${allowance} centimetre allowance`}
+            aria-label={comparison}
           >
             <strong>{value} cm</strong>
             <small>{state.label}</small>
