@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import NavDropdown from "./NavDropdown";
 import BrandWordmark from "./BrandWordmark";
 
 interface HeaderProps { tipCategories: string[] }
@@ -21,7 +20,7 @@ function Brand() {
   );
 }
 
-export default function Header({ tipCategories }: HeaderProps) {
+export default function Header({ tipCategories: _tipCategories }: HeaderProps) {
   const [open, setOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
 
@@ -49,7 +48,7 @@ export default function Header({ tipCategories }: HeaderProps) {
         <nav aria-label="Primary navigation" className="wf-desktop-nav">
           <Link href="/" aria-current="page"><BrandWordmark /></Link>
           {LINKS.slice(1, 3).map(([label, href]) => <Link key={label} href={href}>{label}</Link>)}
-          <NavDropdown label="Travel Tips" baseHref="/tips" categories={tipCategories} />
+          <Link href="/tips">Travel Tips</Link>
           {LINKS.slice(3).map(([label, href]) => <Link key={label} href={href}>{label}</Link>)}
         </nav>
         <button ref={menuButton} type="button" className="wf-menu-button" aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open} aria-controls="mobile-navigation" onClick={() => setOpen(value => !value)}>
