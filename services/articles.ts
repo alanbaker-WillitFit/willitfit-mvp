@@ -1,12 +1,48 @@
 import { cache } from "react";
 import type { RuntimeContentRecord } from "@/types";
-import { getRuntimeContent } from "./runtimeContent";
+import {
+  readFirstAvailableRuntimeTab,
+  runtimeBoolean,
+  runtimePublished,
+} from "./runtimeContent";
+import { ARTICLE_SECTION_TABS, ARTICLE_TABS } from "./runtimeSources";
+
+interface RuntimeRow {
+  [key: string]: string;
+}
+
+interface ArticleHeader {
+  articleId: string;
+  slug: string;
+  title: string;
+  summary: string;
+  displayOrder: number;
+  active: boolean;
+  published: boolean;
+}
 
 export interface Article {
   slug: string;
   title: string;
   summary: string;
   sections: RuntimeContentRecord[];
+}
+
+function clean(value: unknown): string {
+  return value == null ? "" : String(value).trim();
+}
+
+function value(row: RuntimeRow, ...names: string[]): string {
+  for (const name of names) {
+    const candidate = clean(row[name]);
+    if (candidate) return candidate;
+  }
+  return "";
+}
+
+function numberValue(input: unknown, fallback = 999): number {
+  const parsed = Number(clean(input));
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 export function normaliseArticleSlug(value: string): string {
@@ -79,16 +115,94 @@ export function buildGovernedArticles(content: RuntimeContentRecord[]): Article[
     });
 }
 
+function mapArticleHeader(row: RuntimeRow): ArticleHeader {
+  return {
+    articleId: value(row, "Article ID"),
+    slug: normaliseArticleSlug(value(row, "Slug")),
+    title: value(row, "Headline"),
+    summary: value(row, "Short Summary", "Standfirst"),
+    displayOrder: numberValue(value(row, "Display Order")),
+    active: value(row, "Active") ? runtimeBoolean(value(row, "Active")) : false,
+    published: runtimePublished(row),
+  };
+}
+
+function mapArticleSection(row: RuntimeRow): RuntimeContentRecord & { articleId: string } {
+  return {
+    articleId: value(row, "Article ID"),
+    contentId: value(row, "Section ID"),
+    module: "Articles",
+    page: value(row, "Article Slug"),
+    section: value(row, "Section Key"),
+    contentType: value(row, "Section Type") || "Section",
+    title: value(row, "Heading"),
+    body: value(row, "Body"),
+    supportingText: value(row, "Supporting Text", "Quote / Callout", "List Items"),
+    displayOrder: numberValue(value(row, "Display Order")),
+    active: value(row, "Active") ? runtimeBoolean(value(row, "Active")) : false,
+    reviewStatus: value(row, "Review Status"),
+    published: runtimePublished(row),
+    notes: value(row, "Notes"),
+    source: "sheet",
+  };
+}
+
+export function buildArticlesFromRuntimeRows(
+  articleRows: RuntimeRow[],
+  sectionRows: RuntimeRow[]
+): Article[] {
+  const headers = articleRows
+    .map(mapArticleHeader)
+    .filter((header) =>
+      header.articleId &&
+      header.slug &&
+      header.title &&
+      header.active &&
+      header.published
+    );
+
+  const sections = sectionRows.map(mapArticleSection);
+
+  return headers
+    .map((header) => {
+      const articleSections = validArticleSections(
+        sections.filter((section) => section.articleId === header.articleId)
+      ).sort((a, b) => a.displayOrder - b.displayOrder || a.contentId.localeCompare(b.contentId));
+
+      if (articleSections.length === 0) return null;
+
+      return {
+        slug: header.slug,
+        title: header.title,
+        summary: capArticleBlurb(header.summary || articleSections[0]?.body || ""),
+        sections: articleSections,
+        displayOrder: header.displayOrder,
+      };
+    })
+    .filter((article): article is Article & { displayOrder: number } => article !== null)
+    .sort((a, b) => a.displayOrder - b.displayOrder || a.title.localeCompare(b.title))
+    .map(({ displayOrder: _displayOrder, ...article }) => article);
+}
+
 export const getArticles = cache(async (): Promise<{
   articles: Article[];
   source: "sheet" | "fallback";
 }> => {
-  const { content, source } = await getRuntimeContent({ module: "Articles" });
+  const [articleResult, sectionResult] = await Promise.all([
+    readFirstAvailableRuntimeTab<RuntimeRow>(ARTICLE_TABS),
+    readFirstAvailableRuntimeTab<RuntimeRow>(ARTICLE_SECTION_TABS),
+  ]);
 
-  // Articles are governed content. Never publish bundled fallback records as live articles.
-  if (source !== "sheet") return { articles: [], source };
+  // Articles are governed content. Both dedicated runtime tabs must be present;
+  // bundled fallback records must never be published as live articles.
+  if (!articleResult.rows || !sectionResult.rows) {
+    return { articles: [], source: "fallback" };
+  }
 
-  return { articles: buildGovernedArticles(content), source };
+  return {
+    articles: buildArticlesFromRuntimeRows(articleResult.rows, sectionResult.rows),
+    source: "sheet",
+  };
 });
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
