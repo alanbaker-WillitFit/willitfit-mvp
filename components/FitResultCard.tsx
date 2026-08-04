@@ -19,20 +19,47 @@ const ICONS = {
   "no-fit": ErrorCross,
 } as const;
 
+export function linearResultDetail(result: FitResult): string | null {
+  if (result.sizingRule.method !== "linear-total" || result.linearMarginCm === null) {
+    return null;
+  }
+
+  if (result.linearOperator === "lt" && result.linearMarginCm === 0) {
+    return `Your combined total reaches ${result.linearLimitCm} cm, but this airline requires it to be under ${result.linearLimitCm} cm`;
+  }
+
+  if (result.linearMarginCm > 0) {
+    return `${result.linearMarginCm} cm below the published total-size limit`;
+  }
+
+  if (result.linearMarginCm === 0) {
+    return "Your combined total matches the published limit";
+  }
+
+  return `${Math.abs(result.linearMarginCm)} cm above the published total-size limit`;
+}
+
+export function linearMarginCopy(result: FitResult): string | null {
+  if (result.sizingRule.method !== "linear-total" || result.linearMarginCm === null) {
+    return null;
+  }
+
+  if (result.linearOperator === "lt" && result.linearMarginCm === 0) {
+    return `Limit reached — must be under ${result.linearLimitCm} cm`;
+  }
+
+  return result.linearMarginCm >= 0
+    ? `${result.linearMarginCm} cm below the limit`
+    : `${Math.abs(result.linearMarginCm)} cm above the limit`;
+}
+
 function resultDetail(result: FitResult) {
   if (result.weightVerdict === "no-fit" && result.userWeightKg !== null && result.weightLimitKg !== null) {
     return `${Math.round((result.userWeightKg - result.weightLimitKg) * 10) / 10} kg over the published weight limit`;
   }
 
-  if (result.sizingRule.method === "linear-total" && result.linearMarginCm !== null) {
-    if (result.linearMarginCm > 0) return `${result.linearMarginCm} cm below the published total-size limit`;
-    if (result.linearMarginCm === 0) {
-      return result.linearOperator === "lte"
-        ? "Your combined total matches the published limit"
-        : "Your combined total equals a strict under-limit rule";
-    }
-    return `${Math.abs(result.linearMarginCm)} cm above the published total-size limit`;
-  }
+  const linearDetail = linearResultDetail(result);
+  if (linearDetail) return linearDetail;
 
   if (result.verdict === "fits") {
     const spareValues = Object.values(result.spareCm).filter((value): value is number => typeof value === "number");
@@ -54,6 +81,7 @@ export default function FitResultCard({ result, labConfigs = [] }: { result: Fit
   const Icon = ICONS[result.verdict];
   const labInvitation = selectLabInvitation(labConfigs, result);
   const linear = result.sizingRule.method === "linear-total";
+  const marginCopy = linearMarginCopy(result);
 
   return (
     <section aria-labelledby="fit-result-heading" aria-live="polite" className="wf-result-card">
@@ -66,14 +94,20 @@ export default function FitResultCard({ result, labConfigs = [] }: { result: Fit
         <p>{resultDetail(result)}</p>
       </div>
 
-      {!linear && result.orientationUsed && result.limit && (
+      {linear && result.bagType === "checkedBag" ? (
+        <BagVisualizer
+          bagType="checkedBag"
+          verdict={result.verdict}
+          dimensions={result.userDimensions}
+        />
+      ) : !linear && result.orientationUsed && result.limit ? (
         <BagVisualizer
           bagType={result.bagType}
           verdict={result.verdict}
           dimensions={result.orientationUsed}
           limit={result.limit}
         />
-      )}
+      ) : null}
 
       <dl className="wf-result-facts">
         <div><dt>Your dimensions (including wheels &amp; handles)</dt><dd>{result.userDimensions.heightCm} × {result.userDimensions.widthCm} × {result.userDimensions.depthCm} cm</dd></div>
@@ -81,9 +115,7 @@ export default function FitResultCard({ result, labConfigs = [] }: { result: Fit
           <>
             <div><dt>Combined total</dt><dd>{result.userDimensions.heightCm} + {result.userDimensions.widthCm} + {result.userDimensions.depthCm} = {result.userLinearTotalCm} cm</dd></div>
             <div><dt>Published total-size rule</dt><dd>{operatorCopy(result)} {result.linearLimitCm} cm</dd></div>
-            {result.linearMarginCm !== null && (
-              <div><dt>Margin</dt><dd>{result.linearMarginCm >= 0 ? `${result.linearMarginCm} cm below the limit` : `${Math.abs(result.linearMarginCm)} cm above the limit`}</dd></div>
-            )}
+            {marginCopy && <div><dt>Margin</dt><dd>{marginCopy}</dd></div>}
           </>
         ) : result.limit ? (
           <div><dt>Airline allowance</dt><dd>{result.limit.heightCm} × {result.limit.widthCm} × {result.limit.depthCm} cm</dd></div>
