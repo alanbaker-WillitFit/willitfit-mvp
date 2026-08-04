@@ -102,27 +102,39 @@
   font-weight: 750;
 }
 
-/* Advanced / Oversized baggage must always show its governed RC5 visual when opened. */
-#advanced-baggage-options::before {
-  display: block;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  margin: 14px 0 18px;
-  border: 1px solid #dce3ee;
-  border-radius: 14px;
-  background: #f7f5f2 url('/assets/special-baggage/advanced-oversized-baggage-hero-rc5.webp') center / cover no-repeat;
-  content: '';
+/* Advanced / Oversized baggage is selected in the form and published in the result card. */
+#advanced-baggage-options::before,
+.wf-checker-step--advanced > .wf-card::before {
+  display: none;
+  content: none;
 }
 
-/* Keep the selected guidance visually tied to the same governed asset. */
-.wf-checker-step--advanced > .wf-card::before {
+.wf-special-result-card__status {
+  display: inline-grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 3px solid var(--wf-green);
+  border-radius: 50%;
+  color: var(--wf-green);
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.wf-special-result-card__hero {
+  overflow: hidden;
+  margin: 18px 0 22px;
+  border: 1px solid #dce3ee;
+  border-radius: 14px;
+  background: #f7f5f2;
+}
+
+.wf-special-result-card__hero img {
   display: block;
-  width: min(100%, 360px);
-  aspect-ratio: 1 / 1;
-  margin: 0 auto 16px;
-  border-radius: 12px;
-  background: #f7f5f2 url('/assets/special-baggage/advanced-oversized-baggage-hero-rc5.webp') center / cover no-repeat;
-  content: '';
+  width: 100%;
+  height: auto;
+  object-fit: cover;
 }
 
 /* Desktop cards show the complete product image without affecting mobile. */
@@ -134,10 +146,6 @@
 
   .wf-travel-essentials--rail .wf-essential-card__image img {
     object-fit: contain;
-  }
-
-  #advanced-baggage-options::before {
-    aspect-ratio: 16 / 9;
   }
 }
 
