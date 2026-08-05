@@ -18,6 +18,7 @@ type RuntimeRow = Record<string, string>;
 type AirlineRow = RuntimeRow & {
   AirlineID: string; AirlineName: string; Slug: string; Country: string;
   OfficialBaggageURL: string; Status: string; LastChecked: string; Notes: string;
+  SearchPriority: string;
 };
 type BaggageRuleRow = RuntimeRow & {
   RuleID: string; AirlineID: string; FareClass: string; BagType: string;
@@ -33,6 +34,18 @@ function value(row: RuntimeRow, ...names: string[]): string {
   return "";
 }
 
+export function normaliseSearchPriority(input: unknown): number {
+  const numeric = Number(String(input ?? "").trim());
+  return Number.isInteger(numeric) && numeric >= 1 && numeric <= 10 ? numeric : 10;
+}
+
+export function sortAirlinesByPriority(airlines: Airline[]): Airline[] {
+  return [...airlines].sort((left, right) => {
+    const priorityDifference = normaliseSearchPriority(left.searchPriority) - normaliseSearchPriority(right.searchPriority);
+    return priorityDifference || left.airlineName.localeCompare(right.airlineName);
+  });
+}
+
 export function adaptAirlineRow(row: RuntimeRow): AirlineRow {
   return {
     ...row,
@@ -44,6 +57,7 @@ export function adaptAirlineRow(row: RuntimeRow): AirlineRow {
     Status: runtimePublished(row) ? "Live" : value(row, "Status", "Review Status"),
     LastChecked: value(row, "Last Reviewed", "Last Checked", "LastChecked"),
     Notes: value(row, "Notes"),
+    SearchPriority: value(row, "Search Priority", "SearchPriority", "Priority"),
   };
 }
 
@@ -122,6 +136,9 @@ export function toCheckedSizingRule(rule: BaggageRuleRow | undefined): BaggageSi
   if (!rule) return null;
   const method = parseSizingMethod(rule.SizingMethod);
   if (!method) {
+    if (toWeight(rule) !== null && !rule.HeightCm && !rule.WidthCm && !rule.DepthCm && !rule.LinearSizeCm) {
+      return { method: "weight-only" };
+    }
     console.error("[airlines] Rejected checked baggage rule with missing or unknown sizing method", { ruleId: rule.RuleID });
     return null;
   }
@@ -187,6 +204,8 @@ function selectCheckedBaseline(rules: BaggageRuleRow[]): BaggageSizingRule | nul
     const linearCandidates = candidates.filter((rule): rule is Extract<BaggageSizingRule, { method: "linear-total" }> => rule.method === "linear-total");
     return linearCandidates.sort((a, b) => a.linearLimitCm - b.linearLimitCm || (a.operator === "lt" ? -1 : 1))[0]!;
   }
+
+  if (candidates[0]!.method === "weight-only") return { method: "weight-only" };
 
   const fixedCandidates = candidates.filter((rule): rule is Extract<BaggageSizingRule, { method: "fixed-dimensions" }> => rule.method === "fixed-dimensions");
   fixedCandidates.sort((a, b) => {
@@ -257,8 +276,9 @@ export function mapRuntimeAirline(airline: AirlineRow, baggageRows: BaggageRuleR
   const cabinBag = selectBaseline(cabinRules);
   const checkedBag = selectCheckedBaseline(checkedRules);
   const fareClasses = buildFareClasses(airlineRules);
+  const checkedWeightLimitKg = minWeight(checkedRules);
   const hasFareCheckedBag = fareClasses.some((fare) => fare.checkedBag !== null && fare.checkedBag !== undefined);
-  const hasCheckedBag = checkedBag !== null || hasFareCheckedBag;
+  const hasCheckedBag = checkedBag !== null || checkedWeightLimitKg !== null || hasFareCheckedBag;
 
   return {
     airlineId,
@@ -270,11 +290,12 @@ export function mapRuntimeAirline(airline: AirlineRow, baggageRows: BaggageRuleR
     cabinBag,
     ...(checkedBag ? { checkedBag } : {}),
     weightLimitKg: minWeight(cabinRules),
-    checkedWeightLimitKg: minWeight(checkedRules),
+    checkedWeightLimitKg,
     fareClasses,
     websiteUrl: isHttpsUrl(airline.OfficialBaggageURL) ? airline.OfficialBaggageURL.trim() : "",
     lastUpdated: airline.LastChecked?.trim() || "",
     status: parseStatus(airline.Status),
+    searchPriority: normaliseSearchPriority(airline.SearchPriority),
     notes: airline.Notes?.trim() || "",
     hasCabinBag: hasValidDimensions(cabinBag),
     hasPersonalItem: hasValidDimensions(personalItem),
@@ -292,14 +313,19 @@ export async function getAirlines(): Promise<{ airlines: Airline[]; source: "she
     ? validPublishedBaggageRules(baggageRead.rows.filter(runtimePublished).map(adaptBaggageRuleRow))
     : null;
 
-  if (!airlineRows || !baggageRows) return { airlines: FALLBACK_AIRLINES, source: "fallback" };
+  if (!airlineRows || !baggageRows) return { airlines: sortAirlinesByPriority(FALLBACK_AIRLINES), source: "fallback" };
 
   const liveRows = airlineRows.filter((a) => a.AirlineID?.trim() && a.AirlineName?.trim() && parseStatus(a.Status) === "Live");
   const duplicateIds = duplicateValues(liveRows.map((a) => a.AirlineID.trim()));
   const duplicateSlugs = duplicateValues(liveRows.map((a) => slugify(a.Slug || a.AirlineName)));
+  const explicitlyRanked = liveRows.filter((a) => normaliseSearchPriority(a.SearchPriority) < 10);
+  const duplicatePriorities = duplicateValues(explicitlyRanked.map((a) => String(normaliseSearchPriority(a.SearchPriority))));
 
   if (duplicateIds.size || duplicateSlugs.size) {
     console.error("[airlines] Duplicate published airline data", { ids: Array.from(duplicateIds), slugs: Array.from(duplicateSlugs) });
+  }
+  if (duplicatePriorities.size) {
+    console.error("[airlines] Duplicate Search Priority values between 1 and 9", Array.from(duplicatePriorities));
   }
 
   const airlines = liveRows
@@ -307,7 +333,7 @@ export async function getAirlines(): Promise<{ airlines: Airline[]; source: "she
     .map((a) => mapRuntimeAirline(a, baggageRows))
     .filter((a) => a.slug && (a.hasCabinBag || a.hasPersonalItem || a.hasCheckedBag));
 
-  return { airlines, source: "sheet" };
+  return { airlines: sortAirlinesByPriority(airlines), source: "sheet" };
 }
 
 export const getCachedAirlines = cache(getAirlines);
