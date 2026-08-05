@@ -217,6 +217,7 @@ describe("runtime checked-rule parsing", () => {
       Status: "Live",
       LastChecked: "2026-07-31",
       Notes: "",
+      SearchPriority: "10",
     }, [runtimeRule()]);
 
     expect(mapped.hasCheckedBag).toBe(true);
