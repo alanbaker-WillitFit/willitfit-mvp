@@ -60,62 +60,27 @@ const airline: Airline = {
 
 describe("checkFit", () => {
   it("passes an exact fit", () => {
-    expect(
-      checkFit(
-        { heightCm: 55, widthCm: 40, depthCm: 20 },
-        airline,
-        "cabinBag"
-      ).verdict
-    ).toBe("fits");
+    expect(checkFit({ heightCm: 55, widthCm: 40, depthCm: 20 }, airline, "cabinBag").verdict).toBe("fits");
   });
 
   it("accepts a rotated bag", () => {
-    expect(
-      checkFit(
-        { heightCm: 40, widthCm: 55, depthCm: 20 },
-        airline,
-        "cabinBag"
-      ).verdict
-    ).toBe("fits");
+    expect(checkFit({ heightCm: 40, widthCm: 55, depthCm: 20 }, airline, "cabinBag").verdict).toBe("fits");
   });
 
   it("marks up to 2 cm over as close", () => {
-    expect(
-      checkFit(
-        { heightCm: 57, widthCm: 40, depthCm: 20 },
-        airline,
-        "cabinBag"
-      ).verdict
-    ).toBe("close");
+    expect(checkFit({ heightCm: 57, widthCm: 40, depthCm: 20 }, airline, "cabinBag").verdict).toBe("close");
   });
 
   it("rejects more than 2 cm over", () => {
-    expect(
-      checkFit(
-        { heightCm: 57.1, widthCm: 40, depthCm: 20 },
-        airline,
-        "cabinBag"
-      ).verdict
-    ).toBe("no-fit");
+    expect(checkFit({ heightCm: 57.1, widthCm: 40, depthCm: 20 }, airline, "cabinBag").verdict).toBe("no-fit");
   });
 
   it("does not falsely pass a three-digit dimension", () => {
-    expect(
-      checkFit(
-        { heightCm: 100, widthCm: 40, depthCm: 20 },
-        airline,
-        "cabinBag"
-      ).verdict
-    ).toBe("no-fit");
+    expect(checkFit({ heightCm: 100, widthCm: 40, depthCm: 20 }, airline, "cabinBag").verdict).toBe("no-fit");
   });
 
   it("checks a published checked-bag allowance", () => {
-    const result = checkFit(
-      checkedBagDimensions,
-      airline,
-      "checkedBag"
-    );
-
+    const result = checkFit(checkedBagDimensions, airline, "checkedBag");
     expect(result.verdict).toBe("fits");
     expect(result.sizingRule).toEqual(airline.checkedBag);
     expect(result.limit).toEqual(checkedBagDimensions);
@@ -123,102 +88,98 @@ describe("checkFit", () => {
   });
 
   it("fails the overall result when checked-bag weight exceeds the limit", () => {
-    const result = checkFit(
-      checkedBagDimensions,
-      airline,
-      "checkedBag",
-      null,
-      23.1
-    );
-
+    const result = checkFit(checkedBagDimensions, airline, "checkedBag", null, 23.1);
     expect(result.verdict).toBe("no-fit");
     expect(result.weightVerdict).toBe("no-fit");
   });
 
   it("passes checked-bag weight at the exact published limit", () => {
-    const result = checkFit(
-      checkedBagDimensions,
-      airline,
-      "checkedBag",
-      null,
-      23
-    );
-
+    const result = checkFit(checkedBagDimensions, airline, "checkedBag", null, 23);
     expect(result.verdict).toBe("fits");
     expect(result.weightVerdict).toBe("fits");
   });
 
   it("reports weight as not checked when no user weight is supplied", () => {
-    const result = checkFit(
-      checkedBagDimensions,
-      airline,
-      "checkedBag"
-    );
-
+    const result = checkFit(checkedBagDimensions, airline, "checkedBag");
     expect(result.weightVerdict).toBe("not-checked");
   });
 
   it("reports weight as not published when the airline has no checked limit", () => {
-    const withoutCheckedWeight: Airline = {
-      ...airline,
-      checkedWeightLimitKg: null,
-    };
-
-    const result = checkFit(
-      checkedBagDimensions,
-      withoutCheckedWeight,
-      "checkedBag",
-      null,
-      20
-    );
-
+    const withoutCheckedWeight: Airline = { ...airline, checkedWeightLimitKg: null };
+    const result = checkFit(checkedBagDimensions, withoutCheckedWeight, "checkedBag", null, 20);
     expect(result.verdict).toBe("fits");
     expect(result.weightVerdict).toBe("not-published");
   });
 
   it("uses a complete selected fare allowance", () => {
-    expect(
-      resolveLimit(airline, "cabinBag", "Priority").fareClass
-    ).toBe("Priority");
+    expect(resolveLimit(airline, "cabinBag", "Priority").fareClass).toBe("Priority");
   });
 
   it("uses checked-bag dimensions and weight from the selected fare", () => {
-    const result = resolveLimit(
-      airline,
-      "checkedBag",
-      "Priority"
-    );
-
+    const result = resolveLimit(airline, "checkedBag", "Priority");
     expect(result.fareClass).toBe("Priority");
-    expect(result.sizingRule).toEqual(
-      airline.fareClasses[0]!.checkedBag
-    );
+    expect(result.sizingRule).toEqual(airline.fareClasses[0]!.checkedBag);
     expect(result.weightLimitKg).toBe(32);
   });
 
   it("falls back when the selected fare has no allowance for that bag type", () => {
-    const result = resolveLimit(
-      airline,
-      "personalItem",
-      "Priority"
-    );
-
+    const result = resolveLimit(airline, "personalItem", "Priority");
     expect(result.fareClass).toBeNull();
-    expect(result.sizingRule).toEqual({
-      method: "fixed-dimensions",
-      dimensions: airline.personalItem,
-    });
+    expect(result.sizingRule).toEqual({ method: "fixed-dimensions", dimensions: airline.personalItem });
   });
 
-  it("throws clearly when a requested checked-bag allowance is unavailable", () => {
-    const withoutCheckedBag: Airline = {
+  it("uses a weight-only rule when checked dimensions are not published", () => {
+    const weightOnlyAirline: Airline = {
       ...airline,
       checkedBag: undefined,
       hasCheckedBag: false,
+      checkedWeightLimitKg: 20,
+      fareClasses: [],
     };
 
-    expect(() =>
-      resolveLimit(withoutCheckedBag, "checkedBag")
-    ).toThrow("No valid checkedBag allowance");
+    const result = checkFit(
+      { heightCm: 70, widthCm: 50, depthCm: 30 },
+      weightOnlyAirline,
+      "checkedBag",
+      null,
+      19
+    );
+
+    expect(result.sizingRule).toEqual({ method: "weight-only" });
+    expect(result.limit).toBeNull();
+    expect(result.weightVerdict).toBe("fits");
+    expect(result.verdict).toBe("fits");
+  });
+
+  it("fails a weight-only result when the entered weight is over the limit", () => {
+    const weightOnlyAirline: Airline = {
+      ...airline,
+      checkedBag: undefined,
+      hasCheckedBag: false,
+      checkedWeightLimitKg: 20,
+      fareClasses: [],
+    };
+
+    const result = checkFit(
+      { heightCm: 70, widthCm: 50, depthCm: 30 },
+      weightOnlyAirline,
+      "checkedBag",
+      null,
+      20.1
+    );
+
+    expect(result.weightVerdict).toBe("no-fit");
+    expect(result.verdict).toBe("no-fit");
+  });
+
+  it("throws clearly when neither checked dimensions nor weight are available", () => {
+    const withoutCheckedBag: Airline = {
+      ...airline,
+      checkedBag: undefined,
+      checkedWeightLimitKg: null,
+      hasCheckedBag: false,
+    };
+
+    expect(() => resolveLimit(withoutCheckedBag, "checkedBag")).toThrow("No valid checkedBag allowance");
   });
 });
