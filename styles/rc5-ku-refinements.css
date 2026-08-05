@@ -143,6 +143,32 @@
   object-fit: cover;
 }
 
+/* R071 / ABS001 — subtle airport atmosphere on secondary pages without primary imagery. */
+.wf-page-atmosphere-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.wf-page-atmosphere-shell > main {
+  position: relative;
+  z-index: 1;
+}
+
+.wf-page-atmosphere {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 0;
+  height: clamp(500px, 52vw, 700px);
+  pointer-events: none;
+  background-image:
+    linear-gradient(to bottom, rgba(255,255,255,.44) 0%, rgba(255,255,255,.66) 38%, rgba(255,255,255,.9) 72%, #fff 100%),
+    linear-gradient(to right, rgba(255,255,255,.18), rgba(255,255,255,.38)),
+    url('/assets/hero/airport-page-background-review.webp');
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
 /* Desktop cards show the complete product image without affecting mobile. */
 @media (min-width: 769px) {
   .wf-travel-essentials--rail .wf-essential-card__image {
@@ -167,5 +193,11 @@
 
   .wf-home-main {
     padding-top: 22px;
+  }
+
+  .wf-page-atmosphere {
+    height: 560px;
+    background-position: 42% top;
+    background-size: auto 390px;
   }
 }
