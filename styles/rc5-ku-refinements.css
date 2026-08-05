@@ -143,43 +143,6 @@
   object-fit: cover;
 }
 
-/* Global application shell. The footer is present on every route through app/layout.tsx.
-   Short pages keep it at the viewport bottom; long pages place it after content. */
-html,
-body {
-  min-height: 100%;
-}
-
-body {
-  display: flex;
-  min-height: 100dvh;
-  flex-direction: column;
-}
-
-body > main {
-  display: block;
-  width: 100%;
-  flex: 1 0 auto;
-}
-
-.wf-compact-footer {
-  width: 100%;
-  flex: 0 0 auto;
-  margin-top: auto;
-}
-
-.wf-compact-footer .wf-container {
-  width: 100%;
-  min-height: 112px;
-  padding-block: 24px;
-}
-
-.wf-compact-footer nav a {
-  min-height: 32px;
-  display: inline-flex;
-  align-items: center;
-}
-
 /* Desktop cards show the complete product image without affecting mobile. */
 @media (min-width: 769px) {
   .wf-travel-essentials--rail .wf-essential-card__image {
@@ -204,10 +167,5 @@ body > main {
 
   .wf-home-main {
     padding-top: 22px;
-  }
-
-  .wf-compact-footer .wf-container {
-    min-height: 156px;
-    padding-block: 24px calc(24px + env(safe-area-inset-bottom));
   }
 }
