@@ -51,7 +51,7 @@ export default function SizeGuideRail({ groups }: { groups: SizeGuideGroup[] }) 
       {groups.map((group) => (
         <article
           key={group.key}
-          className="wf-card min-w-[84%] snap-start p-6 sm:min-w-[48%] lg:min-w-[calc((100%-2.5rem)/3)]"
+          className="wf-card min-w-[84%] snap-start p-6 sm:min-w-[48%] lg:min-w-[calc((100%_-_2.5rem)/3)]"
         >
           <p className="font-body text-xs font-bold uppercase tracking-wide text-green-600">
             {group.airlines.length} {group.airlines.length === 1 ? "airline" : "airlines"}
