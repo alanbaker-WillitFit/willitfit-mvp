@@ -26,7 +26,11 @@ function Brand() {
 
 function GovernedLink({ item, onNavigate }: { item: GovernedNavigationItem; onNavigate?: () => void }) {
   if (!item.active) {
-    return <span className="wf-nav-link--disabled" aria-disabled="true">{item.label} <small>Coming soon</small></span>;
+    return (
+      <span aria-disabled="true" style={{ color: "#8a94a6", cursor: "not-allowed", opacity: 0.75 }}>
+        {item.label} <small style={{ fontSize: "0.68em" }}>Coming soon</small>
+      </span>
+    );
   }
 
   return (
