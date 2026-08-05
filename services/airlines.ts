@@ -132,6 +132,12 @@ function parseLimitOperator(value: string): LinearLimitOperator | null {
   return null;
 }
 
+function toWeight(rule: BaggageRuleRow | undefined): number | null {
+  if (!rule?.WeightKg) return null;
+  const weight = toNumber(rule.WeightKg, NaN);
+  return Number.isFinite(weight) && weight > 0 ? weight : null;
+}
+
 export function toCheckedSizingRule(rule: BaggageRuleRow | undefined): BaggageSizingRule | null {
   if (!rule) return null;
   const method = parseSizingMethod(rule.SizingMethod);
@@ -163,12 +169,6 @@ export function toCheckedSizingRule(rule: BaggageRuleRow | undefined): BaggageSi
     return null;
   }
   return { method, linearLimitCm, operator };
-}
-
-function toWeight(rule: BaggageRuleRow | undefined): number | null {
-  if (!rule?.WeightKg) return null;
-  const weight = toNumber(rule.WeightKg, NaN);
-  return Number.isFinite(weight) && weight > 0 ? weight : null;
 }
 
 function selectBaseline(rules: BaggageRuleRow[]): Dimensions {
@@ -278,7 +278,7 @@ export function mapRuntimeAirline(airline: AirlineRow, baggageRows: BaggageRuleR
   const fareClasses = buildFareClasses(airlineRules);
   const checkedWeightLimitKg = minWeight(checkedRules);
   const hasFareCheckedBag = fareClasses.some((fare) => fare.checkedBag !== null && fare.checkedBag !== undefined);
-  const hasCheckedBag = checkedBag !== null || checkedWeightLimitKg !== null || hasFareCheckedBag;
+  const hasCheckedBag = checkedBag !== null || hasFareCheckedBag;
 
   return {
     airlineId,
