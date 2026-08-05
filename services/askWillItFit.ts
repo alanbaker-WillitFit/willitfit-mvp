@@ -6,6 +6,15 @@ import { runtimeBoolean, runtimePublished } from "./runtimeContent";
 export const ASK_QUESTION_TAB = "08.3_Ask_Questions";
 export const ASK_ANSWER_TAB = "08.3.1_Ask_Answers";
 
+export const ASK_SUBMISSION_CATEGORIES = {
+  question: "Travel question",
+  feature: "Feature suggestion",
+  problem: "Problem report",
+  comment: "Comment or feedback",
+} as const;
+
+export type AskSubmissionType = keyof typeof ASK_SUBMISSION_CATEGORIES;
+
 type Row = Record<string, string>;
 
 export interface OpenQuestion {
@@ -45,6 +54,13 @@ function validateText(text: string, minimum: number, maximum: number): string {
   return value;
 }
 
+function resolveSubmissionCategory(type: string): string {
+  if (type in ASK_SUBMISSION_CATEGORIES) {
+    return ASK_SUBMISSION_CATEGORIES[type as AskSubmissionType];
+  }
+  throw new Error("The selected submission type is invalid.");
+}
+
 export const getOpenQuestions = cache(async (): Promise<OpenQuestion[]> => {
   const rows = await getSheetRows<Row>(ASK_QUESTION_TAB);
   if (!rows) return [];
@@ -65,15 +81,16 @@ export const getOpenQuestions = cache(async (): Promise<OpenQuestion[]> => {
     .sort((a, b) => a.displayOrder - b.displayOrder || a.questionId.localeCompare(b.questionId));
 });
 
-export async function submitQuestion(question: string): Promise<string> {
+export async function submitQuestion(question: string, type: AskSubmissionType = "question"): Promise<string> {
   const value = validateText(question, 12, 500);
+  const category = resolveSubmissionCategory(type);
   const questionId = uniqueNumericId("ASK-Q");
   const submittedAt = new Date().toISOString();
   await appendSheetRow(ASK_QUESTION_TAB, [
     questionId,
     value,
     "",
-    "Unclassified",
+    category,
     "",
     "",
     submittedAt,
@@ -86,7 +103,7 @@ export async function submitQuestion(question: string): Promise<string> {
     "No",
     "Passed automated check",
     "Website submission",
-    "Private review queue. Original wording retained.",
+    `Private review queue. Submission type: ${category}. Original wording retained.`,
     "",
   ]);
   return questionId;
