@@ -76,6 +76,11 @@ export function airlineHasBagType(
       : airline.hasCheckedBag;
 
   if (explicit !== undefined) return explicit;
-  if (bagType === "checkedBag") return Boolean(airline.checkedBag);
+  if (bagType === "checkedBag") {
+    return Boolean(
+      airline.checkedBag ||
+      (airline.checkedWeightLimitKg !== null && airline.checkedWeightLimitKg !== undefined)
+    );
+  }
   return hasValidDimensions(airline[bagType]);
 }
