@@ -27,6 +27,18 @@ export function parseTipStatus(status: string | undefined): SheetStatus {
   return "Draft";
 }
 
+export function normaliseTipPriority(input: unknown): number {
+  const numeric = Number(String(input ?? "").trim());
+  return Number.isInteger(numeric) && numeric >= 1 && numeric <= 10 ? numeric : 10;
+}
+
+export function sortTipsByPriority(tips: TravelTip[]): TravelTip[] {
+  return [...tips].sort((left, right) => {
+    const priorityDifference = normaliseTipPriority(left.priority) - normaliseTipPriority(right.priority);
+    return priorityDifference || left.title.localeCompare(right.title);
+  });
+}
+
 function makeTitle(content: string, airline: string, category: string): string {
   if (!content) return `${airline || "Travel"} tip`;
   const firstSentence = content.split(/[.!?]/)[0]?.trim();
@@ -51,7 +63,7 @@ export function mapTipRow(row: TipRow, _index?: number): TravelTip {
     journeyStage: clean(row["Context Trigger"]) || clean(row["Journey Stage"]),
     resultContext: clean(row["Result Context"]),
     affiliateCategory: clean(row["Affiliate Category"]),
-    priority: toNumber(row.Priority || row["Display Order"], 3),
+    priority: normaliseTipPriority(row.Priority || row["Display Order"]),
   };
 }
 
@@ -68,7 +80,7 @@ async function readTipRows(): Promise<TipRow[] | null> {
 
 export async function getTravelTips(): Promise<{ tips: TravelTip[]; source: "sheet" | "fallback" }> {
   const rows = await readTipRows();
-  if (!rows) return { tips: FALLBACK_TIPS, source: "fallback" };
+  if (!rows) return { tips: sortTipsByPriority(FALLBACK_TIPS), source: "fallback" };
 
   const published = rows.filter(runtimePublished).map(mapTipRow);
   const missingIds = published.filter((tip) => !tip.tipId);
@@ -90,9 +102,9 @@ export async function getTravelTips(): Promise<{ tips: TravelTip[]; source: "she
     });
   }
 
-  const tips = live
-    .filter((tip) => !duplicateIds.has(tip.tipId) && !duplicateSlugs.has(tip.slug))
-    .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+  const tips = sortTipsByPriority(
+    live.filter((tip) => !duplicateIds.has(tip.tipId) && !duplicateSlugs.has(tip.slug))
+  );
   return { tips, source: "sheet" };
 }
 
