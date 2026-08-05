@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTravelTips, getTipCategories } from "@/services/tips";
-import TravelTipCard from "@/components/TravelTipCard";
+import TipsSearch from "@/components/TipsSearch";
 import { cn } from "@/lib/utils";
 
 export const revalidate = 3600;
@@ -68,11 +68,7 @@ export default async function TipsIndexPage({
           {category ? `No tips in "${category}" yet — check back soon.` : "No tips published yet — check back soon."}
         </p>
       ) : (
-        <div className="wf-grid-3 mt-8">
-          {tips.map((tip) => (
-            <TravelTipCard key={tip.tipId} tip={tip} />
-          ))}
-        </div>
+        <TipsSearch tips={tips} />
       )}
     </section>
   );
