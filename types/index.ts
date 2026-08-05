@@ -51,6 +51,7 @@ export interface Airline {
   websiteUrl: string;
   lastUpdated: string;
   status: SheetStatus;
+  searchPriority?: number;
   notes?: string;
   hasCabinBag?: boolean;
   hasPersonalItem?: boolean;
