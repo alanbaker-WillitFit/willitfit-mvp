@@ -1,23 +1,25 @@
 import { NextResponse } from "next/server";
-import { submitAnswer, submitQuestion } from "@/services/askWillItFit";
+import { submitAnswer, submitQuestion, type AskSubmissionType } from "@/services/askWillItFit";
 
 export const runtime = "edge";
 
 type Submission = {
-  type?: "question" | "answer";
+  type?: AskSubmissionType | "answer";
   question?: string;
   questionId?: string;
   answer?: string;
   website?: string;
 };
 
+const QUESTION_TYPES = new Set<AskSubmissionType>(["question", "feature", "problem", "comment"]);
+
 export async function POST(request: Request) {
   try {
     const payload = await request.json() as Submission;
     if (payload.website) return NextResponse.json({ ok: true });
 
-    if (payload.type === "question") {
-      const id = await submitQuestion(payload.question || "");
+    if (payload.type && QUESTION_TYPES.has(payload.type as AskSubmissionType)) {
+      const id = await submitQuestion(payload.question || "", payload.type as AskSubmissionType);
       return NextResponse.json({ ok: true, id }, { status: 201 });
     }
 
