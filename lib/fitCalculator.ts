@@ -46,10 +46,11 @@ function fixedRule(dimensions: Dimensions | null | undefined, bagType: BagType, 
 
 function airlineSizingRule(airline: Airline, bagType: BagType): BaggageSizingRule {
   if (bagType === "checkedBag") {
-    if (!airline.checkedBag) {
-      throw new Error(`No valid checkedBag allowance is available for ${airline.airlineName}.`);
+    if (airline.checkedBag) return airline.checkedBag;
+    if (airline.checkedWeightLimitKg !== null && airline.checkedWeightLimitKg !== undefined) {
+      return { method: "weight-only" };
     }
-    return airline.checkedBag;
+    throw new Error(`No valid checkedBag allowance is available for ${airline.airlineName}.`);
   }
   return fixedRule(airline[bagType], bagType, airline);
 }
@@ -71,7 +72,9 @@ export function resolveLimit(
     );
     if (match) {
       const selectedRule = bagType === "checkedBag"
-        ? match.checkedBag ?? null
+        ? match.checkedBag ?? (match.checkedWeightLimitKg !== null && match.checkedWeightLimitKg !== undefined
+          ? { method: "weight-only" as const }
+          : null)
         : match[bagType] && hasValidDimensions(match[bagType])
           ? { method: "fixed-dimensions" as const, dimensions: match[bagType] }
           : null;
@@ -199,14 +202,15 @@ export function checkFit(
   const linearResult = sizingRule.method === "linear-total"
     ? checkLinearTotal(userDimensions, sizingRule)
     : null;
-
-  if (!fixedResult && !linearResult) {
-    throw new Error("Unknown baggage sizing rule.");
-  }
-
-  let verdict = fixedResult?.verdict ?? linearResult!.verdict;
   const weightVerdict = resolveWeightVerdict(userWeightKg, weightLimitKg);
-  if (weightVerdict === "no-fit") verdict = "no-fit";
+
+  let verdict: FitVerdict;
+  if (sizingRule.method === "weight-only") {
+    verdict = weightVerdict === "no-fit" ? "no-fit" : "fits";
+  } else {
+    verdict = fixedResult?.verdict ?? linearResult?.verdict ?? "no-fit";
+    if (weightVerdict === "no-fit") verdict = "no-fit";
+  }
 
   return {
     verdict,
