@@ -13,7 +13,7 @@ export default async function ArticlesPage() {
   const { articles, source } = await getArticles();
 
   return (
-    <section className="wf-container wf-section">
+    <section className="wf-container wf-section pb-6 sm:pb-8">
       <div className="max-w-2xl">
         <h1 className="font-heading text-3xl font-semibold text-navy-700">Articles</h1>
         <p className="mt-3 font-body text-navy-500">
@@ -31,7 +31,7 @@ export default async function ArticlesPage() {
         </div>
       )}
 
-      <p className="mt-8 font-body text-xs text-navy-300">
+      <p className="mt-6 font-body text-xs text-navy-300">
         Content source: {source === "sheet" ? "governed runtime content" : "bundled fallback"}.
       </p>
     </section>
