@@ -1,12 +1,15 @@
 import React from "react";
 import Image from "next/image";
-import { BagType, Dimensions, FitVerdict } from "@/types";
+import { BagType, Dimensions, FitVerdict, WeightVerdict } from "@/types";
 
 interface BagVisualizerProps {
   bagType: BagType;
   verdict: FitVerdict;
   dimensions?: Dimensions;
   limit?: Dimensions;
+  userWeightKg?: number | null;
+  weightLimitKg?: number | null;
+  weightVerdict?: WeightVerdict;
 }
 
 export function getMeasurementState(value: number, allowance: number, verdict: FitVerdict) {
@@ -39,7 +42,15 @@ const BAG_PRESENTATION: Record<BagType, { image: string; label: string; width: n
   },
 };
 
-export default function BagVisualizer({ bagType, verdict, dimensions, limit }: BagVisualizerProps) {
+export default function BagVisualizer({
+  bagType,
+  verdict,
+  dimensions,
+  limit,
+  userWeightKg = null,
+  weightLimitKg = null,
+  weightVerdict = "not-checked",
+}: BagVisualizerProps) {
   const presentation = BAG_PRESENTATION[bagType];
   const measurement = dimensions
     ? `: ${dimensions.heightCm} by ${dimensions.widthCm} by ${dimensions.depthCm} centimetres`
@@ -51,6 +62,8 @@ export default function BagVisualizer({ bagType, verdict, dimensions, limit }: B
         ["depth", "wf-bag-measurement--depth", dimensions.depthCm, limit?.depthCm],
       ] as const)
     : [];
+  const showWeight = userWeightKg !== null && weightLimitKg !== null;
+  const weightFits = weightVerdict !== "no-fit";
 
   return (
     <figure className="wf-bag-visual">
@@ -79,6 +92,16 @@ export default function BagVisualizer({ bagType, verdict, dimensions, limit }: B
           </span>
         );
       })}
+      {showWeight && (
+        <span
+          className={`wf-bag-measurement ${weightFits ? "is-fit" : "is-over"}`}
+          style={{ left: "7%", top: "64%" }}
+          aria-label={`Weight: ${userWeightKg} kilograms against the ${weightLimitKg} kilogram allowance`}
+        >
+          <strong>{userWeightKg} kg</strong>
+          <small>{weightFits ? "Fits" : "Too heavy"}</small>
+        </span>
+      )}
     </figure>
   );
 }
