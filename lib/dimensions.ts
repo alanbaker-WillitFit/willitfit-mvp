@@ -70,8 +70,8 @@ export function airlineHasBagType(
   bagType: BagType
 ): boolean {
   if (bagType === "checkedBag") {
+    if (airline.hasCheckedBag !== undefined) return airline.hasCheckedBag;
     return Boolean(
-      airline.hasCheckedBag ||
       airline.checkedBag ||
       (airline.checkedWeightLimitKg !== null && airline.checkedWeightLimitKg !== undefined)
     );
