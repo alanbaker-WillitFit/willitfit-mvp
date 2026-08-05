@@ -3,6 +3,7 @@ import "./globals.css";
 import "@/styles/rc5-ku-refinements.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import PageAtmosphereShell from "@/components/PageAtmosphereShell";
 import { siteUrl } from "@/lib/utils";
 import { organizationSchema } from "@/lib/schema";
 import { getTipCategories } from "@/services/tips";
@@ -44,7 +45,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           dangerouslySetInnerHTML={{ __html: safeJsonLd(organizationSchema()) }}
         />
         <Header tipCategories={tipCategories} />
-        <main id="main-content">{children}</main>
+        <PageAtmosphereShell>
+          <main id="main-content">{children}</main>
+        </PageAtmosphereShell>
         <Footer />
       </body>
     </html>
