@@ -6,6 +6,7 @@ on:
       - rc5-cleanse-baseline
       - rc5-build-sprint
       - rc5-stage-1-articles
+      - rc5-smoke-remediation-20260805
     paths:
       - '**'
   pull_request:
