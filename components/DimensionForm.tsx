@@ -38,15 +38,26 @@ function decimalInput(value: string): string {
 
 export function selectedWeightLimit(airline: Airline | null, bagType: typeof BAG_TYPES[number]["type"], fareClass: string | null): number | null {
   if (!airline) return null;
+
   const fare = fareClass
     ? airline.fareClasses.find((item) => item.fareClass.toLowerCase() === fareClass.toLowerCase())
     : null;
 
-  if (fare) {
-    return bagType === "checkedBag" ? fare.checkedWeightLimitKg ?? null : fare.weightLimitKg;
+  const fareSupportsBagType = fare
+    ? bagType === "checkedBag"
+      ? Boolean(fare.checkedBag)
+      : Boolean(fare[bagType])
+    : false;
+
+  if (fare && fareSupportsBagType) {
+    return bagType === "checkedBag"
+      ? fare.checkedWeightLimitKg ?? null
+      : fare.weightLimitKg;
   }
 
-  return bagType === "checkedBag" ? airline.checkedWeightLimitKg ?? null : airline.weightLimitKg;
+  return bagType === "checkedBag"
+    ? airline.checkedWeightLimitKg ?? null
+    : airline.weightLimitKg;
 }
 
 export default function DimensionForm({

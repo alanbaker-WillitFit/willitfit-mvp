@@ -21,7 +21,7 @@ export default async function OversizedBaggageGuidePage() {
         title="Oversized Baggage Guide"
         description="Specialist baggage is governed by the item, airline, route and booking rather than one universal size rule. Select what you are travelling with for brief preparation guidance."
         note="This guide provides general preparation advice. Always confirm the current policy, fees and booking requirements with your airline before travel."
-        image="/assets/special-baggage/advanced-oversized-baggage-hero-rc5.webp"
+        image="/assets/special-baggage/CEF60585-FCE4-40B4-AF4F-F0DDD26D6CAA.png"
         imageAlt="Oversized and specialist baggage prepared for air travel"
       />
 

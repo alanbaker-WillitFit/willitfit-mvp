@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { submitAnswer, submitQuestion, type AskSubmissionType } from "@/services/askWillItFit";
 
-export const runtime = "edge";
-
 type Submission = {
   type?: AskSubmissionType | "answer";
   question?: string;

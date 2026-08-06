@@ -11,7 +11,7 @@ interface HeaderProps {
 }
 
 const LINKS = [
-  ["WillitFit", "/"], ["Airlines", "/airlines"], ["Ask WillitFit", "/ask"],
+  ["WillitFit", "/"], ["Airlines", "/airlines"], ["Size Guides", "/size-guides"], ["Ask WillitFit", "/ask"],
   ["Articles", "/articles"], ["Travel Essentials", "/products"], ["About", "/about"], ["FAQs", "/ask"],
 ] as const;
 
@@ -72,9 +72,9 @@ export default function Header({ tipCategories: _tipCategories, navigationItems 
         <Link href="/" aria-label="WillitFit home" onClick={() => setOpen(false)}><Brand /></Link>
         <nav aria-label="Primary navigation" className="wf-desktop-nav">
           <Link href="/" aria-current="page"><BrandWordmark /></Link>
-          {LINKS.slice(1, 3).map(([label, href]) => <Link key={label} href={href}>{label}</Link>)}
+          {LINKS.slice(1, 4).map(([label, href]) => <Link key={label} href={href}>{label}</Link>)}
           <Link href="/tips">Travel Tips</Link>
-          {LINKS.slice(3).map(([label, href]) => <Link key={label} href={href}>{label}</Link>)}
+          {LINKS.slice(4).map(([label, href]) => <Link key={label} href={href}>{label}</Link>)}
           {navigationItems.map((item) => <GovernedLink key={item.id} item={item} />)}
         </nav>
         <button ref={menuButton} type="button" className="wf-menu-button" aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open} aria-controls="mobile-navigation" onClick={() => setOpen(value => !value)}>
@@ -84,9 +84,9 @@ export default function Header({ tipCategories: _tipCategories, navigationItems 
       {open && (
         <nav id="mobile-navigation" className="wf-mobile-menu" aria-label="Mobile navigation">
           <Link href="/" onClick={() => setOpen(false)}><BrandWordmark /></Link>
-          {LINKS.slice(1, 3).map(([label, href]) => <Link key={label} href={href} onClick={() => setOpen(false)}>{label}</Link>)}
+          {LINKS.slice(1, 4).map(([label, href]) => <Link key={label} href={href} onClick={() => setOpen(false)}>{label}</Link>)}
           <Link href="/tips" onClick={() => setOpen(false)}>Travel Tips</Link>
-          {LINKS.slice(3).map(([label, href]) => <Link key={label} href={href} onClick={() => setOpen(false)}>{label}</Link>)}
+          {LINKS.slice(4).map(([label, href]) => <Link key={label} href={href} onClick={() => setOpen(false)}>{label}</Link>)}
           {navigationItems.map((item) => <GovernedLink key={item.id} item={item} onNavigate={() => setOpen(false)} />)}
         </nav>
       )}

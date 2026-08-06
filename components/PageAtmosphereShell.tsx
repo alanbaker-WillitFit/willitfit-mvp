@@ -10,6 +10,8 @@ const ATMOSPHERE_ROUTES = [
   "/about",
   "/faqs",
   "/ask",
+  "/size-guides",
+  "/products",
 ] as const;
 
 function usesAirportAtmosphere(pathname: string): boolean {

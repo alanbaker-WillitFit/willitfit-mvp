@@ -33,7 +33,7 @@ export default function AskOpenQuestions({ questions }: { questions: OpenQuestio
   if (questions.length === 0) return null;
 
   return (
-    <aside className="wf-card wf-card--compact self-start">
+    <aside id="open-questions" className="wf-card wf-card--compact self-start scroll-mt-24">
       <h2 className="font-heading text-base font-semibold text-navy-700">Questions awaiting answers</h2>
       <p className="mt-2 font-body text-sm leading-relaxed text-navy-500">
         These questions have been reviewed by WillItFit. Suggested answers remain private until approved.

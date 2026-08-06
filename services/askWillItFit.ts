@@ -40,7 +40,8 @@ function containsPersonalData(text: string): boolean {
 
 function uniqueNumericId(prefix: "ASK-Q" | "ASK-A"): string {
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  const random = crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000;
+  const randomValues = crypto.getRandomValues(new Uint32Array(1));
+  const random = (randomValues[0] ?? 0) % 1_000_000;
   return `${prefix}-${date}-${String(random).padStart(6, "0")}`;
 }
 
