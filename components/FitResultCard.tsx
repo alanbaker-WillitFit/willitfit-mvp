@@ -53,10 +53,18 @@ export function linearMarginCopy(result: FitResult): string | null {
     : `${Math.abs(result.linearMarginCm)} cm above the limit`;
 }
 
+function weightDetail(result: FitResult): string | null {
+  if (result.userWeightKg === null || result.weightLimitKg === null) return null;
+  const margin = Math.round((result.weightLimitKg - result.userWeightKg) * 10) / 10;
+  if (margin < 0) return `${Math.abs(margin)} kg over the published weight limit`;
+  if (margin === 0) return "Your bag matches the published weight limit";
+  return `${margin} kg below the published weight limit`;
+}
+
 function resultDetail(result: FitResult) {
-  if (result.weightVerdict === "no-fit" && result.userWeightKg !== null && result.weightLimitKg !== null) {
-    return `${Math.round((result.userWeightKg - result.weightLimitKg) * 10) / 10} kg over the published weight limit`;
-  }
+  const weight = weightDetail(result);
+  if (result.sizingRule.method === "weight-only" && weight) return weight;
+  if (result.weightVerdict === "no-fit" && weight) return weight;
 
   const linearDetail = linearResultDetail(result);
   if (linearDetail) return linearDetail;
@@ -81,6 +89,7 @@ export default function FitResultCard({ result, labConfigs = [] }: { result: Fit
   const Icon = ICONS[result.verdict];
   const labInvitation = selectLabInvitation(labConfigs, result);
   const linear = result.sizingRule.method === "linear-total";
+  const weightOnly = result.sizingRule.method === "weight-only";
   const marginCopy = linearMarginCopy(result);
 
   return (
@@ -90,7 +99,7 @@ export default function FitResultCard({ result, labConfigs = [] }: { result: Fit
         <div><p>{view.eyebrow}</p><h3 id="fit-result-heading">{view.title}</h3></div>
       </div>
       <div className="wf-result-copy">
-        <strong>{view.lead}</strong>
+        <strong>{weightOnly ? "Your checked bag meets the published weight rule" : view.lead}</strong>
         <p>{resultDetail(result)}</p>
       </div>
 
@@ -99,18 +108,33 @@ export default function FitResultCard({ result, labConfigs = [] }: { result: Fit
           bagType="checkedBag"
           verdict={result.verdict}
           dimensions={result.userDimensions}
+          userWeightKg={result.userWeightKg}
+          weightLimitKg={result.weightLimitKg}
+          weightVerdict={result.weightVerdict}
         />
-      ) : !linear && result.orientationUsed && result.limit ? (
+      ) : weightOnly ? (
+        <BagVisualizer
+          bagType="checkedBag"
+          verdict={result.verdict}
+          dimensions={result.userDimensions}
+          userWeightKg={result.userWeightKg}
+          weightLimitKg={result.weightLimitKg}
+          weightVerdict={result.weightVerdict}
+        />
+      ) : result.orientationUsed && result.limit ? (
         <BagVisualizer
           bagType={result.bagType}
           verdict={result.verdict}
           dimensions={result.orientationUsed}
           limit={result.limit}
+          userWeightKg={result.userWeightKg}
+          weightLimitKg={result.weightLimitKg}
+          weightVerdict={result.weightVerdict}
         />
       ) : null}
 
       <dl className="wf-result-facts">
-        <div><dt>Your dimensions (including wheels &amp; handles)</dt><dd>{result.userDimensions.heightCm} × {result.userDimensions.widthCm} × {result.userDimensions.depthCm} cm</dd></div>
+        {!weightOnly && <div><dt>Your dimensions (including wheels &amp; handles)</dt><dd>{result.userDimensions.heightCm} × {result.userDimensions.widthCm} × {result.userDimensions.depthCm} cm</dd></div>}
         {linear ? (
           <>
             <div><dt>Combined total</dt><dd>{result.userDimensions.heightCm} + {result.userDimensions.widthCm} + {result.userDimensions.depthCm} = {result.userLinearTotalCm} cm</dd></div>
@@ -124,6 +148,7 @@ export default function FitResultCard({ result, labConfigs = [] }: { result: Fit
         {result.userWeightKg !== null && <div><dt>Your entered weight</dt><dd>{result.userWeightKg} kg</dd></div>}
       </dl>
       {linear && <p className="wf-result-notice"><span aria-hidden="true">i</span> This airline publishes a combined total rather than a fixed baggage box.</p>}
+      {weightOnly && <p className="wf-result-notice"><span aria-hidden="true">i</span> This airline publishes a maximum checked-bag weight but no universal dimensions. Size restrictions may vary by aircraft, route or booking. Check your booking before travel.</p>}
       <p className="wf-result-notice"><span aria-hidden="true">i</span> Always check {result.airline.airlineName}&apos;s latest rules before you fly.</p>
       {labInvitation && (
         <aside className="wf-lab-invitation">

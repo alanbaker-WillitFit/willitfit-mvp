@@ -69,13 +69,15 @@ export function airlineHasBagType(
   airline: Airline,
   bagType: BagType
 ): boolean {
-  const explicit = bagType === "cabinBag"
-    ? airline.hasCabinBag
-    : bagType === "personalItem"
-      ? airline.hasPersonalItem
-      : airline.hasCheckedBag;
+  if (bagType === "checkedBag") {
+    if (airline.hasCheckedBag !== undefined) return airline.hasCheckedBag;
+    return Boolean(
+      airline.checkedBag ||
+      (airline.checkedWeightLimitKg !== null && airline.checkedWeightLimitKg !== undefined)
+    );
+  }
 
+  const explicit = bagType === "cabinBag" ? airline.hasCabinBag : airline.hasPersonalItem;
   if (explicit !== undefined) return explicit;
-  if (bagType === "checkedBag") return Boolean(airline.checkedBag);
   return hasValidDimensions(airline[bagType]);
 }

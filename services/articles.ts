@@ -16,6 +16,8 @@ interface ArticleHeader {
   slug: string;
   title: string;
   summary: string;
+  category: string;
+  publishedDate: string;
   displayOrder: number;
   active: boolean;
   published: boolean;
@@ -25,6 +27,8 @@ export interface Article {
   slug: string;
   title: string;
   summary: string;
+  category: string;
+  publishedDate: string;
   sections: RuntimeContentRecord[];
 }
 
@@ -104,6 +108,8 @@ export function buildGovernedArticles(content: RuntimeContentRecord[]): Article[
       slug,
       title: lead.title.trim(),
       summary: capArticleBlurb(lead.supportingText || lead.body),
+      category: lead.contentType.trim() || "Article",
+      publishedDate: "",
       sections: ordered,
     };
   })
@@ -121,6 +127,8 @@ function mapArticleHeader(row: RuntimeRow): ArticleHeader {
     slug: normaliseArticleSlug(value(row, "Slug")),
     title: value(row, "Headline"),
     summary: value(row, "Short Summary", "Standfirst"),
+    category: value(row, "Category", "Article Type") || "Article",
+    publishedDate: value(row, "Published Date"),
     displayOrder: numberValue(value(row, "Display Order")),
     active: value(row, "Active") ? runtimeBoolean(value(row, "Active")) : false,
     published: runtimePublished(row),
@@ -175,6 +183,8 @@ export function buildArticlesFromRuntimeRows(
         slug: header.slug,
         title: header.title,
         summary: capArticleBlurb(header.summary || articleSections[0]?.body || ""),
+        category: header.category,
+        publishedDate: header.publishedDate,
         sections: articleSections,
         displayOrder: header.displayOrder,
       };

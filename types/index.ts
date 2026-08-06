@@ -22,6 +22,9 @@ export type BaggageSizingRule =
       method: "linear-total";
       linearLimitCm: number;
       operator: LinearLimitOperator;
+    }
+  | {
+      method: "weight-only";
     };
 
 export interface FareClassAllowance {
@@ -48,6 +51,7 @@ export interface Airline {
   websiteUrl: string;
   lastUpdated: string;
   status: SheetStatus;
+  searchPriority?: number;
   notes?: string;
   hasCabinBag?: boolean;
   hasPersonalItem?: boolean;

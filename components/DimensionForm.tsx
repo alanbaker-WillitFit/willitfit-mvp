@@ -38,15 +38,26 @@ function decimalInput(value: string): string {
 
 export function selectedWeightLimit(airline: Airline | null, bagType: typeof BAG_TYPES[number]["type"], fareClass: string | null): number | null {
   if (!airline) return null;
+
   const fare = fareClass
-    ? airline.fareClasses.find((item) => item.fareClass.toLowerCase() === fareClass.toLowerCase() && item[bagType])
+    ? airline.fareClasses.find((item) => item.fareClass.toLowerCase() === fareClass.toLowerCase())
     : null;
 
-  if (fare) {
-    return bagType === "checkedBag" ? fare.checkedWeightLimitKg ?? null : fare.weightLimitKg;
+  const fareSupportsBagType = fare
+    ? bagType === "checkedBag"
+      ? Boolean(fare.checkedBag)
+      : Boolean(fare[bagType])
+    : false;
+
+  if (fare && fareSupportsBagType) {
+    return bagType === "checkedBag"
+      ? fare.checkedWeightLimitKg ?? null
+      : fare.weightLimitKg;
   }
 
-  return bagType === "checkedBag" ? airline.checkedWeightLimitKg ?? null : airline.weightLimitKg;
+  return bagType === "checkedBag"
+    ? airline.checkedWeightLimitKg ?? null
+    : airline.weightLimitKg;
 }
 
 export default function DimensionForm({
@@ -83,6 +94,7 @@ export default function DimensionForm({
     ? resolveLimit(airline, bagType, fareClass).sizingRule
     : null;
   const linearRule = sizingRule?.method === "linear-total" ? sizingRule : null;
+  const weightOnlyRule = sizingRule?.method === "weight-only";
   const weightLimitKg = selectedWeightLimit(airline, bagType, fareClass);
   const weightSupported = weightLimitKg !== null;
   const showWeightStep = bagType === "checkedBag" || weightSupported;
@@ -245,7 +257,7 @@ export default function DimensionForm({
                 <label htmlFor="fareClass">Fare</label>
                 <select id="fareClass" value={fareClass ?? ""} onChange={event => { const nextFare = event.target.value || null; setFareClass(nextFare); applySelection(airline, bagType, nextFare); }}>
                   <option value="">Minimum allowance</option>
-                  {airline.fareClasses.filter(item => item[bagType]).map(item => <option key={item.fareClass}>{item.fareClass}</option>)}
+                  {airline.fareClasses.filter(item => item[bagType] || (bagType === "checkedBag" && item.checkedWeightLimitKg !== null)).map(item => <option key={item.fareClass}>{item.fareClass}</option>)}
                 </select>
               </div>
             )}
@@ -254,6 +266,13 @@ export default function DimensionForm({
               <aside className="wf-card wf-card--compact p-4" role="status" aria-live="polite">
                 <strong>Total-size rule</strong>
                 <p>This airline uses a total-size limit rather than fixed dimensions. Enter your bag&apos;s length, width and depth. Together they must total {linearRule.operator === "lt" ? "less than" : "no more than"} {linearRule.linearLimitCm} cm.</p>
+              </aside>
+            )}
+
+            {weightOnlyRule && (
+              <aside className="wf-card wf-card--compact p-4" role="status" aria-live="polite">
+                <strong>Weight-only rule</strong>
+                <p>This airline publishes a maximum checked-bag weight but no universal dimensions. Size restrictions may vary by aircraft, route or booking. Check your booking before travel.</p>
               </aside>
             )}
 
@@ -274,17 +293,21 @@ export default function DimensionForm({
             </fieldset>
 
             {showWeightStep && (
-              <div className="wf-checker-step wf-checker-step--weight">
+              <fieldset className="wf-checker-step wf-checker-step--weight wf-checker-step--dimensions">
+                <legend><b>4</b> Enter bag weight</legend>
                 {weightSupported ? (
-                  <>
-                    <label htmlFor="weightKg"><b>4</b> Weight (kg)<span><input id="weightKg" value={weightRaw} inputMode="decimal" maxLength={5} autoComplete="off" aria-required={weightRequired} aria-invalid={Boolean(weightTouched && weightError)} onChange={event => { setWeightRaw(decimalInput(event.target.value)); invalidate(); }} onBlur={() => setWeightTouched(true)} /></span></label>
-                    {weightTouched && weightError ? <p className="wf-form-error" role="alert">{weightError}</p> : null}
-                    <small>Published limit: {weightLimitKg} kg</small>
-                  </>
+                  <div className="wf-dimensions">
+                    <label htmlFor="weightKg">Weight
+                      <span><input id="weightKg" value={weightRaw} inputMode="decimal" maxLength={5} autoComplete="off" aria-required={weightRequired} aria-invalid={Boolean(weightTouched && weightError)} aria-describedby={weightTouched && weightError ? "weightKg-error" : "weightKg-limit"} onChange={event => { setWeightRaw(decimalInput(event.target.value)); invalidate(); }} onBlur={() => setWeightTouched(true)} /><i>kg</i></span>
+                      <small>W</small>
+                      {weightTouched && weightError ? <em id="weightKg-error" role="alert">{weightError}</em> : null}
+                    </label>
+                    <p id="weightKg-limit" className="self-end pb-3 text-xs font-semibold text-navy-500">Published limit: {weightLimitKg} kg</p>
+                  </div>
                 ) : (
-                  <p role="status"><b>4</b> Weight limit not published. Check the airline&apos;s current checked-baggage policy before travel.</p>
+                  <p role="status">Weight limit not published. Check the airline&apos;s current checked-baggage policy before travel.</p>
                 )}
-              </div>
+              </fieldset>
             )}
 
             <section className="wf-checker-step wf-checker-step--advanced" aria-labelledby="advanced-baggage-heading">
