@@ -46,7 +46,11 @@ export const REQUIRED_SHEET_HEADERS: Record<string, readonly string[]> = {
     "Display Order", "Active", "Review Status", "Publish",
   ],
   "10_Lab": [
-    "Lab ID", "Game ID", "Game Name", "Game Path", "Trigger Type",
+    "Lab ID", "Trigger Type", "Trigger Value", "Destination",
+    "Invitation Message", "Priority", "Active", "Review Status", "Publish",
+  ],
+  "10.1_Lab_Game_Catalogue": [
+    "Game ID", "Game Name", "Game Path", "Invitation Destination",
     "Active", "Review Status", "Publish",
   ],
   "07_Poll_Questions": [
