@@ -3,8 +3,6 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 const SCOPE = "https://www.googleapis.com/auth/spreadsheets";
 const REQUEST_TIMEOUT_MS = 8000;
 
-type SheetWriteTarget = "runtime" | "mother";
-
 function runtimeEnv(): Record<string, string | undefined> {
   try {
     return getCloudflareContext().env as Record<string, string | undefined>;
@@ -22,15 +20,7 @@ function envValue(...names: string[]): string | null {
   return null;
 }
 
-function spreadsheetIdFor(target: SheetWriteTarget): string {
-  if (target === "mother") {
-    const motherId = envValue("GOOGLE_SHEETS_MOTHER_SPREADSHEET_ID");
-    if (!motherId) {
-      throw new Error("Google Mother spreadsheet ID is not configured");
-    }
-    return motherId;
-  }
-
+function runtimeSpreadsheetId(): string {
   const runtimeId = envValue(
     "GOOGLE_SHEETS_SPREADSHEET_ID",
     "GOOGLE_SPREADSHEET_ID",
@@ -101,10 +91,9 @@ async function accessToken(): Promise<string> {
 
 export async function appendSheetRow(
   tabName: string,
-  values: Array<string | number>,
-  target: SheetWriteTarget = "runtime"
+  values: Array<string | number>
 ): Promise<void> {
-  const spreadsheetId = spreadsheetIdFor(target);
+  const spreadsheetId = runtimeSpreadsheetId();
   const token = await accessToken();
   const range = encodeURIComponent(`'${tabName}'!A:ZZ`);
   const response = await fetch(
@@ -121,9 +110,8 @@ export async function appendSheetRow(
   );
   if (!response.ok) {
     const detail = await response.text();
-    console.error("[googleSheetsWrite] append failed", {
+    console.error("[googleSheetsWrite] runtime append failed", {
       tabName,
-      target,
       status: response.status,
       detail,
     });
