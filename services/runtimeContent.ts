@@ -66,6 +66,8 @@ export function mapRuntimeContentRow(row: RuntimeRow, _index: number): RuntimeCo
     title: value(row, "Title"),
     body: value(row, "Content", "Body"),
     supportingText: value(row, "Supporting Text", "SupportingText"),
+    linkLabel: value(row, "Link Label", "LinkLabel"),
+    linkUrl: value(row, "Link URL", "LinkURL"),
     displayOrder: toNumber(value(row, "Priority", "Display Order", "DisplayOrder", "Order"), 999),
     active: value(row, "Active", "Lifecycle Status") ? runtimeBoolean(value(row, "Active", "Lifecycle Status")) : true,
     reviewStatus: value(row, "Review Status", "ReviewStatus", "Workflow Status"),
