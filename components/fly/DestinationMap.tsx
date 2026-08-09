@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import styles from "./DestinationMap.module.css";
 import { projectLatLongToHeroMap } from "@/lib/willitflyMapProjection";
 import {
   getWillItFlyMarkerFrame,
@@ -53,14 +54,14 @@ export default function DestinationMap({
 
   return (
     <figure
-      className={["wif-destination-map", className].filter(Boolean).join(" ")}
+      className={[styles.map, className].filter(Boolean).join(" ")}
       data-has-location={point ? "true" : "false"}
       aria-label={point ? `Map showing ${destinationName}` : "WillItFly world map"}
     >
-      <img className="wif-destination-map__map" src={mapSrc} alt="" aria-hidden="true" />
+      <img className={styles.mapImage} src={mapSrc} alt="" aria-hidden="true" />
       {point ? (
         <span
-          className="wif-destination-map__marker"
+          className={styles.marker}
           style={{ left: `${point.xPercent}%`, top: `${point.yPercent}%` }}
           aria-hidden="true"
         >
