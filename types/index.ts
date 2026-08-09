@@ -134,7 +134,7 @@ export type RuntimeContentModule =
 export interface RuntimeContentRecord {
   contentId: string; module: RuntimeContentModule; page: string; section: string;
   contentType: string; title: string; body: string; supportingText: string;
-  linkLabel: string; linkUrl: string;
+  linkLabel?: string; linkUrl?: string;
   displayOrder: number; active: boolean; reviewStatus: string; published: boolean;
   notes: string; source: "sheet" | "fallback";
 }
