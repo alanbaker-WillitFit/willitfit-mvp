@@ -1,0 +1,17 @@
+/* RC5 final launch preparation.
+   Desktop-only checker refinement. Tablet and mobile remain governed by the
+   existing responsive rules in app/globals.css. */
+
+@media (min-width: 1024px) {
+  .wf-checker-step--bag {
+    grid-column: 1 / -1;
+  }
+
+  .wf-checker-step--bag .wf-bag-types {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .wf-fare-field {
+    grid-column: 1 / -1;
+  }
+}
