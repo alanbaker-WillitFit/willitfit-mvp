@@ -104,9 +104,9 @@ export async function submitQuestion(question: string, type: AskSubmissionType =
     "No",
     "Passed automated check",
     "Website submission",
-    `Private review queue. Submission type: ${category}. Original wording retained.`,
+    `Runtime private intake. Submission type: ${category}. Original wording retained for Cockpit/Pi review and governed Mother reconciliation.`,
     "",
-  ], "mother");
+  ]);
   return questionId;
 }
 
@@ -129,8 +129,8 @@ export async function submitAnswer(questionId: string, answer: string): Promise<
     "No",
     "Passed automated check",
     "Website submission",
-    "Private review queue. No live publication.",
+    "Runtime private intake. No live publication; Cockpit/Pi review and governed Mother reconciliation required.",
     "",
-  ], "mother");
+  ]);
   return answerId;
 }
