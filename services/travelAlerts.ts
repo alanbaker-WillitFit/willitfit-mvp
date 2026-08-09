@@ -51,7 +51,7 @@ function withinDisplayWindow(row: Row, now: number): boolean {
   return true;
 }
 
-function mapLevel(value: string): HomeTravelAlert["level"] | null {
+function mapLevel(value: unknown): HomeTravelAlert["level"] | null {
   const level = clean(value).toLowerCase();
   return level === "green" || level === "amber" || level === "red" ? level : null;
 }
