@@ -13,6 +13,11 @@ type RowsCacheEntry = {
   expiresAt: number;
 };
 
+type LastGoodRowsEntry = {
+  rows: SheetRow[];
+  validatedAt: string;
+};
+
 export type SheetDiagnostic = {
   tabName: string;
   state: "fresh" | "cached" | "failed" | "empty";
@@ -33,6 +38,7 @@ const FAILED_READ_RETRY_SECONDS = 60;
 const REQUEST_TIMEOUT_MS = 8000;
 
 const rowsCache = new Map<string, RowsCacheEntry>();
+const lastGoodRows = new Map<string, LastGoodRowsEntry>();
 const sheetDiagnostics = new Map<string, SheetDiagnostic>();
 let tokenCache: TokenCache | null = null;
 let tokenRequest: Promise<string | null> | null = null;
@@ -153,7 +159,7 @@ async function requestAccessToken(): Promise<string | null> {
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      grant_type: "urn:ietf:params:oauth2.0:token-exchange",
       assertion: signedJwt,
     }),
   });
@@ -344,8 +350,9 @@ export async function getSheetRows<T extends Record<string, string>>(
 ): Promise<T[] | null> {
   const now = Date.now();
   const cached = rowsCache.get(tabName);
+  const refreshing = !cached || cached.expiresAt <= now;
 
-  if (!cached || cached.expiresAt <= now) {
+  if (refreshing) {
     const revalidateMs = getSheetRevalidateSeconds() * 1000;
 
     rowsCache.set(tabName, {
@@ -357,20 +364,46 @@ export async function getSheetRows<T extends Record<string, string>>(
   const entry = rowsCache.get(tabName);
   const rows = await entry?.promise;
   const diagnostic = sheetDiagnostics.get(tabName);
-  if (cached && cached.expiresAt > now && diagnostic && diagnostic.state === "fresh") {
-    sheetDiagnostics.set(tabName, { ...diagnostic, state: "cached" });
+
+  if (rows !== null && rows !== undefined) {
+    if (refreshing) {
+      lastGoodRows.set(tabName, {
+        rows,
+        validatedAt: diagnostic?.fetchedAt || new Date().toISOString(),
+      });
+    } else if (diagnostic && diagnostic.state === "fresh") {
+      sheetDiagnostics.set(tabName, { ...diagnostic, state: "cached" });
+    }
+
+    return rows as T[];
   }
 
   // If this read failed, shorten the cached entry's lifetime so the next
-  // request retries soon rather than waiting out the full revalidate window
-  // on fallback data. Only touch the entry if it's still the one we just
-  // awaited (a concurrent request may have already refreshed it).
-  if (rows === null && entry && rowsCache.get(tabName) === entry) {
+  // request retries soon rather than waiting out the full revalidate window.
+  if (entry && rowsCache.get(tabName) === entry) {
     const retryMs = FAILED_READ_RETRY_SECONDS * 1000;
     rowsCache.set(tabName, { ...entry, expiresAt: now + retryMs });
   }
 
-  return rows as T[] | null;
+  // Preserve and serve only the most recent successfully read/validated rows.
+  // A failed refresh never replaces last-known-good data. This cache is
+  // intentionally in-memory only for RC5; if no validated copy exists, fail closed.
+  const lastGood = lastGoodRows.get(tabName);
+  if (lastGood) {
+    sheetDiagnostics.set(tabName, {
+      tabName,
+      state: "cached",
+      rowCount: lastGood.rows.length,
+      fetchedAt: lastGood.validatedAt,
+      error: diagnostic?.error || "Live Sheet refresh failed; serving last-known-good validated data",
+      schemaValid: diagnostic?.schemaValid ?? true,
+      missingHeaders: diagnostic?.missingHeaders || [],
+      duplicateHeaders: diagnostic?.duplicateHeaders || [],
+    });
+    return lastGood.rows as T[];
+  }
+
+  return null;
 }
 
 export function isLive(status: string | undefined): boolean {
@@ -393,13 +426,13 @@ export function slugify(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-
 export function getSheetDiagnostics(): SheetDiagnostic[] {
   return Array.from(sheetDiagnostics.values()).sort((a, b) => a.tabName.localeCompare(b.tabName));
 }
 
 export function clearSheetCaches(): void {
   rowsCache.clear();
+  lastGoodRows.clear();
   sheetDiagnostics.clear();
 }
 
