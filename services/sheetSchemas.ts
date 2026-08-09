@@ -13,6 +13,13 @@ export const REQUIRED_SHEET_HEADERS: Record<string, readonly string[]> = {
     "Tip ID", "Category", "Airline ID", "Fare", "Bag Type", "Title",
     "Tip / Hint", "Context Trigger", "Search Terms", "Priority", "Publish",
   ],
+  "08.4_Travel_Alerts": [
+    "Alert ID", "Linked Article ID", "Article Slug", "Headline",
+    "Display Date / Status", "Alert Level", "Alert Type", "Opacity 0-100",
+    "Display From", "Display Until", "Lifecycle Status", "Priority",
+    "Home Hero Eligible", "Source Publisher", "Official Source URL",
+    "Source Retrieved Date", "Content Status", "Review Status", "Active",
+  ],
 
   // Deferred/editorial contracts retained until their RC5 runtime modules are
   // separately designed and enabled.
