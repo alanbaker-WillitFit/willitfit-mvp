@@ -2,6 +2,25 @@
    Desktop-only checker refinement. Tablet and mobile remain governed by the
    existing responsive rules in app/globals.css. */
 
+.wf-footer-links {
+  display: grid;
+  gap: 8px;
+}
+
+.wf-compact-footer .wf-footer-social {
+  gap: 10px;
+}
+
+.wf-footer-social > span:first-child,
+.wf-footer-social [aria-disabled="true"] {
+  color: #ccd6e5;
+}
+
+.wf-footer-social a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 @media (min-width: 1024px) {
   .wf-checker-step--bag {
     grid-column: 1 / -1;
