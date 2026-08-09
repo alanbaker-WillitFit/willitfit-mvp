@@ -11,6 +11,7 @@ export const RUNTIME_TABS = {
   tips: ["06_Tips"],
   faqs: ["05_FAQs"],
   siteContent: ["07_Site Content"],
+  seoPages: ["08_SEO Pages"],
   articles: ["08.2_Articles"],
   articleSections: ["08.2.1_Article_Sections"],
   affiliateProducts: ["09_Affiliate_Placements"],
@@ -24,6 +25,7 @@ export const SPECIAL_BAGGAGE_RESULT_TABS = RUNTIME_TABS.specialBaggageResults;
 export const TIP_TABS = RUNTIME_TABS.tips;
 export const FAQ_TABS = RUNTIME_TABS.faqs;
 export const SITE_CONTENT_TABS = RUNTIME_TABS.siteContent;
+export const SEO_PAGE_TABS = RUNTIME_TABS.seoPages;
 export const ARTICLE_TABS = RUNTIME_TABS.articles;
 export const ARTICLE_SECTION_TABS = RUNTIME_TABS.articleSections;
 export const AFFILIATE_PRODUCT_TABS = RUNTIME_TABS.affiliateProducts;
