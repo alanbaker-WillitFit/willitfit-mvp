@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { getRuntimeContent } from "@/services/runtimeContent";
 
-function safeExternalUrl(value: string): string | null {
-  const url = value.trim();
+function safeExternalUrl(value?: string): string | null {
+  const url = (value ?? "").trim();
   return /^https:\/\//i.test(url) ? url : null;
 }
 
