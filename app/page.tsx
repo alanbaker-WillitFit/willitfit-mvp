@@ -11,6 +11,7 @@ import { getRuntimeContent } from "@/services/runtimeContent";
 import { getAffiliateSlots } from "@/services/runtimeAffiliates";
 import { getLabConfigurations } from "@/services/labConfig";
 import { getSpecialBaggageResults } from "@/services/specialBaggage";
+import { getHomeTravelAlert } from "@/services/travelAlerts";
 
 export const revalidate = 3600;
 
@@ -24,7 +25,7 @@ const NEXT_STEPS = [
 ] as const;
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ airline?: string }> }) {
-  const [{ airlines, source }, { tips }, { airline: airlineParam }, { content: notices }, { content: hints }, { slots: affiliateSlots }, labConfigs, specialBaggageResults] = await Promise.all([
+  const [{ airlines, source }, { tips }, { airline: airlineParam }, { content: notices }, { content: hints }, { slots: affiliateSlots }, labConfigs, specialBaggageResults, homeAlert] = await Promise.all([
     getAirlines(),
     getTravelTips(),
     searchParams,
@@ -33,10 +34,18 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     getAffiliateSlots(),
     getLabConfigurations(),
     getSpecialBaggageResults(),
+    getHomeTravelAlert(),
   ]);
   const preselectedAirline = airlineParam ? airlines.find(airline => airline.slug === airlineParam) ?? null : null;
   const priorityAirlines = airlines.slice(0, 5);
   const selectedTips = tips.slice(0, 3);
+  const alertBackground = homeAlert
+    ? homeAlert.level === "green"
+      ? `rgba(34, 197, 94, ${homeAlert.opacity})`
+      : homeAlert.level === "amber"
+        ? `rgba(245, 158, 11, ${homeAlert.opacity})`
+        : `rgba(239, 68, 68, ${homeAlert.opacity})`
+    : undefined;
 
   return (
     <>
@@ -45,6 +54,18 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <div className="wf-container wf-home-hero__content">
           <h1 id="home-heading">Know<br />Before You <span>Go.</span></h1>
           <p>Check personal items, cabin bags and checked bags against official airline rules.</p>
+          {homeAlert ? (
+            <aside
+              className="wf-hero-alert"
+              data-level={homeAlert.level}
+              style={{ backgroundColor: alertBackground }}
+              aria-label="Travel alert"
+            >
+              <span className="wf-hero-alert__status">{homeAlert.displayStatus || "Travel update"}</span>
+              <strong>{homeAlert.headline}</strong>
+              <Link href={homeAlert.articleHref}>More <span aria-hidden="true">→</span></Link>
+            </aside>
+          ) : null}
         </div>
       </section>
 
