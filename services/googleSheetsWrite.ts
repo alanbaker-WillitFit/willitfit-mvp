@@ -3,6 +3,8 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 const SCOPE = "https://www.googleapis.com/auth/spreadsheets";
 const REQUEST_TIMEOUT_MS = 8000;
 
+type SheetWriteTarget = "runtime" | "mother";
+
 function runtimeEnv(): Record<string, string | undefined> {
   try {
     return getCloudflareContext().env as Record<string, string | undefined>;
@@ -18,6 +20,24 @@ function envValue(...names: string[]): string | null {
     if (value) return value;
   }
   return null;
+}
+
+function spreadsheetIdFor(target: SheetWriteTarget): string {
+  if (target === "mother") {
+    const motherId = envValue("GOOGLE_SHEETS_MOTHER_SPREADSHEET_ID");
+    if (!motherId) {
+      throw new Error("Google Mother spreadsheet ID is not configured");
+    }
+    return motherId;
+  }
+
+  const runtimeId = envValue(
+    "GOOGLE_SHEETS_SPREADSHEET_ID",
+    "GOOGLE_SPREADSHEET_ID",
+    "GOOGLE_SHEET_ID"
+  );
+  if (!runtimeId) throw new Error("Google runtime spreadsheet ID is not configured");
+  return runtimeId;
 }
 
 function base64Url(input: string | ArrayBuffer): string {
@@ -79,14 +99,12 @@ async function accessToken(): Promise<string> {
   return payload.access_token;
 }
 
-export async function appendSheetRow(tabName: string, values: Array<string | number>): Promise<void> {
-  const spreadsheetId = envValue(
-    "GOOGLE_SHEETS_SPREADSHEET_ID",
-    "GOOGLE_SPREADSHEET_ID",
-    "GOOGLE_SHEET_ID"
-  );
-  if (!spreadsheetId) throw new Error("Google spreadsheet ID is not configured");
-
+export async function appendSheetRow(
+  tabName: string,
+  values: Array<string | number>,
+  target: SheetWriteTarget = "runtime"
+): Promise<void> {
+  const spreadsheetId = spreadsheetIdFor(target);
   const token = await accessToken();
   const range = encodeURIComponent(`'${tabName}'!A:ZZ`);
   const response = await fetch(
@@ -103,7 +121,12 @@ export async function appendSheetRow(tabName: string, values: Array<string | num
   );
   if (!response.ok) {
     const detail = await response.text();
-    console.error("[googleSheetsWrite] append failed", { tabName, status: response.status, detail });
+    console.error("[googleSheetsWrite] append failed", {
+      tabName,
+      target,
+      status: response.status,
+      detail,
+    });
     throw new Error("The submission queue is temporarily unavailable");
   }
 }
