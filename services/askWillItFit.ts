@@ -106,7 +106,7 @@ export async function submitQuestion(question: string, type: AskSubmissionType =
     "Website submission",
     `Private review queue. Submission type: ${category}. Original wording retained.`,
     "",
-  ]);
+  ], "mother");
   return questionId;
 }
 
@@ -131,6 +131,6 @@ export async function submitAnswer(questionId: string, answer: string): Promise<
     "Website submission",
     "Private review queue. No live publication.",
     "",
-  ]);
+  ], "mother");
   return answerId;
 }
