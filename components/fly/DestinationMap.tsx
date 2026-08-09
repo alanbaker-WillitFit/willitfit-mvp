@@ -7,13 +7,17 @@ import {
   getWillItFlyMarkerFrame,
   WILLITFLY_LOCATION_MARKER_FRAME_MS,
 } from "@/lib/willitflyMarker";
+import {
+  WILLITFLY_HERO_MAP_ASSET,
+  WILLITFLY_LOCATION_MARKER_ASSETS,
+} from "@/lib/willitflyAssets";
 
 export type DestinationMapProps = {
   destinationName: string;
   latitude: number | null | undefined;
   longitude: number | null | undefined;
-  mapSrc: string;
-  markerFrames: readonly [string, string, string];
+  mapSrc?: string;
+  markerFrames?: readonly [string, string, string];
   className?: string;
 };
 
@@ -21,8 +25,8 @@ export default function DestinationMap({
   destinationName,
   latitude,
   longitude,
-  mapSrc,
-  markerFrames,
+  mapSrc = WILLITFLY_HERO_MAP_ASSET,
+  markerFrames = WILLITFLY_LOCATION_MARKER_ASSETS,
   className,
 }: DestinationMapProps) {
   const point = useMemo(
