@@ -12,7 +12,7 @@ import {
 
 type RuntimeRow = Record<string, string>;
 
-type Destination = {
+export type WillItFlyDestination = {
   destinationId: string;
   destinationType: string;
   displayName: string;
@@ -28,20 +28,37 @@ type Destination = {
   countryFlagAssetId?: string;
 };
 
-type TravelTime = {
+export type WillItFlyTravelTime = {
   originMarketId: string;
   originDisplayName: string;
   destinationId: string;
   averageFlightMinutes: number;
 };
 
+export type WillItFlyAsset = {
+  assetId: string;
+  assetType: string;
+  assetName: string;
+  purpose: string;
+  entityType?: string;
+  entityId?: string;
+  topicId?: string;
+  productionPath: string;
+  altText?: string;
+  accessibilityBehaviour?: string;
+  fallbackAssetId?: string;
+  version?: string;
+  assetRole?: string;
+};
+
 export type WillItFlyRuntimeBundle = {
   configured: boolean;
   previewMode: boolean;
-  destinations: Destination[];
+  destinations: WillItFlyDestination[];
   layerCards: RuntimeLayerCard[];
   navigationRoutes: RuntimeNavigationRoute[];
-  travelTimes: TravelTime[];
+  travelTimes: WillItFlyTravelTime[];
+  assets: WillItFlyAsset[];
 };
 
 const REQUEST_TIMEOUT_MS = 8000;
@@ -67,6 +84,10 @@ function envValue(...names: string[]): string | null {
 
 function booleanValue(value: string | undefined): boolean {
   return ["yes", "true", "1", "active", "published"].includes(String(value ?? "").trim().toLowerCase());
+}
+
+function reviewedValue(value: string | undefined): boolean {
+  return ["approved", "reviewed"].includes(String(value ?? "").trim().toLowerCase());
 }
 
 function numberValue(value: string | undefined): number | null {
@@ -139,6 +160,7 @@ function rowsFromValues(values: string[][]): RuntimeRow[] {
   const headers = values[0].map((value) => String(value ?? "").trim());
   return values.slice(1).flatMap((row) => {
     if (!row.some((value) => String(value ?? "").trim())) return [];
+    if (String(row[0] ?? "").trim() === "NO AUTHORISED DATA IN DRAFT") return [];
     const record: RuntimeRow = {};
     headers.forEach((header, index) => {
       if (header) record[header] = String(row[index] ?? "").trim();
@@ -152,6 +174,7 @@ async function readTab(tabName: string): Promise<RuntimeRow[]> {
   if (!spreadsheetId) return [];
   const token = await getAccessToken();
   if (!token) return [];
+
   try {
     const range = encodeURIComponent(`'${tabName}'!A:ZZ`);
     const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`, {
@@ -167,18 +190,13 @@ async function readTab(tabName: string): Promise<RuntimeRow[]> {
   }
 }
 
-function rowPublished(row: RuntimeRow, previewMode: boolean): boolean {
-  if (!booleanValue(row.Active)) return false;
-  if (previewMode) return true;
-  return booleanValue(row.Publish) && ["approved", "reviewed"].includes(String(row.Review_Status ?? "").trim().toLowerCase());
-}
-
-function mapDestination(row: RuntimeRow, previewMode: boolean): Destination | null {
+function mapDestination(row: RuntimeRow, previewMode: boolean): WillItFlyDestination | null {
   const destinationId = row.Destination_ID;
   const displayName = row.Display_Name;
   const countryId = row.Country_ID || destinationId;
   if (!destinationId || !displayName || !countryId) return null;
-  if (!previewMode && !["approved", "reviewed"].includes(String(row.Review_Status ?? "").trim().toLowerCase())) return null;
+  if (!previewMode && !reviewedValue(row.Review_Status)) return null;
+
   return {
     destinationId,
     destinationType: row.Destination_Type,
@@ -238,29 +256,56 @@ function mapNavigation(row: RuntimeRow): RuntimeNavigationRoute | null {
   };
 }
 
+function mapAsset(row: RuntimeRow): WillItFlyAsset | null {
+  if (!row.Asset_ID || !row.Production_Path) return null;
+  return {
+    assetId: row.Asset_ID,
+    assetType: row.Asset_Type,
+    assetName: row.Asset_Name,
+    purpose: row.Purpose,
+    entityType: row.Entity_Type || undefined,
+    entityId: row.Entity_ID || undefined,
+    topicId: row.Topic_ID || undefined,
+    productionPath: row.Production_Path,
+    altText: row.Alt_Text || undefined,
+    accessibilityBehaviour: row.Accessibility_Behaviour || undefined,
+    fallbackAssetId: row.Fallback_Asset_ID || undefined,
+    version: row.Version || undefined,
+    assetRole: row.Asset_Role || undefined,
+  };
+}
+
 async function loadBundle(): Promise<WillItFlyRuntimeBundle> {
   const configured = Boolean(envValue("WILLITFLY_RUNTIME_SPREADSHEET_ID", "WILLITFLY_GOOGLE_SHEETS_SPREADSHEET_ID"));
   const previewMode = booleanValue(envValue("WILLITFLY_RUNTIME_PREVIEW") || "");
-  if (!configured) return { configured, previewMode, destinations: [], layerCards: [], navigationRoutes: [], travelTimes: [] };
+  if (!configured) {
+    return { configured, previewMode, destinations: [], layerCards: [], navigationRoutes: [], travelTimes: [], assets: [] };
+  }
 
-  const [destinationRows, cardRows, navigationRows, travelRows] = await Promise.all([
+  const [destinationRows, cardRows, navigationRows, travelRows, assetRows] = await Promise.all([
     readTab("02_Destinations"),
     readTab("04.4_Layer_Cards"),
     readTab("04.5_Navigation_Routes"),
     readTab("02.1_Travel_Times"),
+    readTab("06_Assets"),
   ]);
 
-  const destinations = destinationRows.map((row) => mapDestination(row, previewMode)).filter((item): item is Destination => Boolean(item));
+  const destinations = destinationRows
+    .map((row) => mapDestination(row, previewMode))
+    .filter((item): item is WillItFlyDestination => Boolean(item));
+
   const mappedCards = cardRows.map(mapLayerCard).filter((item): item is RuntimeLayerCard => Boolean(item));
   const layerCards = previewMode
     ? mappedCards.filter((card) => card.active).sort((a, b) => a.displayOrder - b.displayOrder || a.position - b.position)
     : (["LAYER_1", "LAYER_2", "LAYER_3", "LAYER_4"] as WillItFlyLayerId[]).flatMap((layerId) => resolvePublishedLayerCards(mappedCards, layerId));
+
   const mappedNavigation = navigationRows.map(mapNavigation).filter((item): item is RuntimeNavigationRoute => Boolean(item));
   const navigationRoutes = previewMode
     ? mappedNavigation.filter((route) => route.active).sort((a, b) => a.displayOrder - b.displayOrder || a.position - b.position)
     : resolvePublishedNavigationRoutes(mappedNavigation);
-  const travelTimes = travelRows.flatMap((row): TravelTime[] => {
-    if (!rowPublished(row, previewMode) && !previewMode) return [];
+
+  const travelTimes = travelRows.flatMap((row): WillItFlyTravelTime[] => {
+    if (!previewMode && !reviewedValue(row.Review_Status)) return [];
     const minutes = numberValue(row.Average_Flight_Minutes);
     if (!row.Origin_Market_ID || !row.Destination_ID || minutes === null) return [];
     return [{
@@ -271,7 +316,14 @@ async function loadBundle(): Promise<WillItFlyRuntimeBundle> {
     }];
   });
 
-  return { configured, previewMode, destinations, layerCards, navigationRoutes, travelTimes };
+  const assets = assetRows.map(mapAsset).filter((item): item is WillItFlyAsset => Boolean(item));
+
+  return { configured, previewMode, destinations, layerCards, navigationRoutes, travelTimes, assets };
+}
+
+export function resolveWillItFlyAsset(bundle: WillItFlyRuntimeBundle, assetId?: string): WillItFlyAsset | null {
+  if (!assetId) return null;
+  return bundle.assets.find((asset) => asset.assetId === assetId) ?? null;
 }
 
 export const getWillItFlyRuntimeBundle = cache(loadBundle);
