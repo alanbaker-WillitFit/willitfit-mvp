@@ -9,6 +9,12 @@ import {
   type RuntimeLayerCard,
   type WillItFlyLayerId,
 } from "@/lib/willitflyLayerEngine";
+import {
+  canPublishValueIntelligence,
+  type RuntimeValueIntelligence,
+  type WillItFlyScoreStatus,
+  type WillItFlyValueVerdict,
+} from "@/lib/willitflyValueIntelligence";
 
 type RuntimeRow = Record<string, string>;
 
@@ -59,6 +65,7 @@ export type WillItFlyRuntimeBundle = {
   navigationRoutes: RuntimeNavigationRoute[];
   travelTimes: WillItFlyTravelTime[];
   assets: WillItFlyAsset[];
+  valueIntelligence: RuntimeValueIntelligence[];
 };
 
 const REQUEST_TIMEOUT_MS = 8000;
@@ -93,6 +100,28 @@ function reviewedValue(value: string | undefined): boolean {
 function numberValue(value: string | undefined): number | null {
   const parsed = Number(String(value ?? "").trim());
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function scoreValue(value: string | undefined): 1 | 2 | 3 | 4 | 5 | undefined {
+  const parsed = numberValue(value);
+  if (parsed === null || !Number.isInteger(parsed) || parsed < 1 || parsed > 5) return undefined;
+  return parsed as 1 | 2 | 3 | 4 | 5;
+}
+
+function scoreStatusValue(value: string | undefined): WillItFlyScoreStatus | null {
+  const normalized = String(value ?? "").trim().toUpperCase();
+  if (["ESTABLISHED", "INSUFFICIENT_HISTORY", "UNAVAILABLE"].includes(normalized)) {
+    return normalized as WillItFlyScoreStatus;
+  }
+  return null;
+}
+
+function valueVerdictValue(value: string | undefined): WillItFlyValueVerdict | null {
+  const normalized = String(value ?? "").trim().toUpperCase().replace(/\s+/g, "_");
+  if (["GREAT_VALUE", "GOOD_VALUE", "FAIR_PRICE", "WAIT_IF_YOU_CAN", "HIGH_PRICE", "UNPROVEN_DEAL"].includes(normalized)) {
+    return normalized as WillItFlyValueVerdict;
+  }
+  return null;
 }
 
 function base64UrlEncode(input: string | ArrayBuffer): string {
@@ -275,19 +304,68 @@ function mapAsset(row: RuntimeRow): WillItFlyAsset | null {
   };
 }
 
+function mapValueIntelligence(row: RuntimeRow): RuntimeValueIntelligence | null {
+  const productScoreStatus = scoreStatusValue(row.Product_Score_Status);
+  const priceScoreStatus = scoreStatusValue(row.Price_Score_Status);
+  const valueVerdict = valueVerdictValue(row.Value_Verdict);
+  if (!row.Value_Intelligence_ID || !row.Product_ID || !productScoreStatus || !priceScoreStatus || !valueVerdict || !row.Methodology_Version) {
+    return null;
+  }
+
+  const value: RuntimeValueIntelligence = {
+    valueIntelligenceId: row.Value_Intelligence_ID,
+    productId: row.Product_ID,
+    offerId: row.Offer_ID || undefined,
+    merchantId: row.Merchant_ID || undefined,
+    productScore: scoreValue(row.Product_Score),
+    productScoreStatus,
+    priceScore: scoreValue(row.Price_Score),
+    priceScoreStatus,
+    valueVerdict,
+    currentPrice: numberValue(row.Current_Price) ?? undefined,
+    currency: row.Currency || undefined,
+    typicalObservedPrice: numberValue(row.Typical_Observed_Price) ?? undefined,
+    observedLow: numberValue(row.Observed_Low) ?? undefined,
+    observedHigh: numberValue(row.Observed_High) ?? undefined,
+    monitoringDays: numberValue(row.Monitoring_Days) ?? undefined,
+    evidenceConfidence: row.Evidence_Confidence || undefined,
+    methodologyVersion: row.Methodology_Version,
+    lastEvaluated: row.Last_Evaluated || undefined,
+    active: booleanValue(row.Active),
+    publish: booleanValue(row.Publish),
+    featureFlag: row.Feature_Flag || undefined,
+  };
+
+  if (productScoreStatus === "ESTABLISHED" && value.productScore === undefined) return null;
+  if (priceScoreStatus === "ESTABLISHED" && value.priceScore === undefined) return null;
+  if (priceScoreStatus === "INSUFFICIENT_HISTORY" && value.priceScore !== undefined) return null;
+
+  return value;
+}
+
 async function loadBundle(): Promise<WillItFlyRuntimeBundle> {
   const configured = Boolean(envValue("WILLITFLY_RUNTIME_SPREADSHEET_ID", "WILLITFLY_GOOGLE_SHEETS_SPREADSHEET_ID"));
   const previewMode = booleanValue(envValue("WILLITFLY_RUNTIME_PREVIEW") || "");
   if (!configured) {
-    return { configured, previewMode, destinations: [], layerCards: [], navigationRoutes: [], travelTimes: [], assets: [] };
+    return {
+      configured,
+      previewMode,
+      destinations: [],
+      layerCards: [],
+      navigationRoutes: [],
+      travelTimes: [],
+      assets: [],
+      valueIntelligence: [],
+    };
   }
 
-  const [destinationRows, cardRows, navigationRows, travelRows, assetRows] = await Promise.all([
+  const [destinationRows, cardRows, navigationRows, travelRows, assetRows, valueRows] = await Promise.all([
     readTab("02_Destinations"),
     readTab("04.4_Layer_Cards"),
     readTab("04.5_Navigation_Routes"),
     readTab("02.1_Travel_Times"),
     readTab("06_Assets"),
+    readTab("09.1_Value_Intelligence"),
   ]);
 
   const destinations = destinationRows
@@ -318,7 +396,23 @@ async function loadBundle(): Promise<WillItFlyRuntimeBundle> {
 
   const assets = assetRows.map(mapAsset).filter((item): item is WillItFlyAsset => Boolean(item));
 
-  return { configured, previewMode, destinations, layerCards, navigationRoutes, travelTimes, assets };
+  const mappedValueIntelligence = valueRows
+    .map(mapValueIntelligence)
+    .filter((item): item is RuntimeValueIntelligence => Boolean(item));
+  const valueIntelligence = previewMode
+    ? mappedValueIntelligence.filter((value) => value.active)
+    : mappedValueIntelligence.filter(canPublishValueIntelligence);
+
+  return {
+    configured,
+    previewMode,
+    destinations,
+    layerCards,
+    navigationRoutes,
+    travelTimes,
+    assets,
+    valueIntelligence,
+  };
 }
 
 export function resolveWillItFlyAsset(bundle: WillItFlyRuntimeBundle, assetId?: string): WillItFlyAsset | null {
