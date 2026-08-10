@@ -1,5 +1,6 @@
 export const WILLITFLY_MAX_LAYER_DEPTH = 4;
 export const WILLITFLY_MAX_CARDS_PER_LAYER = 10;
+export const WILLITFLY_DESKTOP_VISIBLE_CARD_MAX = 5;
 
 export type WillItFlyLayerId = "LAYER_1" | "LAYER_2" | "LAYER_3" | "LAYER_4";
 export type WillItFlyCardType = "FACT" | "PRODUCT";
@@ -27,6 +28,12 @@ export type RuntimeLayerCard = {
 export type LayerVisualDecision =
   | { mode: "DEDICATED_ASSET"; visualAssetId: string }
   | { mode: "MAP_FALLBACK" };
+
+export type DesktopCardRail = {
+  orderedCards: RuntimeLayerCard[];
+  visibleCardCount: number;
+  horizontallyScrollable: boolean;
+};
 
 const PUBLISHABLE_REVIEW_STATUSES = new Set(["APPROVED", "REVIEWED"]);
 
@@ -60,6 +67,14 @@ export function resolvePublishedLayerCards(
       return a.layerCardId.localeCompare(b.layerCardId);
     })
     .slice(0, WILLITFLY_MAX_CARDS_PER_LAYER);
+}
+
+export function resolveDesktopCardRail(cards: RuntimeLayerCard[]): DesktopCardRail {
+  return {
+    orderedCards: cards,
+    visibleCardCount: Math.min(cards.length, WILLITFLY_DESKTOP_VISIBLE_CARD_MAX),
+    horizontallyScrollable: cards.length > WILLITFLY_DESKTOP_VISIBLE_CARD_MAX,
+  };
 }
 
 export function resolveLayerVisual(card: RuntimeLayerCard): LayerVisualDecision {
