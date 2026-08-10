@@ -173,7 +173,7 @@ async function getAccessToken(): Promise<string | null> {
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      grant_type: "urn:ietf:params:oauth-grant-type:jwt-bearer".replace("oauth-grant-type", "oauth:grant-type"),
       assertion,
     }),
   });
@@ -186,7 +186,7 @@ async function getAccessToken(): Promise<string | null> {
 
 function rowsFromValues(values: string[][]): RuntimeRow[] {
   if (values.length < 2) return [];
-  const headers = values[0].map((value) => String(value ?? "").trim());
+  const headers = (values[0] ?? []).map((value) => String(value ?? "").trim());
   return values.slice(1).flatMap((row) => {
     if (!row.some((value) => String(value ?? "").trim())) return [];
     if (String(row[0] ?? "").trim() === "NO AUTHORISED DATA IN DRAFT") return [];
@@ -221,19 +221,21 @@ async function readTab(tabName: string): Promise<RuntimeRow[]> {
 
 function mapDestination(row: RuntimeRow, previewMode: boolean): WillItFlyDestination | null {
   const destinationId = row.Destination_ID;
+  const destinationType = row.Destination_Type;
   const displayName = row.Display_Name;
   const countryId = row.Country_ID || destinationId;
-  if (!destinationId || !displayName || !countryId) return null;
+  const slug = row.Slug;
+  if (!destinationId || !destinationType || !displayName || !countryId || !slug) return null;
   if (!previewMode && !reviewedValue(row.Review_Status)) return null;
 
   return {
     destinationId,
-    destinationType: row.Destination_Type,
+    destinationType,
     displayName,
     parentDestinationId: row.Parent_Destination_ID || undefined,
     countryId,
     regionId: row.Region_ID || undefined,
-    slug: row.Slug,
+    slug,
     aliases: String(row.Aliases || "").split(/[|,;]/).map((item) => item.trim()).filter(Boolean),
     latitude: numberValue(row.Latitude),
     longitude: numberValue(row.Longitude),
@@ -244,58 +246,77 @@ function mapDestination(row: RuntimeRow, previewMode: boolean): WillItFlyDestina
 }
 
 function mapLayerCard(row: RuntimeRow): RuntimeLayerCard | null {
-  const layerId = row.Layer_ID as WillItFlyLayerId;
-  if (!row.Layer_Card_ID || !layerId || !row.Destination_ID || !row.Card_Type || !row.Content_Ref_ID) return null;
+  const layerCardId = row.Layer_Card_ID;
+  const layerId = row.Layer_ID as WillItFlyLayerId | undefined;
+  const destinationId = row.Destination_ID;
+  const cardType = row.Card_Type as "FACT" | "PRODUCT" | undefined;
+  const contentRefId = row.Content_Ref_ID;
+  const cardTitle = row.Card_Title;
+  if (!layerCardId || !layerId || !destinationId || !cardType || !contentRefId || !cardTitle) return null;
+
   return {
-    layerCardId: row.Layer_Card_ID,
+    layerCardId,
     layerId,
-    destinationId: row.Destination_ID,
+    destinationId,
     topicId: row.Topic_ID || undefined,
     position: Number(row.Position),
-    cardType: row.Card_Type as "FACT" | "PRODUCT",
-    contentRefId: row.Content_Ref_ID,
-    cardTitle: row.Card_Title,
+    cardType,
+    contentRefId,
+    cardTitle,
     summary: row.Summary || undefined,
     visualAssetId: row.Visual_Asset_ID || undefined,
     targetLayerId: (row.Target_Layer_ID || undefined) as WillItFlyLayerId | undefined,
     targetRouteKey: row.Target_Route_Key || undefined,
     active: booleanValue(row.Active),
-    reviewStatus: row.Review_Status,
+    reviewStatus: row.Review_Status || "",
     publish: booleanValue(row.Publish),
     displayOrder: Number(row.Display_Order || row.Position),
   };
 }
 
 function mapNavigation(row: RuntimeRow): RuntimeNavigationRoute | null {
-  if (!row.Navigation_ID || !row.Route_Key || !row.Label || !row.Path) return null;
+  const navigationId = row.Navigation_ID;
+  const routeKey = row.Route_Key;
+  const label = row.Label;
+  const path = row.Path;
+  const targetProduct = row.Target_Product;
+  const surface = row.Surface;
+  if (!navigationId || !routeKey || !label || !path || !targetProduct || !surface) return null;
+
   return {
-    navigationId: row.Navigation_ID,
+    navigationId,
     position: Number(row.Position),
     displayOrder: Number(row.Display_Order || row.Position),
-    routeKey: row.Route_Key,
-    label: row.Label,
-    path: row.Path,
+    routeKey,
+    label,
+    path,
     linkType: row.Link_Type === "SISTER_PRODUCT" ? "SISTER_PRODUCT" : "INTERNAL",
-    targetProduct: row.Target_Product,
+    targetProduct,
     active: booleanValue(row.Active),
     publish: booleanValue(row.Publish),
     featureFlag: row.Feature_Flag || undefined,
-    surface: row.Surface,
+    surface,
     external: booleanValue(row.External),
   };
 }
 
 function mapAsset(row: RuntimeRow): WillItFlyAsset | null {
-  if (!row.Asset_ID || !row.Production_Path) return null;
+  const assetId = row.Asset_ID;
+  const assetType = row.Asset_Type;
+  const assetName = row.Asset_Name;
+  const purpose = row.Purpose;
+  const productionPath = row.Production_Path;
+  if (!assetId || !assetType || !assetName || !purpose || !productionPath) return null;
+
   return {
-    assetId: row.Asset_ID,
-    assetType: row.Asset_Type,
-    assetName: row.Asset_Name,
-    purpose: row.Purpose,
+    assetId,
+    assetType,
+    assetName,
+    purpose,
     entityType: row.Entity_Type || undefined,
     entityId: row.Entity_ID || undefined,
     topicId: row.Topic_ID || undefined,
-    productionPath: row.Production_Path,
+    productionPath,
     altText: row.Alt_Text || undefined,
     accessibilityBehaviour: row.Accessibility_Behaviour || undefined,
     fallbackAssetId: row.Fallback_Asset_ID || undefined,
@@ -305,16 +326,19 @@ function mapAsset(row: RuntimeRow): WillItFlyAsset | null {
 }
 
 function mapValueIntelligence(row: RuntimeRow): RuntimeValueIntelligence | null {
+  const valueIntelligenceId = row.Value_Intelligence_ID;
+  const productId = row.Product_ID;
+  const methodologyVersion = row.Methodology_Version;
   const productScoreStatus = scoreStatusValue(row.Product_Score_Status);
   const priceScoreStatus = scoreStatusValue(row.Price_Score_Status);
   const valueVerdict = valueVerdictValue(row.Value_Verdict);
-  if (!row.Value_Intelligence_ID || !row.Product_ID || !productScoreStatus || !priceScoreStatus || !valueVerdict || !row.Methodology_Version) {
+  if (!valueIntelligenceId || !productId || !methodologyVersion || !productScoreStatus || !priceScoreStatus || !valueVerdict) {
     return null;
   }
 
   const value: RuntimeValueIntelligence = {
-    valueIntelligenceId: row.Value_Intelligence_ID,
-    productId: row.Product_ID,
+    valueIntelligenceId,
+    productId,
     offerId: row.Offer_ID || undefined,
     merchantId: row.Merchant_ID || undefined,
     productScore: scoreValue(row.Product_Score),
@@ -329,7 +353,7 @@ function mapValueIntelligence(row: RuntimeRow): RuntimeValueIntelligence | null 
     observedHigh: numberValue(row.Observed_High) ?? undefined,
     monitoringDays: numberValue(row.Monitoring_Days) ?? undefined,
     evidenceConfidence: row.Evidence_Confidence || undefined,
-    methodologyVersion: row.Methodology_Version,
+    methodologyVersion,
     lastEvaluated: row.Last_Evaluated || undefined,
     active: booleanValue(row.Active),
     publish: booleanValue(row.Publish),
@@ -384,12 +408,15 @@ async function loadBundle(): Promise<WillItFlyRuntimeBundle> {
 
   const travelTimes = travelRows.flatMap((row): WillItFlyTravelTime[] => {
     if (!previewMode && !reviewedValue(row.Review_Status)) return [];
+    const originMarketId = row.Origin_Market_ID;
+    const originDisplayName = row.Origin_Display_Name;
+    const destinationId = row.Destination_ID;
     const minutes = numberValue(row.Average_Flight_Minutes);
-    if (!row.Origin_Market_ID || !row.Destination_ID || minutes === null) return [];
+    if (!originMarketId || !originDisplayName || !destinationId || minutes === null) return [];
     return [{
-      originMarketId: row.Origin_Market_ID,
-      originDisplayName: row.Origin_Display_Name,
-      destinationId: row.Destination_ID,
+      originMarketId,
+      originDisplayName,
+      destinationId,
       averageFlightMinutes: minutes,
     }];
   });
