@@ -15,6 +15,15 @@ import {
   type WillItFlyScoreStatus,
   type WillItFlyValueVerdict,
 } from "@/lib/willitflyValueIntelligence";
+import {
+  resolvePublishedLiveIncidents,
+  type RuntimeLiveIncident,
+  type RuntimeLiveMonitoringStatus,
+  type WillItFlyCoverageStatus,
+  type WillItFlyLiveLifecycle,
+  type WillItFlyLiveSeverity,
+  type WillItFlyLiveTopic,
+} from "@/lib/willitflyLiveIntelligence";
 
 type RuntimeRow = Record<string, string>;
 
@@ -57,6 +66,19 @@ export type WillItFlyAsset = {
   assetRole?: string;
 };
 
+export type WillItFlyPublicSource = {
+  sourceId: string;
+  sourceName: string;
+  url: string;
+  urlRole?: string;
+  authorityLevel?: string;
+  entityType?: string;
+  entityId?: string;
+  topicId?: string;
+  lastChecked?: string;
+  reviewDue?: string;
+};
+
 export type WillItFlyRuntimeBundle = {
   configured: boolean;
   previewMode: boolean;
@@ -65,7 +87,10 @@ export type WillItFlyRuntimeBundle = {
   navigationRoutes: RuntimeNavigationRoute[];
   travelTimes: WillItFlyTravelTime[];
   assets: WillItFlyAsset[];
+  publicSources: WillItFlyPublicSource[];
   valueIntelligence: RuntimeValueIntelligence[];
+  liveIncidents: RuntimeLiveIncident[];
+  liveMonitoring: RuntimeLiveMonitoringStatus[];
 };
 
 const REQUEST_TIMEOUT_MS = 8000;
@@ -122,6 +147,45 @@ function valueVerdictValue(value: string | undefined): WillItFlyValueVerdict | n
     return normalized as WillItFlyValueVerdict;
   }
   return null;
+}
+
+function liveTopicValue(value: string | undefined): WillItFlyLiveTopic | null {
+  const normalized = String(value ?? "").trim().toUpperCase();
+  if (["TRANSPORT", "WEATHER", "AIRPORT", "ENTRY", "OFFICIAL_ADVICE", "DESTINATION_EVENT"].includes(normalized)) {
+    return normalized as WillItFlyLiveTopic;
+  }
+  return null;
+}
+
+function liveSeverityValue(value: string | undefined): WillItFlyLiveSeverity | null {
+  const normalized = String(value ?? "").trim().toUpperCase();
+  if (["ADVISORY", "DISRUPTION", "SEVERE"].includes(normalized)) {
+    return normalized as WillItFlyLiveSeverity;
+  }
+  return null;
+}
+
+function liveLifecycleValue(value: string | undefined): WillItFlyLiveLifecycle | null {
+  const normalized = String(value ?? "").trim().toUpperCase();
+  if (["ACTIVE", "EXPIRING", "RESOLVED", "ARCHIVED"].includes(normalized)) {
+    return normalized as WillItFlyLiveLifecycle;
+  }
+  return null;
+}
+
+function coverageStatusValue(value: string | undefined): WillItFlyCoverageStatus | null {
+  const normalized = String(value ?? "").trim().toUpperCase();
+  if (["HEALTHY", "DEGRADED", "UNAVAILABLE"].includes(normalized)) {
+    return normalized as WillItFlyCoverageStatus;
+  }
+  return null;
+}
+
+function idList(value: string | undefined): string[] {
+  return String(value ?? "")
+    .split(/[|,;]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function base64UrlEncode(input: string | ArrayBuffer): string {
@@ -236,7 +300,7 @@ function mapDestination(row: RuntimeRow, previewMode: boolean): WillItFlyDestina
     countryId,
     regionId: row.Region_ID || undefined,
     slug,
-    aliases: String(row.Aliases || "").split(/[|,;]/).map((item) => item.trim()).filter(Boolean),
+    aliases: idList(row.Aliases),
     latitude: numberValue(row.Latitude),
     longitude: numberValue(row.Longitude),
     displayFlagCode: row.Display_Flag_Code || undefined,
@@ -325,6 +389,26 @@ function mapAsset(row: RuntimeRow): WillItFlyAsset | null {
   };
 }
 
+function mapPublicSource(row: RuntimeRow): WillItFlyPublicSource | null {
+  const sourceId = row.Source_ID;
+  const sourceName = row.Source_Name;
+  const url = row.URL;
+  if (!sourceId || !sourceName || !url) return null;
+
+  return {
+    sourceId,
+    sourceName,
+    url,
+    urlRole: row.URL_Role || undefined,
+    authorityLevel: row.Authority_Level || undefined,
+    entityType: row.Entity_Type || undefined,
+    entityId: row.Entity_ID || undefined,
+    topicId: row.Topic_ID || undefined,
+    lastChecked: row.Last_Checked || undefined,
+    reviewDue: row.Review_Due || undefined,
+  };
+}
+
 function mapValueIntelligence(row: RuntimeRow): RuntimeValueIntelligence | null {
   const valueIntelligenceId = row.Value_Intelligence_ID;
   const productId = row.Product_ID;
@@ -367,6 +451,90 @@ function mapValueIntelligence(row: RuntimeRow): RuntimeValueIntelligence | null 
   return value;
 }
 
+function mapLiveIncident(row: RuntimeRow): RuntimeLiveIncident | null {
+  const incidentId = row.Incident_ID;
+  const headline = row.Headline;
+  const travellerImpact = row.Traveller_Impact;
+  const topic = liveTopicValue(row.Topic);
+  const severity = liveSeverityValue(row.Severity);
+  const primaryDestinationId = row.Primary_Destination_ID;
+  const detectedAt = row.Detected_At;
+  const lastChecked = row.Last_Checked;
+  const lifecycleStatus = liveLifecycleValue(row.Lifecycle_Status);
+  const evidenceConfidence = String(row.Evidence_Confidence || "").trim().toUpperCase();
+  const methodologyVersion = row.Methodology_Version;
+  const sortPriority = numberValue(row.Sort_Priority);
+
+  if (
+    !incidentId || !headline || !travellerImpact || !topic || !severity || !primaryDestinationId ||
+    !detectedAt || !lastChecked || !lifecycleStatus || !methodologyVersion || sortPriority === null ||
+    !["HIGH", "MEDIUM"].includes(evidenceConfidence)
+  ) return null;
+
+  const destinationIds = idList(row.Destination_IDs);
+  if (!destinationIds.includes(primaryDestinationId)) destinationIds.unshift(primaryDestinationId);
+
+  return {
+    incidentId,
+    headline,
+    summary: row.Summary || undefined,
+    travellerImpact,
+    topic,
+    severity,
+    primaryDestinationId,
+    destinationIds,
+    sourceIds: idList(row.Source_IDs),
+    detectedAt,
+    lastChecked,
+    effectiveFrom: row.Effective_From || undefined,
+    expiresAt: row.Expires_At || undefined,
+    lifecycleStatus,
+    sortPriority,
+    detailPath: row.Detail_Path || undefined,
+    active: booleanValue(row.Active),
+    publish: booleanValue(row.Publish),
+    featureFlag: row.Feature_Flag || undefined,
+    evidenceConfidence: evidenceConfidence as "HIGH" | "MEDIUM",
+    methodologyVersion,
+    dedupGroupId: row.Dedup_Group_ID || undefined,
+    resolvedAt: row.Resolved_At || undefined,
+  };
+}
+
+function mapLiveMonitoring(row: RuntimeRow): RuntimeLiveMonitoringStatus | null {
+  const monitorId = row.Monitor_ID;
+  const destinationId = row.Destination_ID;
+  const topicRaw = String(row.Topic || "").trim().toUpperCase();
+  const topic = topicRaw === "ALL" ? "ALL" : liveTopicValue(topicRaw);
+  const coverageStatus = coverageStatusValue(row.Coverage_Status);
+  const lastChecked = row.Last_Checked;
+  const sourceCount = numberValue(row.Source_Count);
+  const significantIssueCount = numberValue(row.Significant_Issue_Count);
+  const freshUntil = row.Fresh_Until;
+  const methodologyVersion = row.Methodology_Version;
+
+  if (
+    !monitorId || !destinationId || !topic || !coverageStatus || !lastChecked || !freshUntil ||
+    sourceCount === null || significantIssueCount === null || !methodologyVersion
+  ) return null;
+
+  return {
+    monitorId,
+    destinationId,
+    topic,
+    coverageStatus,
+    lastChecked,
+    sourceCount,
+    significantIssueCount,
+    allClearEligible: booleanValue(row.All_Clear_Eligible),
+    freshUntil,
+    active: booleanValue(row.Active),
+    publish: booleanValue(row.Publish),
+    featureFlag: row.Feature_Flag || undefined,
+    methodologyVersion,
+  };
+}
+
 async function loadBundle(): Promise<WillItFlyRuntimeBundle> {
   const configured = Boolean(envValue("WILLITFLY_RUNTIME_SPREADSHEET_ID", "WILLITFLY_GOOGLE_SHEETS_SPREADSHEET_ID"));
   const previewMode = booleanValue(envValue("WILLITFLY_RUNTIME_PREVIEW") || "");
@@ -379,17 +547,33 @@ async function loadBundle(): Promise<WillItFlyRuntimeBundle> {
       navigationRoutes: [],
       travelTimes: [],
       assets: [],
+      publicSources: [],
       valueIntelligence: [],
+      liveIncidents: [],
+      liveMonitoring: [],
     };
   }
 
-  const [destinationRows, cardRows, navigationRows, travelRows, assetRows, valueRows] = await Promise.all([
+  const [
+    destinationRows,
+    cardRows,
+    navigationRows,
+    travelRows,
+    assetRows,
+    sourceRows,
+    valueRows,
+    liveIncidentRows,
+    liveMonitoringRows,
+  ] = await Promise.all([
     readTab("02_Destinations"),
     readTab("04.4_Layer_Cards"),
     readTab("04.5_Navigation_Routes"),
     readTab("02.1_Travel_Times"),
     readTab("06_Assets"),
+    readTab("05_Public_Source_Links"),
     readTab("09.1_Value_Intelligence"),
+    readTab("13_Live_Incidents"),
+    readTab("13.1_Live_Monitoring_Status"),
   ]);
 
   const destinations = destinationRows
@@ -422,6 +606,7 @@ async function loadBundle(): Promise<WillItFlyRuntimeBundle> {
   });
 
   const assets = assetRows.map(mapAsset).filter((item): item is WillItFlyAsset => Boolean(item));
+  const publicSources = sourceRows.map(mapPublicSource).filter((item): item is WillItFlyPublicSource => Boolean(item));
 
   const mappedValueIntelligence = valueRows
     .map(mapValueIntelligence)
@@ -429,6 +614,20 @@ async function loadBundle(): Promise<WillItFlyRuntimeBundle> {
   const valueIntelligence = previewMode
     ? mappedValueIntelligence.filter((value) => value.active)
     : mappedValueIntelligence.filter(canPublishValueIntelligence);
+
+  const mappedLiveIncidents = liveIncidentRows
+    .map(mapLiveIncident)
+    .filter((item): item is RuntimeLiveIncident => Boolean(item));
+  const liveIncidents = previewMode
+    ? mappedLiveIncidents.filter((incident) => incident.active && ["ACTIVE", "EXPIRING"].includes(incident.lifecycleStatus))
+    : resolvePublishedLiveIncidents(mappedLiveIncidents);
+
+  const mappedLiveMonitoring = liveMonitoringRows
+    .map(mapLiveMonitoring)
+    .filter((item): item is RuntimeLiveMonitoringStatus => Boolean(item));
+  const liveMonitoring = previewMode
+    ? mappedLiveMonitoring.filter((status) => status.active)
+    : mappedLiveMonitoring.filter((status) => status.active && status.publish);
 
   return {
     configured,
@@ -438,13 +637,20 @@ async function loadBundle(): Promise<WillItFlyRuntimeBundle> {
     navigationRoutes,
     travelTimes,
     assets,
+    publicSources,
     valueIntelligence,
+    liveIncidents,
+    liveMonitoring,
   };
 }
 
 export function resolveWillItFlyAsset(bundle: WillItFlyRuntimeBundle, assetId?: string): WillItFlyAsset | null {
   if (!assetId) return null;
   return bundle.assets.find((asset) => asset.assetId === assetId) ?? null;
+}
+
+export function resolveWillItFlyPublicSource(bundle: WillItFlyRuntimeBundle, sourceId: string): WillItFlyPublicSource | null {
+  return bundle.publicSources.find((source) => source.sourceId === sourceId) ?? null;
 }
 
 export const getWillItFlyRuntimeBundle = cache(loadBundle);
