@@ -1,0 +1,53 @@
+name: WillItFly RC1 Certification
+
+on:
+  push:
+    branches:
+      - willitfly-rc1-build-20260809
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: willitfly-rc1-certification-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  certify:
+    name: Install, type-check, lint, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout WillItFly RC1 branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Record environment
+        run: |
+          node --version
+          npm --version
+          git branch --show-current
+          git rev-parse HEAD
+          git status --short
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
