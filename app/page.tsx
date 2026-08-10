@@ -1,139 +1,103 @@
-import Link from "next/link";
-import DestinationMap from "@/components/fly/DestinationMap";
-import styles from "@/components/fly/WillItFlyExperience.module.css";
-import { getWillItFlyRuntimeBundle, resolveWillItFlyAsset } from "@/services/willitflyRuntime";
-import type { RuntimeLayerCard, WillItFlyLayerId } from "@/lib/willitflyLayerEngine";
+import styles from "@/components/fly/WillItFlyPrelaunch.module.css";
 
-export const revalidate = 300;
+const QUESTIONS = [
+  ["↔", "Do they drive on the left or right?"],
+  ["£", "What currency is used?"],
+  ["◷", "What's the time difference?"],
+  ["☼", "What's the weather like?"],
+  ["¤", "Is tipping expected?"],
+  ["⌁", "Will my hair straighteners work?"],
+] as const;
 
-const VALID_LAYERS = new Set<WillItFlyLayerId>(["LAYER_1", "LAYER_2", "LAYER_3", "LAYER_4"]);
+const PROOF = [
+  ["✓", "Trusted travel data", "Official and governed sources"],
+  ["◎", "Built for travellers", "Practical questions, clear answers"],
+  ["▣", "No personal data required", "Use the core experience without signing up"],
+  ["⊕", "Growing coverage", "More destinations and topics added regularly"],
+] as const;
 
-function formatFlightTime(minutes: number): string {
-  const rounded = Math.ceil(minutes / 30) * 30;
-  const hours = Math.floor(rounded / 60);
-  const remainder = rounded % 60;
-  if (hours && remainder) return `${hours}h ${remainder}m`;
-  if (hours) return `${hours}h`;
-  return `${remainder}m`;
-}
-
-function cardHref(card: RuntimeLayerCard, slug: string, routes: Awaited<ReturnType<typeof getWillItFlyRuntimeBundle>>["navigationRoutes"]): string | null {
-  if (card.targetLayerId) {
-    return `/?destination=${encodeURIComponent(slug)}&layer=${card.targetLayerId}&card=${encodeURIComponent(card.layerCardId)}#cards`;
-  }
-  if (card.targetRouteKey) {
-    return routes.find((route) => route.routeKey === card.targetRouteKey)?.path ?? null;
-  }
-  return null;
-}
-
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ destination?: string; layer?: string; card?: string }>;
-}) {
-  const bundle = await getWillItFlyRuntimeBundle();
-  const params = await searchParams;
-  const selected = bundle.destinations.find((destination) => destination.slug === params.destination) ?? bundle.destinations[0] ?? null;
-  const requestedLayer = params.layer as WillItFlyLayerId | undefined;
-  const currentLayer: WillItFlyLayerId = requestedLayer && VALID_LAYERS.has(requestedLayer) ? requestedLayer : "LAYER_1";
-  const layerCards = selected
-    ? bundle.layerCards.filter((card) => card.destinationId === selected.destinationId && card.layerId === currentLayer)
-    : [];
-  const selectedCard = params.card ? bundle.layerCards.find((card) => card.layerCardId === params.card) ?? null : null;
-  const dedicatedAsset = resolveWillItFlyAsset(bundle, selectedCard?.visualAssetId);
-  const country = selected ? bundle.destinations.find((destination) => destination.destinationId === selected.countryId) ?? null : null;
-  const region = selected?.regionId ? bundle.destinations.find((destination) => destination.destinationId === selected.regionId) ?? null : null;
-  const travelTime = selected ? bundle.travelTimes.find((item) => item.destinationId === selected.destinationId) ?? null : null;
-  const destinationsRoute = bundle.navigationRoutes.find((route) => route.routeKey === "DESTINATIONS") ?? null;
-
+export default function HomePage() {
   return (
     <div className={styles.page}>
       <section className={styles.hero}>
-        <div className={styles.container}>
-          <div className={styles.heroIntro}>
-            <span className={styles.eyebrow}>Destination guidance</span>
-            <h1>Know Before You Go.</h1>
-            <p>Choose a destination and get governed, practical travel facts without the noise.</p>
+        <div className={`${styles.container} ${styles.heroGrid}`}>
+          <div>
+            <div className={styles.kicker}><span className={styles.kickerDot} />WillItFly · coming soon</div>
+            <h1>Smart answers for <span>every trip.</span></h1>
+            <p className={styles.heroLead}>
+              WillItFly gives you quick, practical answers to the travel questions that matter most —
+              using governed destination data and clear source evidence so you can know before you go.
+            </p>
+
+            <ul className={styles.trustList}>
+              <li><span className={styles.trustIcon}>?</span><span><strong>Real travel questions</strong><span>Practical answers to the things travellers actually need to know.</span></span></li>
+              <li><span className={styles.trustIcon}>◷</span><span><strong>Fast and easy</strong><span>Find the important answer without digging through pages of travel information.</span></span></li>
+              <li><span className={styles.trustIcon}>✓</span><span><strong>Trusted information</strong><span>Built from official, governed and reviewed source evidence.</span></span></li>
+              <li><span className={styles.trustIcon}>→</span><span><strong>Helpful next steps</strong><span>Relevant guidance that helps you act on the answer.</span></span></li>
+            </ul>
           </div>
 
-          <div className={styles.searchPanel}>
-            <form className={styles.searchForm} method="get">
-              <select name="destination" defaultValue={selected?.slug ?? ""} disabled={bundle.destinations.length === 0} aria-label="Choose a destination">
-                {bundle.destinations.length === 0 ? <option value="">No published destinations yet</option> : null}
-                {bundle.destinations.map((destination) => (
-                  <option key={destination.destinationId} value={destination.slug}>{destination.displayName}</option>
-                ))}
-              </select>
-              <button type="submit" disabled={bundle.destinations.length === 0}>Show destination</button>
-            </form>
-          </div>
-
-          <div className={styles.mapFrame}>
-            {dedicatedAsset ? (
-              <figure aria-label={dedicatedAsset.altText || dedicatedAsset.assetName}>
-                <img src={dedicatedAsset.productionPath} alt={dedicatedAsset.altText || ""} style={{ display: "block", width: "100%", maxHeight: 520, objectFit: "contain" }} />
-              </figure>
-            ) : (
-              <DestinationMap
-                destinationName={selected?.displayName || "WillItFly"}
-                latitude={selected?.latitude}
-                longitude={selected?.longitude}
-              />
-            )}
-
-            <aside className={styles.identityCard} aria-label="Destination identity">
-              {selected ? (
-                <>
-                  <div className={styles.identityHeader}>
-                    <span className={styles.flag} aria-hidden="true">{selected.displayFlagEmoji || country?.displayFlagEmoji || ""}</span>
-                    <div>
-                      <h2>{selected.displayName}</h2>
-                      <p>{[region?.displayName, country?.displayName].filter(Boolean).join(" · ") || selected.destinationType}</p>
-                    </div>
-                  </div>
-                  {travelTime ? <p className={styles.identityMeta}>From {travelTime.originDisplayName}: about {formatFlightTime(travelTime.averageFlightMinutes)}</p> : null}
-                  {destinationsRoute ? <Link className={styles.hierarchyLink} href={destinationsRoute.path}>More destination options →</Link> : null}
-                </>
-              ) : (
-                <p className={styles.emptyNote}>{bundle.configured ? "No authorised destination is published yet." : "WillItFly Runtime is not configured for this build."}</p>
-              )}
-            </aside>
+          <div className={styles.demoWrap} aria-label="Example WillItFly answer">
+            <div className={styles.demoHalo} aria-hidden="true" />
+            <div className={styles.phone}>
+              <div className={styles.phoneTop}><span className={styles.phonePill} /></div>
+              <div className={styles.phoneBrand}>WillIt<span>Fly</span></div>
+              <p className={styles.phoneTag}>Know Before You Go.</p>
+              <div className={styles.field}>
+                <label>Where are you travelling?</label>
+                <div className={styles.fieldBox}>Japan</div>
+              </div>
+              <div className={styles.field}>
+                <label>What do you want to know?</label>
+                <div className={styles.fieldBox}>Will my hair straighteners work?</div>
+              </div>
+              <div className={styles.answerCard}>
+                <div className={styles.answerTitle}><span className={styles.answerTick}>✓</span>Check before you pack.</div>
+                <p>Japan uses 100V power and commonly uses Type A plugs. Your device still needs to support the local voltage.</p>
+                <div className={styles.nextStep}>Helpful next step · check the voltage label on your device</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section id="cards" className={styles.cardsSection}>
+      <section className={styles.comingSoon} aria-labelledby="coming-soon-title">
         <div className={styles.container}>
-          <div className={styles.sectionHeading}>
+          <div className={styles.comingPanel}>
+            <div className={styles.comingMark} aria-hidden="true">▣</div>
             <div>
-              <span className={styles.eyebrow}>Layer {currentLayer.replace("LAYER_", "")}</span>
-              <h2>{selected ? `What to know about ${selected.displayName}` : "Travel facts"}</h2>
+              <h2 id="coming-soon-title">Coming soon</h2>
+              <p>WillItFly is being prepared for launch. Destination coverage and travel-question data are being reviewed now.</p>
             </div>
-            <p>Up to 10 governed cards. Desktop shows up to 5 at once.</p>
+            <div className={styles.statusBadge}>RC1 in preparation</div>
           </div>
+        </div>
+      </section>
 
-          {layerCards.length > 0 ? (
-            <div className={styles.cardRail} aria-label="Destination advice cards">
-              {layerCards.map((card) => {
-                const href = selected ? cardHref(card, selected.slug, bundle.navigationRoutes) : null;
-                const content = (
-                  <>
-                    <span className={styles.cardPosition}>{card.position}</span>
-                    <span className={styles.cardType}>{card.cardType}</span>
-                    <h3>{card.cardTitle}</h3>
-                    {card.summary ? <p>{card.summary}</p> : null}
-                    {href ? <span className={styles.cardArrow}>Open →</span> : null}
-                  </>
-                );
-                return href ? <Link key={card.layerCardId} href={href} className={styles.layerCard}>{content}</Link> : <article key={card.layerCardId} className={styles.layerCard}>{content}</article>;
-              })}
-            </div>
-          ) : (
-            <div className={styles.emptyState}>
-              {selected ? "No cards are currently authorised for this destination and layer." : "Destination cards will appear when governed Runtime records are available."}
-            </div>
-          )}
+      <section className={styles.questions} aria-labelledby="questions-title">
+        <div className={styles.container}>
+          <h2 id="questions-title" className={styles.sectionHeading}>Examples of questions WillItFly will answer</h2>
+          <div className={styles.questionGrid}>
+            {QUESTIONS.map(([icon, question]) => (
+              <article className={styles.question} key={question}>
+                <span className={styles.questionIcon} aria-hidden="true">{icon}</span>
+                <strong>{question}</strong>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.proof} aria-label="WillItFly principles">
+        <div className={styles.container}>
+          <div className={styles.proofGrid}>
+            {PROOF.map(([icon, title, detail]) => (
+              <article className={styles.proofCard} key={title}>
+                <span className={styles.proofIcon} aria-hidden="true">{icon}</span>
+                <span><strong>{title}</strong><span>{detail}</span></span>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
     </div>
