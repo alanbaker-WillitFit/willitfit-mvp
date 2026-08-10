@@ -9,12 +9,14 @@ import {
 import {
   getWillItFlyRuntimeBundle,
   resolveWillItFlyPublicSource,
+  type WillItFlyPublicSource,
 } from "@/services/willitflyRuntime";
 import styles from "./TravelUpdates.module.css";
 
 export const metadata: Metadata = {
   title: "Travel Updates",
   description: "Current governed travel updates that may materially affect your trip, monitored by WillItFly and presented as practical traveller impact.",
+  robots: { index: false, follow: false },
 };
 
 const TOPICS: Array<{ key: "ALL" | WillItFlyLiveTopic; label: string }> = [
@@ -26,6 +28,15 @@ const TOPICS: Array<{ key: "ALL" | WillItFlyLiveTopic; label: string }> = [
   { key: "OFFICIAL_ADVICE", label: "Official advice" },
   { key: "DESTINATION_EVENT", label: "Destination events" },
 ];
+
+const LIVE_TOPIC_KEYS = new Set<WillItFlyLiveTopic>([
+  "TRANSPORT",
+  "WEATHER",
+  "AIRPORT",
+  "ENTRY",
+  "OFFICIAL_ADVICE",
+  "DESTINATION_EVENT",
+]);
 
 const TOPIC_LABELS: Record<WillItFlyLiveTopic, string> = {
   TRANSPORT: "Transport",
@@ -75,7 +86,7 @@ export default async function TravelUpdatesPage({
   const bundle = await getWillItFlyRuntimeBundle();
   const selectedDestinationId = one(params.destination)?.trim() || undefined;
   const requestedTopic = one(params.topic)?.trim().toUpperCase();
-  const selectedTopic = TOPICS.some((topic) => topic.key === requestedTopic)
+  const selectedTopic = requestedTopic && LIVE_TOPIC_KEYS.has(requestedTopic as WillItFlyLiveTopic)
     ? requestedTopic as WillItFlyLiveTopic
     : undefined;
 
@@ -180,7 +191,7 @@ export default async function TravelUpdatesPage({
                 const primaryDestination = bundle.destinations.find((item) => item.destinationId === incident.primaryDestinationId);
                 const sources = incident.sourceIds
                   .map((sourceId) => resolveWillItFlyPublicSource(bundle, sourceId))
-                  .filter((source): source is NonNullable<typeof source> => Boolean(source));
+                  .filter((source): source is WillItFlyPublicSource => Boolean(source));
 
                 return (
                   <article className={styles.updateCard} key={incident.incidentId}>
