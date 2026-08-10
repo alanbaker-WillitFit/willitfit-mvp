@@ -4,7 +4,13 @@ import WillItFlyHeader from "@/components/fly/WillItFlyHeader";
 import WillItFlyFooter from "@/components/fly/WillItFlyFooter";
 import { getWillItFlyRuntimeBundle } from "@/services/willitflyRuntime";
 
+const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+
 export const metadata: Metadata = {
+  ...(configuredSiteUrl ? {
+    metadataBase: new URL(configuredSiteUrl),
+    alternates: { canonical: "/" },
+  } : {}),
   title: {
     default: "WillItFly — Smart Travel Answers | Know Before You Go",
     template: "%s | WillItFly",
