@@ -4,6 +4,8 @@
 
 WillIt Live Intelligence provides a calm, traveller-facing Travel Updates surface backed by continuous Pi/Operations Node monitoring. RSS feeds, APIs and permitted page-change detection are inputs only. The user-facing unit is a governed **incident**, not a source item or headline.
 
+The detailed Operations Node stream boundary for Travel News, Weather Alerts, future Airline Deal Intelligence, Other candidate intelligence and possible Affiliate Deal Intelligence is defined in `docs/willitfly/monitoring-runtime-contract.md`.
+
 ## Architecture
 
 Approved sources → Pi monitoring → normalisation → de-duplication → destination linkage → classification → traveller-impact preparation → governed approval → Runtime projection → WillItFly Build.
@@ -121,6 +123,12 @@ Each published incident card contains:
 
 Severity must never rely on colour alone.
 
+## World-map contract
+
+The hero world map may show a destination marker only when at least one currently publishable factual incident resolves to that governed destination. Marker position is derived by the Build from Runtime latitude/longitude. Runtime never stores presentation x/y coordinates.
+
+A red marker means **current published update exists**. It is not a severity or danger indicator. Commercial/deal intelligence never creates a factual-news marker.
+
 ## Filtering
 
 The Travel Updates page supports:
@@ -132,7 +140,7 @@ The Travel Updates page supports:
 - Entry
 - Official advice
 - Destination events
-- governed destination filtering using stable `Destination_ID`
+- governed destination filtering/search using stable `Destination_ID`, with Build resolution of governed names, slugs and aliases
 
 Filtering never manufactures incidents or changes publication eligibility.
 
@@ -141,6 +149,8 @@ Filtering never manufactures incidents or changes publication eligibility.
 Runtime version: `RC1-DRAFT-0.11`.
 
 `live_intelligence_enabled=false` remains the RC1 safety control until explicit release approval. `NAV-012` remains `Publish=No` until activation. The route is noindex while this capability is unreleased.
+
+The Travel Updates surface and monitoring contracts may be built and certified before the main WillItFly live release. Activation is a separate explicit post-live decision.
 
 ## Pi/Cockpit boundary
 
@@ -179,4 +189,6 @@ Certification must prove:
 - All Clear cannot be inferred from zero incidents;
 - stale/degraded monitoring cannot show All Clear;
 - destination/topic filters preserve incident identity and do not duplicate cards;
+- map pins are derived only from publishable factual incidents and governed coordinates;
+- commercial/deal observations cannot create factual incident pins;
 - no direct Pi operational-store dependency exists in Build.
