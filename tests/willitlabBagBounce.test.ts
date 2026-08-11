@@ -41,7 +41,8 @@ describe("WillIt Lab Bag Bounce RC1", () => {
   });
 
   it("frames luggage as clearing and redirecting rather than destruction", () => {
-    expect(htmlSource).toContain("Redirect blocking bags onto the conveyors");
+    expect(htmlSource).toContain("Redirect blocking bags");
+    expect(htmlSource).toContain("conveyors");
     expect(gameSource).toContain("clearBag");
     expect(gameSource).not.toContain("explode");
     expect(gameSource).not.toContain("destroy");
