@@ -1,8 +1,9 @@
-const CACHE="willitlab-terminal-chase-rc1-baseline-1";
+const CACHE="willitlab-terminal-chase-rc1-longloop-1";
 const ASSETS=[
   "./",
   "./index.html",
   "./styles.css",
+  "./refinement.css",
   "./game.js",
   "./manifest.webmanifest",
   "../bag-bounce/asset-refs.js"
