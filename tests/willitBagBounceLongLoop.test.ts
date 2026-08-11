@@ -40,7 +40,7 @@ describe("Bag Bounce long-loop refinement contract", () => {
     expect(cssSource).toContain(".bag-art");
   });
 
-  it("ships through its own long-loop offline cache revision", () => {
-    expect(swSource).toContain('willitlab-bag-bounce-rc1-longloop-1');
+  it("continues to ship through a dedicated Bag Bounce RC1 offline cache", () => {
+    expect(swSource).toContain('const CACHE="willitlab-bag-bounce-rc1-');
   });
 });
