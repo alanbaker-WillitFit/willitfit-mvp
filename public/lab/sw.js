@@ -1,6 +1,6 @@
-const CACHE="willitfly-rc0-4-offline";
+const CACHE="willitfly-rc1-lab-1";
 const ASSETS=[
-  "./","./index.html","./styles.css","./themes.js","./game.js",
+  "./","./index.html","./styles.css","./themes.js","./game.js","./flight-assets.js",
   "./manifest.webmanifest","./assets/willitfly-logo.png"
 ];
 
