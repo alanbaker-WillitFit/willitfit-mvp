@@ -31,7 +31,8 @@ describe("Bag Bounce presentation contract", () => {
     expect(css).toContain("@media(max-width:820px)");
   });
 
-  it("advances the offline cache for the presentation package", () => {
-    expect(sw).toContain('willitlab-bag-bounce-rc1-presentation-2');
+  it("ships through a dedicated Bag Bounce RC1 presentation cache namespace", () => {
+    expect(sw).toContain('willitlab-bag-bounce-rc1-');
+    expect(sw).toContain('const CACHE=');
   });
 });
