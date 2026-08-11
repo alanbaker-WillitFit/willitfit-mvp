@@ -4,12 +4,46 @@ import Image from "next/image";
 import React from "react";
 import { createPortal } from "react-dom";
 import { useEffect, useId, useRef, useState } from "react";
-import { affiliatePlaceholdersForCategory, TravelEssentialCategory, visibleTravelEssentialCategories } from "@/data/travelEssentials";
-import type { AffiliateSlot } from "@/types";
+import {
+  AFFILIATE_CATALOGUE_CAPACITY,
+  affiliatePlaceholdersForCategory,
+  TravelEssentialCategory,
+  visibleTravelEssentialCategories,
+} from "@/data/travelEssentials";
+import type { AffiliateLink, AffiliateSlot } from "@/types";
 import BrandWordmark from "./BrandWordmark";
+import AffiliateCard from "./AffiliateCard";
 import { cn } from "@/lib/utils";
 
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function slotToAffiliateLink(slot: AffiliateSlot): AffiliateLink {
+  return {
+    affiliateId: slot.slotId,
+    brand: slot.merchant,
+    product: slot.title,
+    category: slot.category,
+    affiliateUrl: slot.affiliateUrl,
+    imageUrl: slot.imageUrl,
+    status: "Live",
+  };
+}
+
+function AffiliatePlaceholderCard({ slot }: { slot: AffiliateSlot }) {
+  return (
+    <article className="wf-card wf-card--compact overflow-hidden p-0" aria-label={`Affiliate recommendation slot ${slot.position} is not yet published`}>
+      <div className="h-36 w-full bg-navy-50" aria-hidden="true" />
+      <div className="p-4">
+        <span className="font-body text-xs font-semibold uppercase tracking-wide text-navy-300">
+          Slot {slot.position}
+        </span>
+        <h4 className="mt-1 font-heading text-sm font-semibold text-navy-700">{slot.title}</h4>
+        <p className="mt-2 font-body text-sm text-navy-500">{slot.description}</p>
+        <span className="mt-2 inline-block font-body text-xs text-navy-300">{slot.disclosure}</span>
+      </div>
+    </article>
+  );
+}
 
 export function TravelEssentialsSheet({ category, slots = [], onClose }: {
   category: TravelEssentialCategory;
@@ -50,19 +84,18 @@ export function TravelEssentialsSheet({ category, slots = [], onClose }: {
         </header>
         <div className="wf-essentials-sheet__content">
           <h2 id={titleId}>{category.title}</h2>
-          <p>Ten governed recommendation slots. Unverified products are never shown.</p>
-          <div className="wf-product-slots">
+          <p>Up to {AFFILIATE_CATALOGUE_CAPACITY} governed recommendations. Unverified products are never shown.</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {displayedSlots.map((slot) => (
-              <article key={slot.slotId} className={cn("wf-product-slot", slot.placeholder && "is-placeholder")}>
-                <small>Slot {slot.position}</small>
-                <strong>{slot.title}</strong>
-                <p>{slot.description}</p>
-                {slot.placeholder ? (
-                  <span>{slot.disclosure}</span>
-                ) : (
-                  <a href={slot.affiliateUrl} target="_blank" rel="nofollow sponsored noopener">{slot.cta}</a>
-                )}
-              </article>
+              slot.placeholder ? (
+                <AffiliatePlaceholderCard key={slot.slotId} slot={slot} />
+              ) : (
+                <AffiliateCard
+                  key={slot.slotId}
+                  link={slotToAffiliateLink(slot)}
+                  ctaText={slot.cta || "View product"}
+                />
+              )
             ))}
           </div>
         </div>
