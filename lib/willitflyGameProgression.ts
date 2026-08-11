@@ -11,6 +11,7 @@ export type WillItFlyGameLevel = {
   movingGate: boolean;
   movementAmplitudeRatio: number;
   movementRate: number;
+  gatePulseRatio: number;
   collectibleOffsetRatio: number;
   gatesRequired: number;
 };
@@ -34,6 +35,7 @@ export function getWillItFlyGameLevel(level: number): WillItFlyGameLevel {
     movingGate: safeLevel >= 5,
     movementAmplitudeRatio: safeLevel < 5 ? 0 : Number((0.035 + progress * 0.095).toFixed(3)),
     movementRate: safeLevel < 5 ? 0 : Number((0.65 + progress * 1.1).toFixed(3)),
+    gatePulseRatio: safeLevel < 5 ? 0 : Number((0.06 + progress * 0.12).toFixed(3)),
     collectibleOffsetRatio: safeLevel <= 4 ? 0 : Number((0.015 + progress * 0.105).toFixed(3)),
     gatesRequired: WILLITFLY_GATES_PER_LEVEL,
   };
