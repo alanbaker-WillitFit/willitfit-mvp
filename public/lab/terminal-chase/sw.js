@@ -1,4 +1,4 @@
-const CACHE="willitlab-terminal-chase-rc1-player-sprites-1";
+const CACHE="willitlab-terminal-chase-rc1-staff-sprite-1";
 const ASSETS=[
   "./",
   "./index.html",
@@ -13,6 +13,7 @@ const ASSETS=[
   "./sprites/player-up.png",
   "./sprites/player-left.png",
   "./sprites/player-right.png",
+  "./sprites/hazard-staff-female.png",
   "../bag-bounce/asset-refs.js"
 ];
 self.addEventListener("install",event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));self.skipWaiting();});

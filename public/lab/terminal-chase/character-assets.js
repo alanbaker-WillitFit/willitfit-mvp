@@ -3,7 +3,7 @@
 
   // Terminal Chase character derivative contract.
   // Approved source assets remain authoritative; these are transparent,
-  // game-specific derivatives created from the approved Female Traveller 04 set.
+  // game-specific derivatives created from approved WillIt character sources.
   window.WILLIT_TERMINAL_CHASE_CHARACTERS = Object.freeze({
     player: Object.freeze({
       down: "./sprites/player-down.png",
@@ -12,7 +12,7 @@
       right: "./sprites/player-right.png",
     }),
     hazards: Object.freeze({
-      staff: null,
+      staff: "./sprites/hazard-staff-female.png",
       cart: null,
       traveller: null,
       security: null,
