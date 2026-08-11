@@ -1,3 +1,4 @@
+// round-token-refresh: bag-bounce-round-token-rc1-20260811
 const CACHE="willitlab-bag-bounce-rc1-feedback-5";
 const ASSETS=["./","./index.html","./styles.css","./visual-qa.css","./atmosphere.css","./feedback.css","./asset-refs.js","./game.js","./atmosphere.js","./feedback.js","./manifest.webmanifest"];
 self.addEventListener("install",event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));self.skipWaiting();});
