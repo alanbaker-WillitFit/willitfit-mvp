@@ -33,8 +33,9 @@ describe("WillIt Lab Bag Bounce RC1", () => {
     expect(getBagBounceLevel(7).priorityBagCount).toBeGreaterThan(0);
   });
 
-  it("uses the governed Approval Token, blue bag and approved airport agents", () => {
-    expect(assetSource).toContain("1HlxANuv0gjjqQGwMfIKSW9sFVrb9y8OV");
+  it("uses the approved round Approval Token, blue bag and approved airport agents", () => {
+    expect(assetSource).toContain("data:image/webp;base64,");
+    expect(assetSource).toContain("roundApprovalToken");
     expect(assetSource).toContain("1J5nE20QlhaWDv-DpGK5WUQniuXDF7Ham");
     expect(assetSource).toContain("12yX70NOWAO3v4_e-u7UUFM-5FWSCY4yy");
     expect(assetSource).toContain("1a-JzJj_oWIbgdyibteTwKN1yDhKfKVw6");
@@ -58,5 +59,6 @@ describe("WillIt Lab Bag Bounce RC1", () => {
 
   it("ships through a dedicated Bag Bounce offline cache", () => {
     expect(swSource).toContain('willitlab-bag-bounce-rc1');
+    expect(swSource).toContain("round-token-refresh");
   });
 });
