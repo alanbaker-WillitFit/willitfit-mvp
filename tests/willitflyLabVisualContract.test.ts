@@ -17,8 +17,9 @@ describe("WillItFly Lab Loop 2 visual contract", () => {
     expect(css).toContain(".player img{width:100%;height:100%;object-fit:contain;filter:drop-shadow");
   });
 
-  it("uses a dedicated Loop 2 service-worker cache revision", () => {
+  it("keeps a versioned RC1 Lab service-worker cache so later loops can advance it safely", () => {
     const source = readFileSync(join(root, "public/lab/sw.js"), "utf8");
-    expect(source).toContain('willitfly-rc1-lab-loop2-right-facing');
+    expect(source).toMatch(/const CACHE="willitfly-rc1-lab-loop\d+-[a-z0-9-]+";/);
+    expect(source).not.toContain('const CACHE="willitfly-rc1-lab-loop1');
   });
 });
