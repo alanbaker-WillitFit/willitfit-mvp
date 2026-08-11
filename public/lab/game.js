@@ -8,6 +8,7 @@
     localBoard: "willitfly.localLeaderboard",
     theme: "willitfly.theme"
   };
+
   const CRAFT_FALLBACKS = {
     4: "assets/flight/craft-04.webp",
     6: "assets/flight/craft-06.webp",
@@ -18,6 +19,27 @@
     ...CRAFT_FALLBACKS,
     ...(window.WILLITFLY_APPROVED_CRAFT_ASSETS || {})
   };
+
+  // Loop 3 control contract: player controls remain consistent across all 20 levels.
+  // Difficulty is created by the route, not by making the aircraft harder to control.
+  const CONTROL = Object.freeze({
+    gravity: 0.32,
+    flap: -6.55,
+    maxRise: -8.2,
+    maxFall: 8.2,
+    rotationUp: -14,
+    rotationDown: 30
+  });
+
+  // Insets are percentages of the rendered sprite box. The transparent RC1 sprites
+  // are consistently framed, so these produce a fair collision envelope around
+  // the visible craft rather than treating transparent corners as solid aircraft.
+  const CRAFT_HITBOX = Object.freeze({
+    4: { left: 0.16, right: 0.10, top: 0.20, bottom: 0.20 },
+    6: { left: 0.17, right: 0.11, top: 0.19, bottom: 0.19 },
+    2: { left: 0.15, right: 0.10, top: 0.18, bottom: 0.18 },
+    1: { left: 0.15, right: 0.09, top: 0.18, bottom: 0.18 }
+  });
 
   localStorage.removeItem("willitfly.pendingScores");
   localStorage.removeItem("willitfly.profile");
@@ -55,8 +77,6 @@
   let running = false;
   let y = 0;
   let velocity = 0;
-  const gravity = 0.34;
-  const flap = -6.8;
   let lastTime = 0;
   let obstacleTimer = 0;
   let level = 1;
@@ -108,7 +128,8 @@
       movementAmplitudeRatio: safeLevel < 5 ? 0 : 0.035 + progress * 0.095,
       movementRate: safeLevel < 5 ? 0 : 0.65 + progress * 1.1,
       gatePulseRatio: safeLevel < 5 ? 0 : 0.06 + progress * 0.12,
-      collectibleOffsetRatio: safeLevel <= 4 ? 0 : 0.015 + progress * 0.105
+      collectibleOffsetRatio: safeLevel <= 4 ? 0 : 0.015 + progress * 0.105,
+      spawnIntervalMs: 1650 - progress * 250
     };
   }
 
@@ -117,7 +138,15 @@
     gateProgress.textContent = `${gatesThisLevel} / ${GATES_PER_LEVEL}`;
     itemCount.textContent = String(tokens);
     scoreLabel.textContent = padScore(score);
-    playerSprite.src = CRAFTS[craftForLevel(level)];
+    const source = CRAFTS[craftForLevel(level)];
+    if (playerSprite.src !== source) playerSprite.src = source;
+  }
+
+  function preloadCrafts() {
+    [...new Set(Object.values(CRAFTS))].forEach((source) => {
+      const image = new Image();
+      image.src = source;
+    });
   }
 
   function flash(text) {
@@ -165,8 +194,11 @@
   }
 
   function clearWorld() {
-    obstacles.forEach((o) => { o.top.remove(); o.bottom.remove(); });
-    collectibles.forEach((c) => c.el.remove());
+    obstacles.forEach((obstacle) => {
+      obstacle.top.remove();
+      obstacle.bottom.remove();
+    });
+    collectibles.forEach((collectible) => collectible.el.remove());
     obstacles = [];
     collectibles = [];
   }
@@ -200,7 +232,18 @@
   }
 
   function flapPlayer() {
-    if (running) velocity = flap;
+    if (running) velocity = CONTROL.flap;
+  }
+
+  function playerCollisionRect() {
+    const rect = playerEl.getBoundingClientRect();
+    const inset = CRAFT_HITBOX[craftForLevel(level)];
+    return {
+      left: rect.left + rect.width * inset.left,
+      right: rect.right - rect.width * inset.right,
+      top: rect.top + rect.height * inset.top,
+      bottom: rect.bottom - rect.height * inset.bottom
+    };
   }
 
   function createCollectible(obstacle, offset) {
@@ -209,7 +252,14 @@
     el.setAttribute("aria-hidden", "true");
     el.innerHTML = '<span class="token-case"><span class="token-check">✓</span></span>';
     game.appendChild(el);
-    const collectible = { obstacle, offset, x: obstacle.x + 46, y: obstacle.gapY + obstacle.gap / 2, el, taken: false };
+    const collectible = {
+      obstacle,
+      offset,
+      x: obstacle.x + obstacle.width / 2,
+      y: obstacle.gapY + obstacle.gap / 2,
+      el,
+      taken: false
+    };
     collectibles.push(collectible);
     positionCollectible(collectible);
   }
@@ -219,7 +269,7 @@
     const obstacle = collectible.obstacle;
     const maxOffset = Math.max(0, obstacle.gap / 2 - 34);
     const safeOffset = Math.max(-maxOffset, Math.min(maxOffset, collectible.offset));
-    collectible.x = obstacle.x + 46;
+    collectible.x = obstacle.x + obstacle.width / 2;
     collectible.y = obstacle.gapY + obstacle.gap / 2 + safeOffset;
     collectible.el.style.left = `${collectible.x}px`;
     collectible.el.style.top = `${collectible.y}px`;
@@ -234,6 +284,7 @@
     const centerMax = Math.max(centerMin, h - margin - baseGap / 2);
     const baseCenter = centerMin + Math.random() * Math.max(1, centerMax - centerMin);
     const x = game.clientWidth + 90;
+    const width = window.matchMedia("(min-width: 700px)").matches ? 110 : 92;
     const top = document.createElement("div");
     const bottom = document.createElement("div");
     top.className = "obstacle top";
@@ -244,7 +295,7 @@
 
     const obstacle = {
       x,
-      width: 92,
+      width,
       baseCenter,
       gapY: baseCenter - baseGap / 2,
       baseGap,
@@ -283,7 +334,10 @@
       : 0;
     const dynamicGap = Math.max(108, obstacle.baseGap * (1 + pulseWave * obstacle.gatePulseRatio));
     let center = obstacle.baseCenter + movementWave * obstacle.amplitude;
-    center = Math.max(obstacle.margin + dynamicGap / 2, Math.min(h - obstacle.margin - dynamicGap / 2, center));
+    center = Math.max(
+      obstacle.margin + dynamicGap / 2,
+      Math.min(h - obstacle.margin - dynamicGap / 2, center)
+    );
     obstacle.gap = dynamicGap;
     obstacle.gapY = center - dynamicGap / 2;
     obstacle.top.style.left = `${obstacle.x}px`;
@@ -303,7 +357,13 @@
     const isBest = run.score > best;
     if (isBest) localStorage.setItem(STORAGE.best, String(run.score));
     const board = safeJSON(STORAGE.localBoard, []);
-    board.push({ username: "Guest", score: run.score, level: run.level, theme: run.theme, createdAt: run.createdAt });
+    board.push({
+      username: "Guest",
+      score: run.score,
+      level: run.level,
+      theme: run.theme,
+      createdAt: run.createdAt
+    });
     board.sort((a, b) => b.score - a.score);
     localStorage.setItem(STORAGE.localBoard, JSON.stringify(board.slice(0, 10)));
     return { best: Math.max(best, run.score), isBest };
@@ -320,7 +380,7 @@
       gatesPassed: totalGatePasses,
       tokens,
       theme: activeTheme.id,
-      routeVersion: "RC1-20-level",
+      routeVersion: "RC1-20-level-loop3",
       createdAt: new Date().toISOString()
     };
     const saved = saveRun(run);
@@ -366,7 +426,11 @@
 
   function escapeHTML(value) {
     return String(value).replace(/[&<>"']/g, (char) => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
     })[char]);
   }
 
@@ -380,27 +444,38 @@
     const dt = Math.min(32, now - lastTime);
     lastTime = now;
     const frameScale = dt / 16.67;
+    const config = levelConfig(level);
 
-    velocity += gravity * frameScale;
+    velocity = Math.max(
+      CONTROL.maxRise,
+      Math.min(CONTROL.maxFall, velocity + CONTROL.gravity * frameScale)
+    );
     y += velocity * frameScale;
     playerEl.style.top = `${y}px`;
-    playerEl.style.transform = `translate(-50%,-50%) rotate(${Math.max(-18, Math.min(38, velocity * 5))}deg)`;
+    const rotation = Math.max(
+      CONTROL.rotationUp,
+      Math.min(CONTROL.rotationDown, velocity * 4.2)
+    );
+    playerEl.style.transform = `translate(-50%,-50%) rotate(${rotation}deg)`;
 
     obstacleTimer += dt;
-    if (obstacleTimer > 1650 && gatesSpawnedThisLevel < GATES_PER_LEVEL) {
+    if (obstacleTimer > config.spawnIntervalMs && gatesSpawnedThisLevel < GATES_PER_LEVEL) {
       obstacleTimer = 0;
       makeObstacle(now);
     }
 
-    const playerRect = playerEl.getBoundingClientRect();
+    const playerRect = playerCollisionRect();
     for (const obstacle of obstacles) {
       obstacle.x -= obstacle.speed * frameScale;
       positionObstacle(obstacle, now);
-      if (rectsOverlap(playerRect, obstacle.top.getBoundingClientRect()) || rectsOverlap(playerRect, obstacle.bottom.getBoundingClientRect())) {
+      if (
+        rectsOverlap(playerRect, obstacle.top.getBoundingClientRect()) ||
+        rectsOverlap(playerRect, obstacle.bottom.getBoundingClientRect())
+      ) {
         finish(false, `Gate collision on level ${obstacle.level}.`);
         return;
       }
-      if (!obstacle.passed && obstacle.x + obstacle.width < game.clientWidth * 0.17) {
+      if (!obstacle.passed && obstacle.x + obstacle.width < playerRect.left - game.getBoundingClientRect().left) {
         obstacle.passed = true;
         totalGatePasses += 1;
         if (obstacle.level === level) {
@@ -445,17 +520,25 @@
       return true;
     });
 
-    if (y < -20 || y > game.clientHeight + 20) {
-      finish(false, y < 0 ? "You flew above the route." : "You dropped below the route.");
+    const gameRect = game.getBoundingClientRect();
+    if (playerRect.top < gameRect.top || playerRect.bottom > gameRect.bottom) {
+      finish(false, playerRect.top < gameRect.top ? "You flew above the route." : "You dropped below the route.");
       return;
     }
+
     animationId = requestAnimationFrame(loop);
   }
 
   startButton.addEventListener("click", startGame);
   againButton.addEventListener("click", startGame);
-  tapButton.addEventListener("pointerdown", (event) => { event.preventDefault(); flapPlayer(); });
-  game.addEventListener("pointerdown", (event) => { event.preventDefault(); flapPlayer(); });
+  tapButton.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    flapPlayer();
+  });
+  game.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    flapPlayer();
+  });
   window.addEventListener("keydown", (event) => {
     if (["Space", "ArrowUp"].includes(event.code)) {
       event.preventDefault();
@@ -469,6 +552,7 @@
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
 
+  preloadCrafts();
   applyTheme();
   renderLeaderboard();
   updateStartBest();
