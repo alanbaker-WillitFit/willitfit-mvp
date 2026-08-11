@@ -12,20 +12,43 @@
   <main class="app">
     <section id="start-screen" class="screen active story-screen">
       <a href="/lab" class="back-link">← WillIt Lab</a>
-      <div class="story-card">
-        <div class="story-visual">
-          <img id="intro-agent" alt="Airport team member helping with luggage">
+      <div class="story-shell">
+        <div class="story-layout">
+          <div class="story-stage" aria-hidden="true">
+            <div class="story-stage-label">Baggage team</div>
+            <div class="story-visual character-crop intro-crop">
+              <img id="intro-agent" alt="">
+            </div>
+            <div class="story-route-strip">
+              <span class="mini-bag">▣</span>
+              <span class="route-dots">•••••</span>
+              <span class="mini-token">✓</span>
+              <span class="route-dots">•••••</span>
+              <span class="mini-plane">✈</span>
+            </div>
+          </div>
+
+          <div class="story-content">
+            <p class="kicker">WillIt Lab · baggage control</p>
+            <h1>Bag Bounce</h1>
+            <p class="story-copy">The baggage route is jammed. Bounce the WillIt Approval Token through the luggage and clear a route for your bag.</p>
+
+            <div class="mission-card">
+              <span class="mission-label">Mission</span>
+              <strong>Clear the route to loading.</strong>
+              <p>Redirect blocking bags onto the side conveyors while keeping the Approval Token in play.</p>
+            </div>
+
+            <div class="how-to" aria-label="How to play">
+              <span><b>1</b><em>Move</em>Your baggage trolley</span>
+              <span><b>2</b><em>Bounce</em>Keep the token in play</span>
+              <span><b>3</b><em>Clear</em>Send bags to the conveyors</span>
+            </div>
+
+            <button id="start-button" class="primary">Clear the belt</button>
+            <p class="small">10 quick levels · no sign-up · local score only</p>
+          </div>
         </div>
-        <p class="kicker">WillIt Lab</p>
-        <h1>Bag Bounce</h1>
-        <p class="story-copy">The baggage route is jammed. Bounce the WillIt Approval Token through the luggage and clear a route for your bag.</p>
-        <div class="how-to">
-          <span><b>1</b> Move your baggage trolley</span>
-          <span><b>2</b> Keep the Approval Token in play</span>
-          <span><b>3</b> Redirect blocking bags onto the conveyors</span>
-        </div>
-        <button id="start-button" class="primary">Clear the belt</button>
-        <p class="small">10 quick levels · no sign-up · local score only</p>
       </div>
     </section>
 
@@ -38,6 +61,7 @@
       </header>
 
       <div id="game" class="game" aria-label="Bag Bounce baggage clearing game">
+        <div class="route-header" aria-hidden="true"><span>LEFT BELT</span><strong>BAGGAGE ROUTE</strong><span>RIGHT BELT</span></div>
         <div class="belt belt-left" aria-hidden="true"></div>
         <div class="belt belt-right" aria-hidden="true"></div>
         <div id="bag-field" class="bag-field"></div>
@@ -58,17 +82,34 @@
     </section>
 
     <section id="result-screen" class="screen story-screen">
-      <div class="story-card result-card">
-        <div class="story-visual"><img id="outro-agent" alt="Airport team member with cleared luggage"></div>
-        <p class="kicker">Baggage report</p>
-        <h2 id="result-title">ROUTE CLEAR</h2>
-        <p id="result-copy"></p>
-        <div class="score-grid">
-          <div><span>Score</span><strong id="result-score">0000</strong></div>
-          <div><span>Best</span><strong id="result-best">0000</strong></div>
+      <div class="story-shell">
+        <div class="story-layout result-layout">
+          <div class="story-stage result-stage" aria-hidden="true">
+            <div class="story-stage-label">Loading team</div>
+            <div class="story-visual character-crop outro-crop">
+              <img id="outro-agent" alt="">
+            </div>
+            <div class="story-route-strip complete-strip">
+              <span class="mini-bag">▣</span>
+              <span class="route-dots">•••••</span>
+              <span class="mini-token">✓</span>
+              <span class="route-dots">•••••</span>
+              <span class="mini-plane">✈</span>
+            </div>
+          </div>
+
+          <div class="story-content result-card">
+            <p class="kicker">Baggage report</p>
+            <h2 id="result-title">ROUTE CLEAR</h2>
+            <p id="result-copy" class="story-copy"></p>
+            <div class="score-grid">
+              <div><span>Score</span><strong id="result-score">0000</strong></div>
+              <div><span>Best</span><strong id="result-best">0000</strong></div>
+            </div>
+            <button id="again-button" class="primary">Play again</button>
+            <a href="/lab" class="text-link">Back to WillIt Lab</a>
+          </div>
         </div>
-        <button id="again-button" class="primary">Play again</button>
-        <a href="/lab" class="text-link">Back to WillIt Lab</a>
       </div>
     </section>
   </main>
