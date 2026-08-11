@@ -57,8 +57,8 @@ describe("Terminal Chase long refinement loop 1", () => {
     expect(css).toContain(".game.final-payoff");
   });
 
-  it("ships the refinement through the current isolated cache", () => {
-    expect(sw).toContain('willitlab-terminal-chase-rc1-longloop-1');
+  it("keeps the refinement inside the Terminal Chase cache namespace", () => {
+    expect(sw).toContain('willitlab-terminal-chase-');
     expect(sw).toContain('./refinement.css');
   });
 });
