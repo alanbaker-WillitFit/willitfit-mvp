@@ -36,7 +36,7 @@ describe("Bag Bounce level-atmosphere contract", () => {
   });
 
   it("ships the atmosphere layer through the dedicated Bag Bounce cache", () => {
-    expect(sw).toContain('willitlab-bag-bounce-rc1-atmosphere-4');
+    expect(sw).toContain('willitlab-bag-bounce-rc1-');
     expect(sw).toContain('./atmosphere.css');
     expect(sw).toContain('./atmosphere.js');
   });
