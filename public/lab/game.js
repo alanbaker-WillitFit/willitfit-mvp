@@ -20,8 +20,7 @@
     ...(window.WILLITFLY_APPROVED_CRAFT_ASSETS || {})
   };
 
-  // Loop 3 control contract: player controls remain consistent across all 20 levels.
-  // Difficulty is created by the route, not by making the aircraft harder to control.
+  // Stable controls across all 20 levels. Route difficulty increases; input physics do not.
   const CONTROL = Object.freeze({
     gravity: 0.32,
     flap: -6.55,
@@ -31,15 +30,16 @@
     rotationDown: 30
   });
 
-  // Insets are percentages of the rendered sprite box. The transparent RC1 sprites
-  // are consistently framed, so these produce a fair collision envelope around
-  // the visible craft rather than treating transparent corners as solid aircraft.
+  // Transparent RC1 sprites use consistent framing. Insets create a fair envelope
+  // around visible aircraft rather than colliding with transparent sprite corners.
   const CRAFT_HITBOX = Object.freeze({
     4: { left: 0.16, right: 0.10, top: 0.20, bottom: 0.20 },
     6: { left: 0.17, right: 0.11, top: 0.19, bottom: 0.19 },
     2: { left: 0.15, right: 0.10, top: 0.18, bottom: 0.18 },
     1: { left: 0.15, right: 0.09, top: 0.18, bottom: 0.18 }
   });
+
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   localStorage.removeItem("willitfly.pendingScores");
   localStorage.removeItem("willitfly.profile");
@@ -61,6 +61,8 @@
   const message = document.getElementById("message");
   const startButton = document.getElementById("start-button");
   const tapButton = document.getElementById("tap-button");
+  const pauseButton = document.getElementById("pause-button");
+  const resumeOverlay = document.getElementById("resume-overlay");
   const againButton = document.getElementById("again-button");
   const resultIcon = document.getElementById("result-icon");
   const resultTitle = document.getElementById("result-title");
@@ -75,6 +77,8 @@
   const themeButton = document.getElementById("theme-button");
 
   let running = false;
+  let paused = false;
+  let pausedAt = 0;
   let y = 0;
   let velocity = 0;
   let lastTime = 0;
@@ -88,6 +92,7 @@
   let obstacles = [];
   let collectibles = [];
   let animationId = null;
+  let flashTimer = null;
   let activeThemeId = localStorage.getItem(STORAGE.theme) ||
     window.getAutomaticWillItFlyTheme?.() || "default";
   let activeTheme = window.WILLITFLY_THEMES[activeThemeId] || window.WILLITFLY_THEMES.default;
@@ -106,7 +111,7 @@
   }
 
   function showScreen(name) {
-    Object.entries(screens).forEach(([key, el]) => el.classList.toggle("active", key === name));
+    Object.entries(screens).forEach(([key, element]) => element.classList.toggle("active", key === name));
   }
 
   function craftForLevel(value) {
@@ -139,7 +144,10 @@
     itemCount.textContent = String(tokens);
     scoreLabel.textContent = padScore(score);
     const source = CRAFTS[craftForLevel(level)];
-    if (playerSprite.src !== source) playerSprite.src = source;
+    if (playerSprite.dataset.source !== source) {
+      playerSprite.src = source;
+      playerSprite.dataset.source = source;
+    }
   }
 
   function preloadCrafts() {
@@ -150,10 +158,12 @@
   }
 
   function flash(text) {
+    if (flashTimer) window.clearTimeout(flashTimer);
     message.classList.remove("show");
     message.textContent = text;
     void message.offsetWidth;
     message.classList.add("show");
+    flashTimer = window.setTimeout(() => message.classList.remove("show"), reducedMotion ? 700 : 900);
   }
 
   function applyTheme() {
@@ -169,17 +179,18 @@
 
   function renderSeasonParticles() {
     seasonLayer.innerHTML = "";
+    if (reducedMotion) return;
     const particle = activeTheme.particles;
     if (!particle || activeTheme.id === "default" || activeTheme.id === "summer") return;
     for (let i = 0; i < 12; i += 1) {
-      const el = document.createElement("span");
-      el.className = "season-particle";
-      el.textContent = particle;
-      el.style.left = `${Math.random() * 100}%`;
-      el.style.animationDuration = `${5 + Math.random() * 6}s`;
-      el.style.animationDelay = `${-Math.random() * 7}s`;
-      el.style.fontSize = `${14 + Math.random() * 12}px`;
-      seasonLayer.appendChild(el);
+      const element = document.createElement("span");
+      element.className = "season-particle";
+      element.textContent = particle;
+      element.style.left = `${Math.random() * 100}%`;
+      element.style.animationDuration = `${5 + Math.random() * 6}s`;
+      element.style.animationDelay = `${-Math.random() * 7}s`;
+      element.style.fontSize = `${14 + Math.random() * 12}px`;
+      seasonLayer.appendChild(element);
     }
   }
 
@@ -203,9 +214,20 @@
     collectibles = [];
   }
 
+  function setPauseUi() {
+    game.classList.toggle("is-paused", paused);
+    resumeOverlay.classList.toggle("hidden", !paused);
+    pauseButton.textContent = paused ? "▶" : "Ⅱ";
+    pauseButton.setAttribute("aria-label", paused ? "Resume flight" : "Pause flight");
+    tapButton.textContent = paused ? "RESUME FLIGHT" : "TAP TO FLY";
+  }
+
   function resetGame() {
     cancelAnimationFrame(animationId);
     clearWorld();
+    running = false;
+    paused = false;
+    pausedAt = 0;
     level = 1;
     gatesThisLevel = 0;
     gatesSpawnedThisLevel = 0;
@@ -218,6 +240,7 @@
     lastTime = performance.now();
     playerEl.style.top = `${y}px`;
     playerEl.style.transform = "translate(-50%,-50%) rotate(0deg)";
+    setPauseUi();
     updateHud();
   }
 
@@ -231,8 +254,45 @@
     });
   }
 
+  function pauseGame() {
+    if (!running || paused) return;
+    paused = true;
+    pausedAt = performance.now();
+    cancelAnimationFrame(animationId);
+    animationId = null;
+    setPauseUi();
+    requestAnimationFrame(() => resumeOverlay.focus());
+  }
+
+  function resumeGame() {
+    if (!running || !paused) return;
+    const now = performance.now();
+    const pausedDuration = Math.max(0, now - pausedAt);
+    obstacles.forEach((obstacle) => {
+      obstacle.bornAt += pausedDuration;
+    });
+    lastTime = now;
+    paused = false;
+    pausedAt = 0;
+    setPauseUi();
+    flash("RESUME");
+    animationId = requestAnimationFrame(loop);
+  }
+
+  function togglePause() {
+    if (!running) return;
+    if (paused) resumeGame();
+    else pauseGame();
+  }
+
   function flapPlayer() {
-    if (running) velocity = CONTROL.flap;
+    if (running && !paused) velocity = CONTROL.flap;
+  }
+
+  function primaryFlightInput() {
+    if (!running) return;
+    if (paused) resumeGame();
+    else flapPlayer();
   }
 
   function playerCollisionRect() {
@@ -247,17 +307,17 @@
   }
 
   function createCollectible(obstacle, offset) {
-    const el = document.createElement("div");
-    el.className = "collectible";
-    el.setAttribute("aria-hidden", "true");
-    el.innerHTML = '<span class="token-case"><span class="token-check">✓</span></span>';
-    game.appendChild(el);
+    const element = document.createElement("div");
+    element.className = "collectible";
+    element.setAttribute("aria-hidden", "true");
+    element.innerHTML = '<span class="token-case"><span class="token-check">✓</span></span>';
+    game.appendChild(element);
     const collectible = {
       obstacle,
       offset,
       x: obstacle.x + obstacle.width / 2,
       y: obstacle.gapY + obstacle.gap / 2,
-      el,
+      el: element,
       taken: false
     };
     collectibles.push(collectible);
@@ -277,11 +337,11 @@
 
   function makeObstacle(now) {
     const config = levelConfig(level);
-    const h = game.clientHeight;
-    const baseGap = Math.max(118, Math.min(230, h * config.gateGapRatio));
-    const margin = Math.max(58, h * 0.1);
+    const height = game.clientHeight;
+    const baseGap = Math.max(118, Math.min(230, height * config.gateGapRatio));
+    const margin = Math.max(58, height * 0.1);
     const centerMin = margin + baseGap / 2;
-    const centerMax = Math.max(centerMin, h - margin - baseGap / 2);
+    const centerMax = Math.max(centerMin, height - margin - baseGap / 2);
     const baseCenter = centerMin + Math.random() * Math.max(1, centerMax - centerMin);
     const x = game.clientWidth + 90;
     const width = window.matchMedia("(min-width: 700px)").matches ? 110 : 92;
@@ -307,7 +367,7 @@
       level,
       speed: config.speed,
       moving: config.movingGate,
-      amplitude: h * config.movementAmplitudeRatio,
+      amplitude: height * config.movementAmplitudeRatio,
       rate: config.movementRate,
       gatePulseRatio: config.gatePulseRatio,
       phase: Math.random() * Math.PI * 2,
@@ -319,12 +379,12 @@
     positionObstacle(obstacle, now);
 
     const direction = gatesSpawnedThisLevel % 2 === 0 ? 1 : -1;
-    const offset = h * config.collectibleOffsetRatio * direction;
+    const offset = height * config.collectibleOffsetRatio * direction;
     createCollectible(obstacle, offset);
   }
 
   function positionObstacle(obstacle, now) {
-    const h = game.clientHeight;
+    const height = game.clientHeight;
     const ageSeconds = Math.max(0, now - obstacle.bornAt) / 1000;
     const movementWave = obstacle.moving
       ? Math.sin(ageSeconds * obstacle.rate * Math.PI * 2 + obstacle.phase)
@@ -336,7 +396,7 @@
     let center = obstacle.baseCenter + movementWave * obstacle.amplitude;
     center = Math.max(
       obstacle.margin + dynamicGap / 2,
-      Math.min(h - obstacle.margin - dynamicGap / 2, center)
+      Math.min(height - obstacle.margin - dynamicGap / 2, center)
     );
     obstacle.gap = dynamicGap;
     obstacle.gapY = center - dynamicGap / 2;
@@ -345,7 +405,7 @@
     obstacle.top.style.height = `${obstacle.gapY}px`;
     obstacle.bottom.style.left = `${obstacle.x}px`;
     obstacle.bottom.style.top = `${obstacle.gapY + obstacle.gap}px`;
-    obstacle.bottom.style.height = `${Math.max(0, h - obstacle.gapY - obstacle.gap)}px`;
+    obstacle.bottom.style.height = `${Math.max(0, height - obstacle.gapY - obstacle.gap)}px`;
   }
 
   function rectsOverlap(a, b) {
@@ -372,7 +432,11 @@
   function finish(success, text) {
     if (!running) return;
     running = false;
+    paused = false;
+    pausedAt = 0;
     cancelAnimationFrame(animationId);
+    animationId = null;
+    setPauseUi();
     const run = {
       score,
       level,
@@ -380,7 +444,7 @@
       gatesPassed: totalGatePasses,
       tokens,
       theme: activeTheme.id,
-      routeVersion: "RC1-20-level-loop3",
+      routeVersion: "RC1-20-level-loop4",
       createdAt: new Date().toISOString()
     };
     const saved = saveRun(run);
@@ -425,13 +489,13 @@
   }
 
   function escapeHTML(value) {
-    return String(value).replace(/[&<>"']/g, (char) => ({
+    return String(value).replace(/[&<>"']/g, (character) => ({
       "&": "&amp;",
       "<": "&lt;",
       ">": "&gt;",
       '"': "&quot;",
       "'": "&#039;"
-    })[char]);
+    })[character]);
   }
 
   function updateStartBest() {
@@ -439,8 +503,16 @@
     startLocalBest.textContent = best ? `Device best: ${padScore(best)}` : "";
   }
 
-  function loop(now) {
+  function handleViewportChange() {
     if (!running) return;
+    pauseGame();
+    const height = game.clientHeight;
+    y = Math.max(height * 0.1, Math.min(height * 0.9, y));
+    playerEl.style.top = `${y}px`;
+  }
+
+  function loop(now) {
+    if (!running || paused) return;
     const dt = Math.min(32, now - lastTime);
     lastTime = now;
     const frameScale = dt / 16.67;
@@ -531,20 +603,33 @@
 
   startButton.addEventListener("click", startGame);
   againButton.addEventListener("click", startGame);
+  pauseButton.addEventListener("click", togglePause);
+  resumeOverlay.addEventListener("click", resumeGame);
   tapButton.addEventListener("pointerdown", (event) => {
     event.preventDefault();
-    flapPlayer();
+    primaryFlightInput();
   });
   game.addEventListener("pointerdown", (event) => {
+    if (event.target === resumeOverlay || resumeOverlay.contains(event.target)) return;
     event.preventDefault();
-    flapPlayer();
+    primaryFlightInput();
   });
   window.addEventListener("keydown", (event) => {
+    if (["KeyP", "Escape"].includes(event.code)) {
+      event.preventDefault();
+      togglePause();
+      return;
+    }
     if (["Space", "ArrowUp"].includes(event.code)) {
       event.preventDefault();
-      flapPlayer();
+      primaryFlightInput();
     }
   });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) pauseGame();
+  });
+  window.addEventListener("pagehide", pauseGame);
+  window.addEventListener("resize", handleViewportChange);
   leaderboardButton.addEventListener("click", () => leaderboard.classList.toggle("hidden"));
   themeButton.addEventListener("click", cycleTheme);
 
@@ -556,4 +641,5 @@
   applyTheme();
   renderLeaderboard();
   updateStartBest();
+  setPauseUi();
 })();
