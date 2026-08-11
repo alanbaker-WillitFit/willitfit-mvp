@@ -17,10 +17,10 @@
       <div class="start-actions">
         <button id="theme-button" class="icon-button" aria-label="Preview seasonal theme">☀️</button>
       </div>
-      <img src="assets/willitfly-logo.png" alt="WillItFly winged suitcase logo" class="hero-logo">
+      <img src="assets/willitfly-logo.png" alt="WillItFly logo" class="hero-logo">
       <h1>WillItFly</h1>
-      <p>Tap to fly. Collect what you need. Reach the gate.</p>
-      <button id="start-button" class="primary">Start free</button>
+      <p>20 levels. Tap to fly through each airport gate and collect WillIt tokens.</p>
+      <button id="start-button" class="primary">Start flight</button>
       <p class="small">No account. No sign-up. Just play.</p>
       <div class="local-best" id="start-local-best"></div>
     </section>
@@ -28,16 +28,16 @@
     <section id="game-screen" class="screen">
       <header class="hud">
         <div>
-          <span class="label">Stage</span>
-          <strong id="stage-label">CHECK IN</strong>
+          <span class="label">Level</span>
+          <strong id="level-label">01 / 20</strong>
         </div>
         <div class="score-hud">
           <span class="label">Score</span>
-          <strong id="score-label">000</strong>
+          <strong id="score-label">0000</strong>
         </div>
         <div>
-          <span class="label">Items</span>
-          <strong id="item-count">0 / 3</strong>
+          <span class="label">Tokens</span>
+          <strong id="item-count">0</strong>
         </div>
       </header>
 
@@ -47,38 +47,40 @@
         <div class="airport-layer airport-near"></div>
         <div id="season-layer" class="season-layer"></div>
         <div id="player" class="player">
-          <img src="assets/willitfly-logo.png" alt="">
+          <img id="player-sprite" src="assets/flight/craft-04.webp" alt="">
           <span id="player-accessory" class="player-accessory"></span>
         </div>
         <div id="message" class="message" aria-live="polite"></div>
       </div>
 
-      <div id="inventory" class="inventory"></div>
+      <div class="level-progress" aria-live="polite">
+        <span>Gate progress</span>
+        <strong id="gate-progress">0 / 2</strong>
+      </div>
       <button id="tap-button" class="tap-button">TAP TO FLY</button>
     </section>
 
     <section id="result-screen" class="screen">
       <div class="result-card">
         <div id="result-icon" class="result-icon" aria-hidden="true">✅</div>
-        <p class="result-kicker" id="result-kicker">Flight complete</p>
-        <h2 id="result-title" tabindex="-1">GOOD TO GO</h2>
+        <p class="result-kicker">Flight report</p>
+        <h2 id="result-title" tabindex="-1">FLIGHT COMPLETE</h2>
         <p id="result-text"></p>
+        <p class="result-level" id="result-level"></p>
 
         <div class="score-panel">
           <div>
             <span>Score</span>
-            <strong id="result-score">000</strong>
+            <strong id="result-score">0000</strong>
           </div>
           <div>
             <span>Device best</span>
-            <strong id="result-best">000</strong>
+            <strong id="result-best">0000</strong>
           </div>
         </div>
 
         <p id="personal-best" class="personal-best"></p>
-
-        <button id="again-button" class="primary full-width">Play again</button>
-
+        <button id="again-button" class="primary full-width">Fly again</button>
         <button id="leaderboard-button" class="text-button">View local leaderboard</button>
         <div id="leaderboard" class="leaderboard hidden"></div>
       </div>
