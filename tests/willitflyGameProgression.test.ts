@@ -14,8 +14,10 @@ describe("WillItFly 20-level game progression", () => {
     expect(WILLITFLY_GAME_LEVEL_COUNT).toBe(20);
     expect(levels.every((level) => level.gatesRequired === WILLITFLY_GATES_PER_LEVEL)).toBe(true);
     for (let index = 1; index < levels.length; index += 1) {
-      expect(levels[index].speed).toBeGreaterThan(levels[index - 1].speed);
-      expect(levels[index].gateGapRatio).toBeLessThan(levels[index - 1].gateGapRatio);
+      const previous = levels[index - 1]!;
+      const current = levels[index]!;
+      expect(current.speed).toBeGreaterThan(previous.speed);
+      expect(current.gateGapRatio).toBeLessThan(previous.gateGapRatio);
     }
   });
 
