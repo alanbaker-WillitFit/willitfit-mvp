@@ -1,4 +1,4 @@
-const CACHE="willitfly-rc1-lab-1";
+const CACHE="willitfly-rc1-lab-loop2-right-facing";
 const ASSETS=[
   "./","./index.html","./styles.css","./themes.js","./game.js","./flight-assets.js",
   "./manifest.webmanifest","./assets/willitfly-logo.png"
