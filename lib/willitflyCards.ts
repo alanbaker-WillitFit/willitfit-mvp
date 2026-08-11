@@ -180,10 +180,11 @@ export function resolveTopicCard(input: ResolveTopicCardInput): ResolvedTopicCar
           && asset.assetRole === "PRIMARY_VISUAL"
           && Boolean(asset.productionPath),
         );
-        if (matches.length !== 1) {
+        const match = matches.length === 1 ? matches[0] : undefined;
+        if (!match) {
           base.missing.push(`plug_asset:${plugId}`);
         } else {
-          base.assets.push(matches[0]);
+          base.assets.push(match);
         }
       }
     }
