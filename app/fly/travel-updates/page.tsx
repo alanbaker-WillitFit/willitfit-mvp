@@ -6,9 +6,12 @@ import {
   type RuntimeLiveIncident,
   type WillItFlyLiveTopic,
 } from "@/lib/willitflyLiveIntelligence";
+import { projectLatLongToHeroMap } from "@/lib/willitflyMapProjection";
+import { WILLITFLY_HERO_MAP_ASSET } from "@/lib/willitflyAssets";
 import {
   getWillItFlyRuntimeBundle,
   resolveWillItFlyPublicSource,
+  type WillItFlyDestination,
   type WillItFlyPublicSource,
 } from "@/services/willitflyRuntime";
 import styles from "./TravelUpdates.module.css";
@@ -20,7 +23,7 @@ export const metadata: Metadata = {
 };
 
 const TOPICS: Array<{ key: "ALL" | WillItFlyLiveTopic; label: string }> = [
-  { key: "ALL", label: "All" },
+  { key: "ALL", label: "All updates" },
   { key: "TRANSPORT", label: "Transport" },
   { key: "WEATHER", label: "Weather" },
   { key: "AIRPORT", label: "Airports" },
@@ -69,10 +72,21 @@ function formatChecked(value: string): string {
   }).format(parsed);
 }
 
-function filterHref(topic: "ALL" | WillItFlyLiveTopic, destinationId?: string): string {
+function resolveDestination(input: string | undefined, destinations: WillItFlyDestination[]) {
+  const wanted = String(input || "").trim().toLowerCase();
+  if (!wanted) return undefined;
+  return destinations.find((destination) => (
+    destination.destinationId.toLowerCase() === wanted ||
+    destination.slug.toLowerCase() === wanted ||
+    destination.displayName.toLowerCase() === wanted ||
+    destination.aliases.some((alias) => alias.toLowerCase() === wanted)
+  ));
+}
+
+function filterHref(topic: "ALL" | WillItFlyLiveTopic, destination?: WillItFlyDestination): string {
   const params = new URLSearchParams();
   if (topic !== "ALL") params.set("topic", topic);
-  if (destinationId) params.set("destination", destinationId);
+  if (destination) params.set("destination", destination.slug || destination.destinationId);
   const query = params.toString();
   return query ? `/fly/travel-updates?${query}` : "/fly/travel-updates";
 }
@@ -84,7 +98,9 @@ export default async function TravelUpdatesPage({
 }) {
   const params = await searchParams;
   const bundle = await getWillItFlyRuntimeBundle();
-  const selectedDestinationId = one(params.destination)?.trim() || undefined;
+  const destinationInput = one(params.destination);
+  const destination = resolveDestination(destinationInput, bundle.destinations);
+  const selectedDestinationId = destination?.destinationId;
   const requestedTopic = one(params.topic)?.trim().toUpperCase();
   const selectedTopic = requestedTopic && LIVE_TOPIC_KEYS.has(requestedTopic as WillItFlyLiveTopic)
     ? requestedTopic as WillItFlyLiveTopic
@@ -96,13 +112,16 @@ export default async function TravelUpdatesPage({
     selectedTopic,
   );
 
-  const destinations = bundle.destinations
-    .filter((destination) => bundle.liveIncidents.some((incident) => incident.destinationIds.includes(destination.destinationId)))
+  const monitoredDestinations = bundle.destinations
+    .filter((item) => bundle.liveIncidents.some((incident) => incident.destinationIds.includes(item.destinationId)))
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
-  const destination = selectedDestinationId
-    ? bundle.destinations.find((item) => item.destinationId === selectedDestinationId)
-    : undefined;
+  const pinDestinations = monitoredDestinations.flatMap((item) => {
+    const point = projectLatLongToHeroMap(item.latitude, item.longitude);
+    if (!point) return [];
+    const count = bundle.liveIncidents.filter((incident) => incident.destinationIds.includes(item.destinationId)).length;
+    return [{ item, point, count }];
+  });
 
   const relevantMonitoring = selectedDestinationId
     ? bundle.liveMonitoring.filter((status) => (
@@ -126,15 +145,61 @@ export default async function TravelUpdatesPage({
     <div className={styles.page}>
       <section className={styles.hero}>
         <div className={styles.container}>
-          <p className={styles.eyebrow}>WillIt Live Intelligence</p>
-          <h1>Travel Updates</h1>
-          <p className={styles.lead}>
-            The important things that may affect your trip, distilled from governed monitoring into practical traveller impact.
-          </p>
-          <div className={styles.trustLine}>
-            <span>Monitored by the WillIt Operations Node</span>
-            <span aria-hidden="true">•</span>
-            <span>RSS, APIs and permitted source changes are inputs—not the product</span>
+          <div className={styles.heroGrid}>
+            <div className={styles.heroCopy}>
+              <p className={styles.eyebrow}>WillIt Live Intelligence</p>
+              <h1>Know what&apos;s changing before you fly.</h1>
+              <p className={styles.lead}>
+                Timely, governed travel updates distilled into what matters for your journey.
+              </p>
+
+              <form className={styles.searchForm} method="get" role="search">
+                {selectedTopic ? <input type="hidden" name="topic" value={selectedTopic} /> : null}
+                <label className="sr-only" htmlFor="destination-search">Search a country or destination</label>
+                <span className={styles.searchIcon} aria-hidden="true">⌕</span>
+                <input
+                  id="destination-search"
+                  name="destination"
+                  list="travel-update-destinations"
+                  defaultValue={destination?.displayName || destinationInput || ""}
+                  placeholder="Search a country or destination"
+                  autoComplete="off"
+                />
+                <datalist id="travel-update-destinations">
+                  {monitoredDestinations.map((item) => (
+                    <option key={item.destinationId} value={item.displayName} />
+                  ))}
+                </datalist>
+                <button type="submit">Search</button>
+              </form>
+
+              <div className={styles.trustLine}>
+                <span>Governed monitoring</span>
+                <span aria-hidden="true">•</span>
+                <span>Source-backed</span>
+                <span aria-hidden="true">•</span>
+                <span>Written for travellers</span>
+              </div>
+            </div>
+
+            <figure className={styles.worldMap} aria-label="World map showing destinations with current published travel updates">
+              <img src={WILLITFLY_HERO_MAP_ASSET} alt="" aria-hidden="true" />
+              {pinDestinations.map(({ item, point, count }) => (
+                <Link
+                  key={item.destinationId}
+                  href={filterHref(selectedTopic || "ALL", item)}
+                  className={styles.newsPin}
+                  style={{ left: `${point.xPercent}%`, top: `${point.yPercent}%` }}
+                  aria-label={`${item.displayName}: ${count} current ${count === 1 ? "update" : "updates"}`}
+                  title={`${item.displayName} · ${count} current ${count === 1 ? "update" : "updates"}`}
+                >
+                  <span>{count}</span>
+                </Link>
+              ))}
+              <figcaption>
+                Red pins indicate destinations with a currently published governed update; they do not imply danger.
+              </figcaption>
+            </figure>
           </div>
         </div>
       </section>
@@ -147,7 +212,7 @@ export default async function TravelUpdatesPage({
               return (
                 <Link
                   key={topic.key}
-                  href={filterHref(topic.key, selectedDestinationId)}
+                  href={filterHref(topic.key, destination)}
                   className={active ? styles.topicActive : styles.topicLink}
                   aria-current={active ? "page" : undefined}
                 >
@@ -156,19 +221,12 @@ export default async function TravelUpdatesPage({
               );
             })}
           </div>
-
-          <form className={styles.destinationForm} method="get">
-            {selectedTopic ? <input type="hidden" name="topic" value={selectedTopic} /> : null}
-            <label htmlFor="destination">Destination</label>
-            <select id="destination" name="destination" defaultValue={selectedDestinationId || ""}>
-              <option value="">All monitored destinations</option>
-              {destinations.map((item) => (
-                <option value={item.destinationId} key={item.destinationId}>{item.displayName}</option>
-              ))}
-            </select>
-            <button type="submit">Apply</button>
-            {selectedDestinationId ? <Link href={filterHref(selectedTopic || "ALL")}>Clear</Link> : null}
-          </form>
+          {destination ? (
+            <div className={styles.selectedDestination}>
+              <span>Showing {destination.displayName}</span>
+              <Link href={filterHref(selectedTopic || "ALL")}>Clear destination</Link>
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -177,7 +235,7 @@ export default async function TravelUpdatesPage({
           <div className={styles.resultsHeader}>
             <div>
               <p className={styles.resultContext}>
-                {destination ? destination.displayName : "All monitored destinations"}
+                {destination ? destination.displayName : "Across monitored destinations"}
                 {selectedTopic ? ` · ${TOPIC_LABELS[selectedTopic]}` : ""}
               </p>
               <h2>{incidents.length > 0 ? `${incidents.length} current ${incidents.length === 1 ? "update" : "updates"}` : "Current status"}</h2>
@@ -194,7 +252,7 @@ export default async function TravelUpdatesPage({
                   .filter((source): source is WillItFlyPublicSource => Boolean(source));
 
                 return (
-                  <article className={styles.updateCard} key={incident.incidentId}>
+                  <article className={`wf-card ${styles.updateCard}`} key={incident.incidentId}>
                     <div className={styles.cardTopline}>
                       <span className={styles.topicBadge}>{TOPIC_LABELS[incident.topic]}</span>
                       <span className={`${styles.severityBadge} ${styles[`severity${incident.severity}`]}`}>
@@ -203,6 +261,7 @@ export default async function TravelUpdatesPage({
                     </div>
                     <p className={styles.location}>{primaryDestination?.displayName || incident.primaryDestinationId}</p>
                     <h3>{incident.headline}</h3>
+                    <p className={styles.cardSummary}>{incident.summary || incident.travellerImpact}</p>
                     <div className={styles.impact}>
                       <strong>What this means for you</strong>
                       <p>{incident.travellerImpact}</p>
@@ -213,11 +272,9 @@ export default async function TravelUpdatesPage({
                       <span>Evidence {incident.evidenceConfidence.toLowerCase()}</span>
                     </div>
                     <details className={styles.more}>
-                      <summary>More</summary>
-                      {incident.summary ? <p>{incident.summary}</p> : null}
+                      <summary>Details and sources</summary>
                       {sources.length > 0 ? (
                         <div className={styles.sources}>
-                          <strong>Sources</strong>
                           {sources.map((source) => (
                             <a href={source.url} key={source.sourceId} target="_blank" rel="noreferrer">
                               {source.sourceName}
@@ -233,7 +290,7 @@ export default async function TravelUpdatesPage({
               })}
             </div>
           ) : allClear ? (
-            <div className={styles.allClear}>
+            <div className={`wf-card ${styles.allClear}`}>
               <span className={styles.allClearIcon} aria-hidden="true">✓</span>
               <div>
                 <h3>All clear</h3>
@@ -242,21 +299,21 @@ export default async function TravelUpdatesPage({
               </div>
             </div>
           ) : (
-            <div className={styles.unavailable}>
+            <div className={`wf-card ${styles.unavailable}`}>
               <span className={styles.unavailableIcon} aria-hidden="true">◎</span>
               <div>
                 <h3>No verified update status is available</h3>
                 <p>
-                  WillIt does not infer “All clear” from an empty feed. A fresh governed monitoring-status record is required before that reassurance can be shown.
+                  WillIt does not infer “All clear” from an empty feed. Fresh governed monitoring evidence is required before reassurance is shown.
                 </p>
               </div>
             </div>
           )}
 
-          <aside className={styles.methodNote}>
-            <strong>How this works</strong>
+          <aside className={`wf-card ${styles.methodNote}`}>
+            <strong>How WillIt monitors</strong>
             <p>
-              Approved sources are monitored by the Pi, normalised and de-duplicated into incidents, then governed before Runtime publication. The website never reads raw Pi feeds or operational stores directly.
+              Approved sources are monitored by the Operations Node, normalised and de-duplicated into incidents, then governed before Runtime publication. Raw feeds never publish directly to this page.
             </p>
           </aside>
         </div>
