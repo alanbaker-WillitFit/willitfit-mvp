@@ -1,4 +1,4 @@
-const CACHE="willitfly-rc1-lab-loop3-flight-feel";
+const CACHE="willitfly-rc1-lab-loop4-pause-polish";
 const ASSETS=[
   "./","./index.html","./styles.css","./themes.js","./game.js","./flight-assets.js",
   "./manifest.webmanifest","./assets/willitfly-logo.png"
