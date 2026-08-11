@@ -1,4 +1,4 @@
-const CACHE="willitfly-rc1-lab-loop2-right-facing";
+const CACHE="willitfly-rc1-lab-loop3-flight-feel";
 const ASSETS=[
   "./","./index.html","./styles.css","./themes.js","./game.js","./flight-assets.js",
   "./manifest.webmanifest","./assets/willitfly-logo.png"
