@@ -1,4 +1,4 @@
-const CACHE="willitlab-bag-bounce-rc1";
+const CACHE="willitlab-bag-bounce-rc1-longloop-1";
 const ASSETS=["./","./index.html","./styles.css","./asset-refs.js","./game.js","./manifest.webmanifest"];
 self.addEventListener("install",event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));self.skipWaiting();});
 self.addEventListener("activate",event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))));self.clients.claim();});
