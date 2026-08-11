@@ -11,9 +11,11 @@ const sw = readFileSync(join(root, "public/lab/terminal-chase/sw.js"), "utf8");
 const game = readFileSync(join(root, "public/lab/terminal-chase/game.js"), "utf8");
 
 describe("Terminal Chase character derivative contract", () => {
-  it("keeps hazard derivatives optional and fail-safe", () => {
-    expect(assets).toContain("staff: null");
+  it("keeps unresolved hazard derivatives optional and fail-safe", () => {
+    expect(assets).toContain("hazards: Object.freeze");
     expect(assets).toContain("traveller: null");
+    expect(assets).toContain("security: null");
+    expect(assets).toContain("cart: null");
     expect(integration).toContain("if (!element || !source");
     expect(integration).toContain('image.addEventListener("error"');
   });
