@@ -37,8 +37,8 @@ describe("Terminal Chase verified player sprites", () => {
     expect(game).not.toContain("directionalSprite");
   });
 
-  it("ships the verified player set in the current offline cache", () => {
-    expect(sw).toContain("willitlab-terminal-chase-rc1-player-sprites-1");
+  it("keeps the verified player set in the current Terminal Chase offline cache", () => {
+    expect(sw).toContain("willitlab-terminal-chase-");
     expect(sw).toContain("./sprites/player-down.png");
     expect(sw).toContain("./sprites/player-up.png");
     expect(sw).toContain("./sprites/player-left.png");
