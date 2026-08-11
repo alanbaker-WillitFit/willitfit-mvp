@@ -11,6 +11,7 @@ const root = process.cwd();
 const html = readFileSync(join(root, "public/lab/terminal-chase/index.html"), "utf8");
 const game = readFileSync(join(root, "public/lab/terminal-chase/game.js"), "utf8");
 const css = readFileSync(join(root, "public/lab/terminal-chase/styles.css"), "utf8");
+const refinement = readFileSync(join(root, "public/lab/terminal-chase/refinement.css"), "utf8");
 const sw = readFileSync(join(root, "public/lab/terminal-chase/sw.js"), "utf8");
 
 describe("WillIt Lab Terminal Chase RC1", () => {
@@ -70,8 +71,11 @@ describe("WillIt Lab Terminal Chase RC1", () => {
   it("supports pause-safe play and an isolated offline cache", () => {
     expect(game).toContain('document.addEventListener("visibilitychange"');
     expect(game).toContain("function setPause");
-    expect(sw).toContain("willitlab-terminal-chase-rc1-baseline-1");
+    expect(sw).toContain("willitlab-terminal-chase-rc1-");
+    expect(sw).toContain("./refinement.css");
     expect(sw).toContain("../bag-bounce/asset-refs.js");
     expect(sw).toContain('key.startsWith("willitlab-terminal-chase-")');
+    expect(html).toContain('href="refinement.css"');
+    expect(refinement).toContain('@media(prefers-reduced-motion:reduce)');
   });
 });
