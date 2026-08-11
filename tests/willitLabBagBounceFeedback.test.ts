@@ -28,8 +28,8 @@ describe("Bag Bounce moment feedback contract", () => {
 
   it("adds a bounded bag streak without changing score rules", () => {
     expect(controller).toContain("const comboWindowMs = 1400");
-    expect(controller).toContain("3 BAG STREAK").not;
     expect(controller).toContain("BAG STREAK");
+    expect(controller).toContain("combo < 3");
     expect(controller).toContain("resetCombo");
     expect(game).toContain('score += bag.type === "heavy" ? 60 : bag.type === "personal" ? 80 : 50');
   });
