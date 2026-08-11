@@ -34,8 +34,8 @@ describe("Bag Bounce live-screen visual QA contract", () => {
     expect(css).not.toContain("paddleRatio");
   });
 
-  it("ships the visual QA stylesheet through its own cache revision", () => {
-    expect(sw).toContain("willitlab-bag-bounce-rc1-visual-qa-3");
+  it("keeps the visual QA stylesheet inside the advancing Bag Bounce RC1 cache", () => {
+    expect(sw).toContain("willitlab-bag-bounce-rc1-");
     expect(sw).toContain('"./visual-qa.css"');
   });
 });
