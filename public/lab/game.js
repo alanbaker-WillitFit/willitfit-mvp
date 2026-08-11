@@ -8,11 +8,15 @@
     localBoard: "willitfly.localLeaderboard",
     theme: "willitfly.theme"
   };
-  const CRAFTS = {
+  const CRAFT_FALLBACKS = {
     4: "assets/flight/craft-04.webp",
     6: "assets/flight/craft-06.webp",
     2: "assets/flight/craft-02.webp",
     1: "assets/flight/craft-01.webp"
+  };
+  const CRAFTS = {
+    ...CRAFT_FALLBACKS,
+    ...(window.WILLITFLY_APPROVED_CRAFT_ASSETS || {})
   };
 
   localStorage.removeItem("willitfly.pendingScores");
@@ -57,6 +61,7 @@
   let obstacleTimer = 0;
   let level = 1;
   let gatesThisLevel = 0;
+  let gatesSpawnedThisLevel = 0;
   let score = 0;
   let tokens = 0;
   let totalGatePasses = 0;
@@ -102,6 +107,7 @@
       movingGate: safeLevel >= 5,
       movementAmplitudeRatio: safeLevel < 5 ? 0 : 0.035 + progress * 0.095,
       movementRate: safeLevel < 5 ? 0 : 0.65 + progress * 1.1,
+      gatePulseRatio: safeLevel < 5 ? 0 : 0.06 + progress * 0.12,
       collectibleOffsetRatio: safeLevel <= 4 ? 0 : 0.015 + progress * 0.105
     };
   }
@@ -170,6 +176,7 @@
     clearWorld();
     level = 1;
     gatesThisLevel = 0;
+    gatesSpawnedThisLevel = 0;
     score = 0;
     tokens = 0;
     totalGatePasses = 0;
@@ -196,24 +203,36 @@
     if (running) velocity = flap;
   }
 
-  function createCollectible(x, yPos) {
+  function createCollectible(obstacle, offset) {
     const el = document.createElement("div");
     el.className = "collectible";
     el.setAttribute("aria-hidden", "true");
     el.innerHTML = '<span class="token-case"><span class="token-check">✓</span></span>';
-    el.style.left = `${x}px`;
-    el.style.top = `${yPos}px`;
     game.appendChild(el);
-    collectibles.push({ x, y: yPos, el, taken: false });
+    const collectible = { obstacle, offset, x: obstacle.x + 46, y: obstacle.gapY + obstacle.gap / 2, el, taken: false };
+    collectibles.push(collectible);
+    positionCollectible(collectible);
+  }
+
+  function positionCollectible(collectible) {
+    if (collectible.taken) return;
+    const obstacle = collectible.obstacle;
+    const maxOffset = Math.max(0, obstacle.gap / 2 - 34);
+    const safeOffset = Math.max(-maxOffset, Math.min(maxOffset, collectible.offset));
+    collectible.x = obstacle.x + 46;
+    collectible.y = obstacle.gapY + obstacle.gap / 2 + safeOffset;
+    collectible.el.style.left = `${collectible.x}px`;
+    collectible.el.style.top = `${collectible.y}px`;
   }
 
   function makeObstacle(now) {
     const config = levelConfig(level);
     const h = game.clientHeight;
-    const gap = Math.max(118, Math.min(230, h * config.gateGapRatio));
+    const baseGap = Math.max(118, Math.min(230, h * config.gateGapRatio));
     const margin = Math.max(58, h * 0.1);
-    const available = Math.max(20, h - gap - margin * 2);
-    const baseGapY = margin + Math.random() * available;
+    const centerMin = margin + baseGap / 2;
+    const centerMax = Math.max(centerMin, h - margin - baseGap / 2);
+    const baseCenter = centerMin + Math.random() * Math.max(1, centerMax - centerMin);
     const x = game.clientWidth + 90;
     const top = document.createElement("div");
     const bottom = document.createElement("div");
@@ -226,44 +245,53 @@
     const obstacle = {
       x,
       width: 92,
-      baseGapY,
-      gapY: baseGapY,
-      gap,
+      baseCenter,
+      gapY: baseCenter - baseGap / 2,
+      baseGap,
+      gap: baseGap,
       margin,
       top,
       bottom,
       passed: false,
       level,
+      speed: config.speed,
       moving: config.movingGate,
       amplitude: h * config.movementAmplitudeRatio,
       rate: config.movementRate,
+      gatePulseRatio: config.gatePulseRatio,
       phase: Math.random() * Math.PI * 2,
+      pulsePhase: Math.random() * Math.PI * 2,
       bornAt: now
     };
     obstacles.push(obstacle);
+    gatesSpawnedThisLevel += 1;
     positionObstacle(obstacle, now);
 
-    const direction = gatesThisLevel % 2 === 0 ? -1 : 1;
+    const direction = gatesSpawnedThisLevel % 2 === 0 ? 1 : -1;
     const offset = h * config.collectibleOffsetRatio * direction;
-    const tokenY = Math.max(margin + 24, Math.min(h - margin - 24, baseGapY + gap / 2 + offset));
-    createCollectible(x + 46, tokenY);
+    createCollectible(obstacle, offset);
   }
 
-  function positionObstacle(o, now) {
+  function positionObstacle(obstacle, now) {
     const h = game.clientHeight;
-    let gapY = o.baseGapY;
-    if (o.moving) {
-      const ageSeconds = Math.max(0, now - o.bornAt) / 1000;
-      gapY += Math.sin(ageSeconds * o.rate * Math.PI * 2 + o.phase) * o.amplitude;
-    }
-    gapY = Math.max(o.margin, Math.min(h - o.gap - o.margin, gapY));
-    o.gapY = gapY;
-    o.top.style.left = `${o.x}px`;
-    o.top.style.top = "0";
-    o.top.style.height = `${gapY}px`;
-    o.bottom.style.left = `${o.x}px`;
-    o.bottom.style.top = `${gapY + o.gap}px`;
-    o.bottom.style.height = `${Math.max(0, h - gapY - o.gap)}px`;
+    const ageSeconds = Math.max(0, now - obstacle.bornAt) / 1000;
+    const movementWave = obstacle.moving
+      ? Math.sin(ageSeconds * obstacle.rate * Math.PI * 2 + obstacle.phase)
+      : 0;
+    const pulseWave = obstacle.moving
+      ? Math.sin(ageSeconds * obstacle.rate * Math.PI * 1.55 + obstacle.pulsePhase)
+      : 0;
+    const dynamicGap = Math.max(108, obstacle.baseGap * (1 + pulseWave * obstacle.gatePulseRatio));
+    let center = obstacle.baseCenter + movementWave * obstacle.amplitude;
+    center = Math.max(obstacle.margin + dynamicGap / 2, Math.min(h - obstacle.margin - dynamicGap / 2, center));
+    obstacle.gap = dynamicGap;
+    obstacle.gapY = center - dynamicGap / 2;
+    obstacle.top.style.left = `${obstacle.x}px`;
+    obstacle.top.style.top = "0";
+    obstacle.top.style.height = `${obstacle.gapY}px`;
+    obstacle.bottom.style.left = `${obstacle.x}px`;
+    obstacle.bottom.style.top = `${obstacle.gapY + obstacle.gap}px`;
+    obstacle.bottom.style.height = `${Math.max(0, h - obstacle.gapY - obstacle.gap)}px`;
   }
 
   function rectsOverlap(a, b) {
@@ -315,11 +343,13 @@
       finish(true, `All ${LEVEL_COUNT} levels cleared. ${tokens} WillIt tokens collected.`);
       return;
     }
+    const oldCraft = craftForLevel(level);
     level += 1;
     gatesThisLevel = 0;
+    gatesSpawnedThisLevel = 0;
     obstacleTimer = 0;
     updateHud();
-    flash(`LEVEL ${level}`);
+    flash(craftForLevel(level) !== oldCraft ? `LEVEL ${level} · NEW AIRCRAFT` : `LEVEL ${level}`);
   }
 
   function renderLeaderboard() {
@@ -349,7 +379,6 @@
     if (!running) return;
     const dt = Math.min(32, now - lastTime);
     lastTime = now;
-    const config = levelConfig(level);
     const frameScale = dt / 16.67;
 
     velocity += gravity * frameScale;
@@ -358,54 +387,61 @@
     playerEl.style.transform = `translate(-50%,-50%) rotate(${Math.max(-18, Math.min(38, velocity * 5))}deg)`;
 
     obstacleTimer += dt;
-    if (obstacleTimer > 1650) {
+    if (obstacleTimer > 1650 && gatesSpawnedThisLevel < GATES_PER_LEVEL) {
       obstacleTimer = 0;
       makeObstacle(now);
     }
 
     const playerRect = playerEl.getBoundingClientRect();
-    for (const o of obstacles) {
-      o.x -= config.speed * frameScale;
-      positionObstacle(o, now);
-      if (rectsOverlap(playerRect, o.top.getBoundingClientRect()) || rectsOverlap(playerRect, o.bottom.getBoundingClientRect())) {
-        finish(false, `Gate collision on level ${level}.`);
+    for (const obstacle of obstacles) {
+      obstacle.x -= obstacle.speed * frameScale;
+      positionObstacle(obstacle, now);
+      if (rectsOverlap(playerRect, obstacle.top.getBoundingClientRect()) || rectsOverlap(playerRect, obstacle.bottom.getBoundingClientRect())) {
+        finish(false, `Gate collision on level ${obstacle.level}.`);
         return;
       }
-      if (!o.passed && o.x + o.width < game.clientWidth * 0.17) {
-        o.passed = true;
+      if (!obstacle.passed && obstacle.x + obstacle.width < game.clientWidth * 0.17) {
+        obstacle.passed = true;
         totalGatePasses += 1;
-        gatesThisLevel += 1;
-        score += 50;
-        updateHud();
-        if (gatesThisLevel >= GATES_PER_LEVEL) {
-          completeLevel();
-          if (!running) return;
+        if (obstacle.level === level) {
+          gatesThisLevel += 1;
+          score += 50;
+          updateHud();
+          if (gatesThisLevel >= GATES_PER_LEVEL) {
+            completeLevel();
+            if (!running) return;
+          }
         }
       }
     }
 
-    for (const c of collectibles) {
-      c.x -= config.speed * frameScale;
-      c.el.style.left = `${c.x}px`;
-      if (!c.taken && rectsOverlap(playerRect, c.el.getBoundingClientRect())) {
-        c.taken = true;
+    for (const collectible of collectibles) {
+      if (collectible.taken) continue;
+      positionCollectible(collectible);
+      if (rectsOverlap(playerRect, collectible.el.getBoundingClientRect())) {
+        collectible.taken = true;
         tokens += 1;
         score += 100;
-        c.el.remove();
+        collectible.el.remove();
         updateHud();
         flash("+ TOKEN");
       }
     }
 
-    obstacles = obstacles.filter((o) => {
-      if (o.x < -170) {
-        o.top.remove(); o.bottom.remove(); return false;
+    obstacles = obstacles.filter((obstacle) => {
+      if (obstacle.x < -170) {
+        obstacle.top.remove();
+        obstacle.bottom.remove();
+        return false;
       }
       return true;
     });
-    collectibles = collectibles.filter((c) => {
-      if (c.taken) return false;
-      if (c.x < -90) { c.el.remove(); return false; }
+    collectibles = collectibles.filter((collectible) => {
+      if (collectible.taken) return false;
+      if (collectible.obstacle.x < -90) {
+        collectible.el.remove();
+        return false;
+      }
       return true;
     });
 
@@ -421,10 +457,17 @@
   tapButton.addEventListener("pointerdown", (event) => { event.preventDefault(); flapPlayer(); });
   game.addEventListener("pointerdown", (event) => { event.preventDefault(); flapPlayer(); });
   window.addEventListener("keydown", (event) => {
-    if (["Space", "ArrowUp"].includes(event.code)) { event.preventDefault(); flapPlayer(); }
+    if (["Space", "ArrowUp"].includes(event.code)) {
+      event.preventDefault();
+      flapPlayer();
+    }
   });
   leaderboardButton.addEventListener("click", () => leaderboard.classList.toggle("hidden"));
   themeButton.addEventListener("click", cycleTheme);
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+  }
 
   applyTheme();
   renderLeaderboard();
