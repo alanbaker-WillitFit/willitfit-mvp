@@ -1,0 +1,9 @@
+{
+  "name": "WillIt Lab — Terminal Chase",
+  "short_name": "Terminal Chase",
+  "start_url": "/lab/terminal-chase/",
+  "display": "standalone",
+  "background_color": "#0D1B3D",
+  "theme_color": "#0D1B3D",
+  "description": "Navigate the terminal, collect Approval Tokens and reach the new gate."
+}
