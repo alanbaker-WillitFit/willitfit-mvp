@@ -1,9 +1,12 @@
-const CACHE="willitlab-terminal-chase-rc1-longloop-1";
+const CACHE="willitlab-terminal-chase-rc1-character-contract-1";
 const ASSETS=[
   "./",
   "./index.html",
   "./styles.css",
   "./refinement.css",
+  "./character-integration.css",
+  "./character-assets.js",
+  "./character-integration.js",
   "./game.js",
   "./manifest.webmanifest",
   "../bag-bounce/asset-refs.js"
