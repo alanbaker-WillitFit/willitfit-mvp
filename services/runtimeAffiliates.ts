@@ -1,6 +1,7 @@
 import { cache } from "react";
 import type { AffiliateSlot } from "@/types";
 import {
+  AFFILIATE_CATALOGUE_CAPACITY,
   affiliatePlaceholdersForCategory,
   isAffiliateRuntimeCategoryKey,
   visibleTravelEssentialCategories,
@@ -10,7 +11,6 @@ import { toNumber } from "./googleSheets";
 import { AFFILIATE_PRODUCT_TABS } from "./runtimeSources";
 export { AFFILIATE_PRODUCT_TABS } from "./runtimeSources";
 
-const SLOTS_PER_CATEGORY = 10;
 type ProductRow = Record<string, string>;
 
 function value(row: ProductRow, ...names: string[]) {
@@ -42,7 +42,7 @@ export function buildAffiliateSlots(rows: ProductRow[] = []): AffiliateSlot[] {
     const affiliateUrl = safeHttpsUrl(value(row, "Destination URL", "Affiliate URL", "AffiliateURL", "URL"));
 
     if (!isAffiliateRuntimeCategoryKey(category)) return [];
-    if (position < 1 || position > SLOTS_PER_CATEGORY || !affiliateUrl) return [];
+    if (position < 1 || position > AFFILIATE_CATALOGUE_CAPACITY || !affiliateUrl) return [];
 
     return [{
       slotId: value(row, "Affiliate ID", "Affiliate Slot ID", "SlotID", "AffiliateID") || `${category}-${String(position).padStart(2, "0")}`,
@@ -73,7 +73,7 @@ export function buildAffiliateSlots(rows: ProductRow[] = []): AffiliateSlot[] {
 
   return visibleTravelEssentialCategories.flatMap((category) => {
     const placeholders = affiliatePlaceholdersForCategory(category.runtimeKey);
-    return Array.from({ length: SLOTS_PER_CATEGORY }, (_, index) =>
+    return Array.from({ length: AFFILIATE_CATALOGUE_CAPACITY }, (_, index) =>
       unique.get(`${category.runtimeKey}:${index + 1}`) ?? placeholders[index]!
     );
   });
