@@ -35,10 +35,11 @@
           <span class="label">Score</span>
           <strong id="score-label">0000</strong>
         </div>
-        <div>
+        <div class="token-hud">
           <span class="label">Tokens</span>
           <strong id="item-count">0</strong>
         </div>
+        <button id="pause-button" class="hud-pause" type="button" aria-label="Pause flight">Ⅱ</button>
       </header>
 
       <div id="game" class="game" aria-label="WillItFly game area">
@@ -51,6 +52,10 @@
           <span id="player-accessory" class="player-accessory"></span>
         </div>
         <div id="message" class="message" aria-live="polite"></div>
+        <button id="resume-overlay" class="pause-overlay hidden" type="button" aria-label="Resume flight">
+          <span>Flight paused</span>
+          <strong>Resume flight</strong>
+        </button>
       </div>
 
       <div class="level-progress" aria-live="polite">
