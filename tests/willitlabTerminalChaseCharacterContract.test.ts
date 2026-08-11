@@ -11,8 +11,7 @@ const sw = readFileSync(join(root, "public/lab/terminal-chase/sw.js"), "utf8");
 const game = readFileSync(join(root, "public/lab/terminal-chase/game.js"), "utf8");
 
 describe("Terminal Chase character derivative contract", () => {
-  it("keeps approved character derivatives optional and fail-safe", () => {
-    expect(assets).toContain("player: null");
+  it("keeps hazard derivatives optional and fail-safe", () => {
     expect(assets).toContain("staff: null");
     expect(assets).toContain("traveller: null");
     expect(integration).toContain("if (!element || !source");
@@ -32,8 +31,8 @@ describe("Terminal Chase character derivative contract", () => {
     expect(css).toContain(".hazard.has-character-sprite");
   });
 
-  it("ships the integration contract offline", () => {
-    expect(sw).toContain("willitlab-terminal-chase-rc1-character-contract-1");
+  it("keeps the integration contract in the Terminal Chase offline namespace", () => {
+    expect(sw).toContain("willitlab-terminal-chase-");
     expect(sw).toContain("./character-assets.js");
     expect(sw).toContain("./character-integration.js");
     expect(sw).toContain("./character-integration.css");

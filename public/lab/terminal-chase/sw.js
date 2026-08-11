@@ -1,4 +1,4 @@
-const CACHE="willitlab-terminal-chase-rc1-character-contract-1";
+const CACHE="willitlab-terminal-chase-rc1-player-sprites-1";
 const ASSETS=[
   "./",
   "./index.html",
@@ -9,6 +9,10 @@ const ASSETS=[
   "./character-integration.js",
   "./game.js",
   "./manifest.webmanifest",
+  "./sprites/player-down.png",
+  "./sprites/player-up.png",
+  "./sprites/player-left.png",
+  "./sprites/player-right.png",
   "../bag-bounce/asset-refs.js"
 ];
 self.addEventListener("install",event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));self.skipWaiting();});
