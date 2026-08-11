@@ -28,7 +28,8 @@ describe("WillItFly Loop 3 gameplay contract", () => {
     expect(gameSource).toContain("playerRect.bottom > gameRect.bottom");
   });
 
-  it("ships Loop 3 through a distinct offline cache revision", () => {
-    expect(serviceWorkerSource).toContain('willitfly-rc1-lab-loop3-flight-feel');
+  it("continues shipping through a versioned RC1 Lab offline cache", () => {
+    expect(serviceWorkerSource).toContain('const CACHE="willitfly-rc1-lab-loop');
+    expect(serviceWorkerSource).not.toContain('const CACHE="willitfly-rc1-lab-1"');
   });
 });
