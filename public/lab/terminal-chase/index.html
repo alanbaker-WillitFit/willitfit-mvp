@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0D1B3D">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Terminal Chase | WillIt Lab</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app">
+    <section id="start-screen" class="screen active story-screen">
+      <a href="/lab" class="back-link">← WillIt Lab</a>
+      <div class="story-card">
+        <p class="kicker">WillIt Lab · terminal mission</p>
+        <h1>Terminal Chase</h1>
+        <p class="story-copy">Your gate has changed. Navigate the terminal, collect the Approval Tokens and reach the new gate.</p>
+        <div class="mission-grid" aria-label="How to play">
+          <div><b>1</b><strong>Navigate</strong><span>Use the terminal corridors.</span></div>
+          <div><b>2</b><strong>Collect</strong><span>Clear every Approval Token.</span></div>
+          <div><b>3</b><strong>Avoid</strong><span>Stay clear of roaming airport hazards.</span></div>
+          <div><b>4</b><strong>Reach gate</strong><span>Get to the new gate when the route is clear.</span></div>
+        </div>
+        <div class="power-note"><span class="power-token">✓</span><p>Large Approval Tokens temporarily switch hazards into a safe reroute state.</p></div>
+        <button id="start-button" class="primary">Start the chase</button>
+        <p class="small">10 levels · keyboard + touch · local score only</p>
+      </div>
+    </section>
+
+    <section id="game-screen" class="screen game-screen">
+      <header class="hud">
+        <div><span>Level</span><strong id="level-label">01 / 10</strong></div>
+        <div><span>Zone</span><strong id="zone-label">Concourse A</strong></div>
+        <div><span>Score</span><strong id="score-label">0000</strong></div>
+        <div><span>Lives</span><strong id="lives-label">3</strong></div>
+        <button id="pause-button" class="pause-button" aria-label="Pause game">Ⅱ</button>
+      </header>
+
+      <div id="game" class="game" aria-label="Terminal Chase airport maze">
+        <div id="maze" class="maze" role="presentation"></div>
+        <div id="gate" class="gate" aria-label="New departure gate"><span>GATE</span><strong id="gate-label">A12</strong></div>
+        <div id="player" class="player" aria-label="Traveller"><span class="player-head"></span><span class="player-body"></span></div>
+        <div id="message" class="message" aria-live="polite"></div>
+        <div id="power-status" class="power-status" aria-live="polite"></div>
+        <button id="resume-overlay" class="resume-overlay hidden">Resume chase</button>
+      </div>
+
+      <div class="controls" aria-label="Touch controls">
+        <button id="up-button" aria-label="Move up">▲</button>
+        <div class="control-row">
+          <button id="left-button" aria-label="Move left">◀</button>
+          <div class="level-status"><span>Tokens</span><strong id="remaining-label">0 left</strong></div>
+          <button id="right-button" aria-label="Move right">▶</button>
+        </div>
+        <button id="down-button" aria-label="Move down">▼</button>
+      </div>
+    </section>
+
+    <section id="result-screen" class="screen story-screen">
+      <div class="story-card result-card">
+        <p class="kicker">Terminal report</p>
+        <h2 id="result-title">GATE REACHED</h2>
+        <p id="result-copy" class="story-copy"></p>
+        <div class="score-grid">
+          <div><span>Score</span><strong id="result-score">0000</strong></div>
+          <div><span>Best</span><strong id="result-best">0000</strong></div>
+        </div>
+        <button id="again-button" class="primary">Play again</button>
+        <a href="/lab" class="text-link">Back to WillIt Lab</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="../bag-bounce/asset-refs.js"></script>
+  <script src="game.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/lab/terminal-chase/sw.js").catch(()=>{});
+  </script>
+</body>
+</html>
