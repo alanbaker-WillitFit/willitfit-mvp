@@ -13,6 +13,8 @@ export interface TravelEssentialCategory {
   status: TravelEssentialStatus;
 }
 
+export const AFFILIATE_CATALOGUE_CAPACITY = 30;
+
 export const TRAVEL_ESSENTIAL_CATEGORIES: readonly TravelEssentialCategory[] = [
   { id: "TE001", slug: "packing-cubes", runtimeKey: "packing-cubes", title: "Packing Cubes", supportingLine: "Organise more. Pack smarter.", imagePath: "/assets/travel-essentials/categories/packing-cubes.png", displayOrder: 1, status: "ComingSoon" },
   { id: "TE002", slug: "power-banks", runtimeKey: "power-banks", title: "Power Banks", supportingLine: "Power up. Keep moving.", imagePath: "/assets/travel-essentials/categories/power-banks.png", displayOrder: 2, status: "ComingSoon" },
@@ -39,7 +41,7 @@ export function getTravelEssentialCategory(id: string) {
 }
 
 export function affiliatePlaceholdersForCategory(category: string): AffiliateSlot[] {
-  return Array.from({ length: 10 }, (_, index) => ({
+  return Array.from({ length: AFFILIATE_CATALOGUE_CAPACITY }, (_, index) => ({
     slotId: `${category}-${String(index + 1).padStart(2, "0")}`,
     category,
     position: index + 1,
