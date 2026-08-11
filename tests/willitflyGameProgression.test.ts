@@ -26,12 +26,26 @@ describe("WillItFly 20-level game progression", () => {
     for (let level = 15; level <= 20; level += 1) expect(craftForLevel(level)).toBe(1);
   });
 
-  it("introduces moving gates from level 5 and offsets collectibles only after the opening band", () => {
-    expect(getWillItFlyGameLevel(4).movingGate).toBe(false);
+  it("introduces moving and opening-closing gates from level 5", () => {
+    const level4 = getWillItFlyGameLevel(4);
+    const level5 = getWillItFlyGameLevel(5);
+    const level20 = getWillItFlyGameLevel(20);
+
+    expect(level4.movingGate).toBe(false);
+    expect(level4.movementAmplitudeRatio).toBe(0);
+    expect(level4.gatePulseRatio).toBe(0);
+    expect(level5.movingGate).toBe(true);
+    expect(level5.movementAmplitudeRatio).toBeGreaterThan(0);
+    expect(level5.gatePulseRatio).toBeGreaterThan(0);
+    expect(level20.movementAmplitudeRatio).toBeGreaterThan(level5.movementAmplitudeRatio);
+    expect(level20.gatePulseRatio).toBeGreaterThan(level5.gatePulseRatio);
+  });
+
+  it("keeps opening-band collectibles on the flight line and increases later offset", () => {
     expect(getWillItFlyGameLevel(4).collectibleOffsetRatio).toBe(0);
-    expect(getWillItFlyGameLevel(5).movingGate).toBe(true);
-    expect(getWillItFlyGameLevel(5).movementAmplitudeRatio).toBeGreaterThan(0);
     expect(getWillItFlyGameLevel(5).collectibleOffsetRatio).toBeGreaterThan(0);
+    expect(getWillItFlyGameLevel(20).collectibleOffsetRatio)
+      .toBeGreaterThan(getWillItFlyGameLevel(5).collectibleOffsetRatio);
   });
 
   it("clamps invalid level requests into the governed 1-20 range", () => {
