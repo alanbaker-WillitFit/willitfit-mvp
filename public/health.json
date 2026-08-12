@@ -1,0 +1,7 @@
+{
+  "service": "willitfit",
+  "status": "ok",
+  "contractVersion": 1,
+  "checkType": "public-edge",
+  "googleApiDependency": false
+}
