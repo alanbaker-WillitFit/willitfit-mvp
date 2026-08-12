@@ -4,6 +4,10 @@ import DestinationLocationCard from "@/components/fly/DestinationLocationCard";
 import TopicSummaryCard from "@/components/fly/TopicSummaryCard";
 import styles from "@/components/fly/DestinationCards.module.css";
 import { resolveTopicCard, type WillItFlyTopicId } from "@/lib/willitflyCards";
+import {
+  resolveDefaultOriginFlightTime,
+  resolveDestinationTimeZone,
+} from "@/lib/willitflyJourneyContext";
 import { getWillItFlyCardsRuntimeBundle } from "@/services/willitflyCardsRuntime";
 import { getWillItFlyRuntimeBundle } from "@/services/willitflyRuntime";
 
@@ -52,6 +56,15 @@ export default async function WillItFlyDestinationPage({ params }: PageProps) {
     publicSources: cardsRuntime.publicSources,
   }));
 
+  const defaultOriginFlightTime = resolveDefaultOriginFlightTime(
+    runtime.travelTimes,
+    destination.destinationId,
+  );
+  const destinationTimeZone = resolveDestinationTimeZone(
+    cardsRuntime.facts,
+    destination.destinationId,
+  );
+
   return (
     <div className={styles.page}>
       <div className={styles.container}>
@@ -62,7 +75,12 @@ export default async function WillItFlyDestinationPage({ params }: PageProps) {
         </p>
 
         <div className={styles.layout}>
-          <DestinationLocationCard destination={destination} />
+          <DestinationLocationCard
+            destination={destination}
+            averageFlightMinutes={defaultOriginFlightTime?.averageFlightMinutes ?? null}
+            destinationTimeZone={destinationTimeZone.timeZone}
+            multipleTimeZones={destinationTimeZone.multiple}
+          />
           <section className={styles.cards} aria-label={`${destination.displayName} travel information`}>
             {cards.map((card) => <TopicSummaryCard card={card} key={card.cardId} />)}
           </section>
