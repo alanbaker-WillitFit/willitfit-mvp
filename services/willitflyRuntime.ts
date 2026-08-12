@@ -27,6 +27,8 @@ import {
 
 type RuntimeRow = Record<string, string>;
 
+export type WillItFlyTimezoneMode = "SINGLE" | "MULTIPLE";
+
 export type WillItFlyDestination = {
   destinationId: string;
   destinationType: string;
@@ -41,11 +43,14 @@ export type WillItFlyDestination = {
   displayFlagCode?: string;
   displayFlagEmoji?: string;
   countryFlagAssetId?: string;
+  timezoneId?: string;
+  timezoneMode?: WillItFlyTimezoneMode;
 };
 
 export type WillItFlyTravelTime = {
   originMarketId: string;
   originDisplayName: string;
+  originTimezoneId?: string;
   destinationId: string;
   averageFlightMinutes: number;
 };
@@ -125,6 +130,11 @@ function reviewedValue(value: string | undefined): boolean {
 function numberValue(value: string | undefined): number | null {
   const parsed = Number(String(value ?? "").trim());
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function timezoneModeValue(value: string | undefined): WillItFlyTimezoneMode | undefined {
+  const normalized = String(value ?? "").trim().toUpperCase();
+  return normalized === "SINGLE" || normalized === "MULTIPLE" ? normalized : undefined;
 }
 
 function scoreValue(value: string | undefined): 1 | 2 | 3 | 4 | 5 | undefined {
@@ -306,6 +316,8 @@ function mapDestination(row: RuntimeRow, previewMode: boolean): WillItFlyDestina
     displayFlagCode: row.Display_Flag_Code || undefined,
     displayFlagEmoji: row.Display_Flag_Emoji || undefined,
     countryFlagAssetId: row.Country_Flag_Asset_ID || undefined,
+    timezoneId: row.Timezone_ID || undefined,
+    timezoneMode: timezoneModeValue(row.Timezone_Mode),
   };
 }
 
@@ -600,6 +612,7 @@ async function loadBundle(): Promise<WillItFlyRuntimeBundle> {
     return [{
       originMarketId,
       originDisplayName,
+      originTimezoneId: row.Origin_Timezone_ID || undefined,
       destinationId,
       averageFlightMinutes: minutes,
     }];
@@ -650,6 +663,7 @@ export function resolveWillItFlyAsset(bundle: WillItFlyRuntimeBundle, assetId?: 
 }
 
 export function resolveWillItFlyPublicSource(bundle: WillItFlyRuntimeBundle, sourceId: string): WillItFlyPublicSource | null {
+  if (!sourceId) return null;
   return bundle.publicSources.find((source) => source.sourceId === sourceId) ?? null;
 }
 
