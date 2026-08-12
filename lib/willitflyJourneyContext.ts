@@ -1,25 +1,8 @@
-import type { RuntimeDestinationFact } from "@/lib/willitflyCards";
-import type { WillItFlyTravelTime } from "@/services/willitflyRuntime";
+import type { WillItFlyDestination, WillItFlyTravelTime } from "@/services/willitflyRuntime";
 
 export const WILLITFLY_DEFAULT_ORIGIN_MARKET_ID = "UK";
 export const WILLITFLY_DEFAULT_ORIGIN_LABEL = "UK";
 export const WILLITFLY_DEFAULT_ORIGIN_TIME_ZONE = "Europe/London";
-
-const TIME_ZONE_FACT_KEYS = new Set([
-  "IANA_TIMEZONE",
-  "IANA_TIME_ZONE",
-  "TIMEZONE_IANA",
-  "TIME_ZONE_IANA",
-  "TIMEZONE",
-  "TIME_ZONE",
-]);
-
-const MULTI_TIME_ZONE_FACT_KEYS = new Set([
-  "MULTIPLE_TIMEZONES",
-  "MULTIPLE_TIME_ZONES",
-  "TIMEZONE_COUNT",
-  "TIME_ZONE_COUNT",
-]);
 
 function isValidIanaTimeZone(value: string): boolean {
   try {
@@ -30,31 +13,15 @@ function isValidIanaTimeZone(value: string): boolean {
   }
 }
 
-function indicatesMultipleTimeZones(fact: RuntimeDestinationFact): boolean {
-  const key = fact.factKey.trim().toUpperCase();
-  if (!MULTI_TIME_ZONE_FACT_KEYS.has(key)) return false;
-  const value = fact.factValue.trim().toLowerCase();
-  if (["yes", "true", "multiple"].includes(value)) return true;
-  const count = Number(value);
-  return Number.isFinite(count) && count > 1;
-}
-
 export function resolveDestinationTimeZone(
-  facts: RuntimeDestinationFact[],
-  destinationId: string,
+  destination: Pick<WillItFlyDestination, "timezoneId" | "timezoneMode">,
 ): { timeZone: string | null; multiple: boolean } {
-  const destinationFacts = facts.filter((fact) => fact.destinationId === destinationId);
-  if (destinationFacts.some(indicatesMultipleTimeZones)) return { timeZone: null, multiple: true };
+  if (destination.timezoneMode === "MULTIPLE") return { timeZone: null, multiple: true };
 
-  for (const fact of destinationFacts) {
-    const key = fact.factKey.trim().toUpperCase();
-    if (!TIME_ZONE_FACT_KEYS.has(key)) continue;
-    const candidate = fact.factValue.trim();
-    if (/[|,;]/.test(candidate)) return { timeZone: null, multiple: true };
-    if (isValidIanaTimeZone(candidate)) return { timeZone: candidate, multiple: false };
-  }
-
-  return { timeZone: null, multiple: false };
+  const candidate = String(destination.timezoneId ?? "").trim();
+  if (!candidate) return { timeZone: null, multiple: false };
+  if (!isValidIanaTimeZone(candidate)) return { timeZone: null, multiple: false };
+  return { timeZone: candidate, multiple: false };
 }
 
 export function resolveDefaultOriginFlightTime(
@@ -106,8 +73,9 @@ function timeZoneOffsetMinutes(timeZone: string, instant: Date): number | null {
 export function currentTimeDifferenceFromUk(
   destinationTimeZone: string,
   instant: Date = new Date(),
+  originTimeZone: string = WILLITFLY_DEFAULT_ORIGIN_TIME_ZONE,
 ): number | null {
-  const originOffset = timeZoneOffsetMinutes(WILLITFLY_DEFAULT_ORIGIN_TIME_ZONE, instant);
+  const originOffset = timeZoneOffsetMinutes(originTimeZone, instant);
   const destinationOffset = timeZoneOffsetMinutes(destinationTimeZone, instant);
   if (originOffset === null || destinationOffset === null) return null;
   return destinationOffset - originOffset;
