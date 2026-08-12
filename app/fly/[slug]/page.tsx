@@ -60,10 +60,7 @@ export default async function WillItFlyDestinationPage({ params }: PageProps) {
     runtime.travelTimes,
     destination.destinationId,
   );
-  const destinationTimeZone = resolveDestinationTimeZone(
-    cardsRuntime.facts,
-    destination.destinationId,
-  );
+  const destinationTimeZone = resolveDestinationTimeZone(destination);
 
   return (
     <div className={styles.page}>
