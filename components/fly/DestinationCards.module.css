@@ -95,26 +95,26 @@
 .journeyFact {
   min-width: 0;
   padding: 12px;
-  border: 1px solid #e4eaf1;
+  border: 1px solid #e7ebf0;
   border-radius: 8px;
   background: #fbfcfd;
 }
 
 .journeyFact dt {
   margin: 0 0 5px;
-  color: #6a778a;
-  font-size: 0.69rem;
-  font-weight: 800;
-  letter-spacing: 0.035em;
+  color: #7b8696;
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   line-height: 1.35;
   text-transform: uppercase;
 }
 
 .journeyFact dd {
   margin: 0;
-  color: #0d1b3d;
-  font-size: 0.95rem;
-  font-weight: 800;
+  color: #687386;
+  font-size: 0.9rem;
+  font-weight: 650;
   line-height: 1.35;
 }
 
