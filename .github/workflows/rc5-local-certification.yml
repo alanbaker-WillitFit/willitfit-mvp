@@ -7,6 +7,7 @@ on:
       - rc5-build-sprint
       - rc5-stage-1-articles
       - rc5-smoke-remediation-20260805
+      - rc5-final-launch-prep-20260809
     paths:
       - '**'
   pull_request:
