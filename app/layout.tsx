@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import WillItFlyHeader from "@/components/fly/WillItFlyHeader";
 import WillItFlyFooter from "@/components/fly/WillItFlyFooter";
+import { resolvePublishedNavigationRoutes } from "@/lib/willitflyNavigation";
 import { getWillItFlyRuntimeBundle } from "@/services/willitflyRuntime";
 
 const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
@@ -28,12 +29,13 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const bundle = await getWillItFlyRuntimeBundle();
+  const publishedNavigationRoutes = resolvePublishedNavigationRoutes(bundle.navigationRoutes);
 
   return (
     <html lang="en">
       <body>
         <a href="#main-content" className="wf-skip-link">Skip to main content</a>
-        <WillItFlyHeader routes={bundle.navigationRoutes} />
+        <WillItFlyHeader routes={publishedNavigationRoutes} />
         <main id="main-content">{children}</main>
         <WillItFlyFooter />
       </body>
