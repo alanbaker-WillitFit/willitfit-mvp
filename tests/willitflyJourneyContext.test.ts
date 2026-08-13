@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import type { RuntimeDestinationFact } from "@/lib/willitflyCards";
 import {
   currentTimeDifferenceFromUk,
   formatAverageFlightTime,
@@ -7,18 +6,6 @@ import {
   resolveDefaultOriginFlightTime,
   resolveDestinationTimeZone,
 } from "@/lib/willitflyJourneyContext";
-
-function fact(overrides: Partial<RuntimeDestinationFact>): RuntimeDestinationFact {
-  return {
-    factId: "F1",
-    destinationId: "JP",
-    topicId: "TIME",
-    factKey: "IANA_TIMEZONE",
-    factValue: "Asia/Tokyo",
-    sourceId: "SRC1",
-    ...overrides,
-  };
-}
 
 describe("WillItFly journey context", () => {
   it("formats governed average flight minutes", () => {
@@ -35,16 +22,17 @@ describe("WillItFly journey context", () => {
     expect(resolved?.averageFlightMinutes).toBe(705);
   });
 
-  it("resolves an IANA timezone only from governed facts", () => {
-    expect(resolveDestinationTimeZone([fact({})], "JP")).toEqual({ timeZone: "Asia/Tokyo", multiple: false });
-    expect(resolveDestinationTimeZone([fact({ factValue: "Japan Standard Time" })], "JP")).toEqual({ timeZone: null, multiple: false });
+  it("resolves an IANA timezone only from governed destination identity", () => {
+    expect(resolveDestinationTimeZone({ timezoneId: "Asia/Tokyo", timezoneMode: "SINGLE" })).toEqual({ timeZone: "Asia/Tokyo", multiple: false });
+    expect(resolveDestinationTimeZone({ timezoneId: "Japan Standard Time", timezoneMode: "SINGLE" })).toEqual({ timeZone: null, multiple: false });
+    expect(resolveDestinationTimeZone({ timezoneId: undefined, timezoneMode: "SINGLE" })).toEqual({ timeZone: null, multiple: false });
   });
 
   it("fails closed for multiple-timezone destinations", () => {
-    const result = resolveDestinationTimeZone([
-      fact({ factKey: "TIMEZONE_COUNT", factValue: "4" }),
-      fact({ factKey: "IANA_TIMEZONE", factValue: "America/New_York" }),
-    ], "JP");
+    const result = resolveDestinationTimeZone({
+      timezoneId: "America/New_York",
+      timezoneMode: "MULTIPLE",
+    });
     expect(result).toEqual({ timeZone: null, multiple: true });
   });
 
