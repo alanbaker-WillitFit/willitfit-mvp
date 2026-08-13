@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import DestinationLocationCard from "@/components/fly/DestinationLocationCard";
+import DestinationMoreAbout from "@/components/fly/DestinationMoreAbout";
 import TopicSummaryCard from "@/components/fly/TopicSummaryCard";
 import styles from "@/components/fly/DestinationCards.module.css";
 import { resolveTopicCard, type WillItFlyTopicId } from "@/lib/willitflyCards";
@@ -55,6 +56,9 @@ export default async function WillItFlyDestinationPage({ params }: PageProps) {
     assets: cardsRuntime.assets,
     publicSources: cardsRuntime.publicSources,
   }));
+  const questions = cardsRuntime.destinationQuestions
+    .filter((question) => question.destinationId === destination.destinationId)
+    .sort((a, b) => a.question.localeCompare(b.question));
 
   const parentDestination = destination.parentDestinationId
     ? runtime.destinations.find((item) => item.destinationId === destination.parentDestinationId) ?? null
@@ -90,6 +94,12 @@ export default async function WillItFlyDestinationPage({ params }: PageProps) {
             {cards.map((card) => <TopicSummaryCard card={card} key={card.cardId} />)}
           </section>
         </div>
+
+        <DestinationMoreAbout
+          destinationName={destination.displayName}
+          questions={questions}
+          publicSources={cardsRuntime.publicSources}
+        />
       </div>
     </div>
   );
