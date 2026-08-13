@@ -5,6 +5,7 @@ import TravelTipCard from "@/components/TravelTipCard";
 import TravelEssentials from "@/components/TravelEssentials";
 import { getAirlines } from "@/services/airlines";
 import { getTravelTips } from "@/services/tips";
+import { getFaqs, selectPeopleOftenAskFaqs } from "@/services/faqs";
 import { InfoIcon, PlaneIcon } from "@/components/HomeIcons";
 import { ShieldCheckIcon, LockIcon, GlobeIcon } from "@/components/icons";
 import { getRuntimeContent } from "@/services/runtimeContent";
@@ -21,13 +22,14 @@ const NEXT_STEPS = [
   ["Ask WillitFit", "/ask", "Search real questions and get answers.", "?"],
   ["Travel Tips", "/tips", "Practical advice for smoother travel.", "info"],
   ["Travel Essentials", "/products", "Explore governed travel essentials.", "personal"],
-  ["FAQs", "/ask", "Find clear answers before you fly.", "?"],
+  ["FAQs / People often ask", "/ask", "Find clear answers before you fly.", "?"],
 ] as const;
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ airline?: string }> }) {
-  const [{ airlines, source }, { tips }, { airline: airlineParam }, { content: notices }, { content: hints }, { slots: affiliateSlots }, labConfigs, specialBaggageResults, homeAlert] = await Promise.all([
+  const [{ airlines, source }, { tips }, { content: faqs }, { airline: airlineParam }, { content: notices }, { content: hints }, { slots: affiliateSlots }, labConfigs, specialBaggageResults, homeAlert] = await Promise.all([
     getAirlines(),
     getTravelTips(),
+    getFaqs(),
     searchParams,
     getRuntimeContent({ module: "Notices", page: "checker" }),
     getRuntimeContent({ module: "Hints", page: "checker", section: "pre-check" }),
@@ -39,6 +41,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const preselectedAirline = airlineParam ? airlines.find(airline => airline.slug === airlineParam) ?? null : null;
   const priorityAirlines = airlines.slice(0, 5);
   const selectedTips = tips.slice(0, 3);
+  const peopleOftenAsk = selectPeopleOftenAskFaqs(faqs, 3);
   const alertBackground = homeAlert
     ? homeAlert.level === "green"
       ? `rgba(34, 197, 94, ${homeAlert.opacity})`
@@ -74,13 +77,33 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <main className="wf-home-workspace__main">
             <DimensionForm airlines={airlines} initialAirline={preselectedAirline} notices={notices} hints={hints} affiliateSlots={affiliateSlots} labConfigs={labConfigs} specialBaggageResults={specialBaggageResults} />
 
+            {peopleOftenAsk.length > 0 ? (
+              <section className="wf-card wf-card--compact mt-6" aria-labelledby="people-often-ask-heading">
+                <div className="wf-section-heading">
+                  <div>
+                    <h2 id="people-often-ask-heading">People often ask</h2>
+                    <p className="mt-1 font-body text-sm text-navy-500">Three approved questions from WillItFit&apos;s governed travel knowledge.</p>
+                  </div>
+                  <Link href="/ask">See more questions →</Link>
+                </div>
+                <div className="mt-4 divide-y divide-navy-100 border-y border-navy-100">
+                  {peopleOftenAsk.map((faq) => (
+                    <Link
+                      key={faq.contentId}
+                      href="/ask"
+                      className="wf-interactive flex items-center justify-between gap-4 px-1 py-4 font-body text-sm font-semibold text-navy-700"
+                    >
+                      <span>{faq.title}</span>
+                      <span aria-hidden="true">→</span>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
             <section className="wf-home-tips" aria-labelledby="home-tips-heading">
               <div className="wf-section-heading"><h2 id="home-tips-heading">Travel Tips</h2><Link href="/tips">View all tips →</Link></div>
               <div className="wf-home-tips__grid">{selectedTips.map(tip => <TravelTipCard key={tip.tipId} tip={tip} />)}</div>
-            </section>
-
-            <section className="wf-mobile-recommendation" aria-label="Recommended next reading">
-              {selectedTips[0] ? <TravelTipCard tip={selectedTips[0]} /> : null}
             </section>
 
         <section className="wf-next-steps" aria-labelledby="next-steps-heading">
