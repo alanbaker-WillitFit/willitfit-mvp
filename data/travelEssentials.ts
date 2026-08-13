@@ -13,7 +13,7 @@ export interface TravelEssentialCategory {
   status: TravelEssentialStatus;
 }
 
-export const AFFILIATE_CATALOGUE_CAPACITY = 30;
+export const AFFILIATE_CATALOGUE_CAPACITY = 10;
 
 export const TRAVEL_ESSENTIAL_CATEGORIES: readonly TravelEssentialCategory[] = [
   { id: "TE001", slug: "packing-cubes", runtimeKey: "packing-cubes", title: "Packing Cubes", supportingLine: "Organise more. Pack smarter.", imagePath: "/assets/travel-essentials/categories/packing-cubes.png", displayOrder: 1, status: "ComingSoon" },
