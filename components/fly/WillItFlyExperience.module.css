@@ -171,13 +171,20 @@
   gap: 10px;
 }
 
-.searchForm select {
+.searchForm input {
   min-height: 48px;
   border: 1px solid #cfd6e1;
   border-radius: 7px;
   padding: 0 14px;
   background: #fff;
   color: #0d1b3d;
+  font: inherit;
+}
+
+.searchForm input:focus-visible {
+  outline: 3px solid rgba(34, 197, 94, 0.2);
+  outline-offset: 1px;
+  border-color: #22c55e;
 }
 
 .searchForm button {
@@ -192,9 +199,22 @@
 }
 
 .searchForm button:disabled,
-.searchForm select:disabled {
+.searchForm input:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.searchHint,
+.searchStatus {
+  margin: 9px 2px 0;
+  color: #637083;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.searchStatus {
+  margin-top: 3px;
+  color: #526178;
 }
 
 .mapFrame {
