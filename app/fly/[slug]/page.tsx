@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: `${destination.displayName} travel answers`,
-    description: `Governed WillItFly travel information for ${destination.displayName}, covering power, connectivity, money, entry and climate guidance.`,
+    description: `WillItFly travel information for ${destination.displayName}, covering power, connectivity, money, entry and climate guidance.`,
     robots: { index: false, follow: false },
   };
 }
@@ -75,10 +75,10 @@ export default async function WillItFlyDestinationPage({ params }: PageProps) {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        <p className={styles.eyebrow}>WillItFly · RC1 destination preview</p>
+        <p className={styles.eyebrow}>WillItFly destination guide</p>
         <h1 className={styles.heading}>{destination.displayName}</h1>
         <p className={styles.lead}>
-          Practical travel answers from governed source evidence. Information that has not passed the complete Runtime contract stays unavailable rather than being guessed.
+          Practical travel answers from reviewed sources. If something has not been verified, WillItFly shows it as unavailable rather than guessing.
         </p>
 
         <div className={styles.layout}>
