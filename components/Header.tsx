@@ -12,7 +12,7 @@ interface HeaderProps {
 
 const LINKS = [
   ["WillitFit", "/"], ["Airlines", "/airlines"], ["Size Guides", "/size-guides"], ["Ask WillitFit", "/ask"],
-  ["Articles", "/articles"], ["Travel Essentials", "/products"], ["About", "/about"], ["FAQs", "/ask"],
+  ["Articles", "/articles"], ["Travel Essentials", "/products"], ["About", "/about"], ["FAQs / People often ask", "/ask"],
 ] as const;
 
 function Brand() {
