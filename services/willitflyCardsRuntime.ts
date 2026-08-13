@@ -12,6 +12,21 @@ import type {
 
 type RuntimeRow = Record<string, string>;
 
+export type WillItFlyDestinationQuestion = {
+  questionId: string;
+  destinationId: string;
+  topicId?: string;
+  question: string;
+  answerSummary: string;
+  detail?: string;
+  sourceId: string;
+  factClassification?: string;
+  preparationState?: string;
+  lastReviewed?: string;
+  slug?: string;
+  indexable: boolean;
+};
+
 export type WillItFlyCardsRuntimeBundle = {
   configured: boolean;
   facts: RuntimeDestinationFact[];
@@ -19,6 +34,7 @@ export type WillItFlyCardsRuntimeBundle = {
   cardFieldLinks: RuntimeCardFieldLink[];
   assets: WillItFlyAsset[];
   publicSources: WillItFlyPublicSource[];
+  destinationQuestions: WillItFlyDestinationQuestion[];
 };
 
 const REQUEST_TIMEOUT_MS = 8000;
@@ -235,16 +251,45 @@ function mapPublicSource(row: RuntimeRow): WillItFlyPublicSource | null {
   };
 }
 
+function mapQuestion(row: RuntimeRow): WillItFlyDestinationQuestion | null {
+  if (!row.Question_ID || !row.Destination_ID || !row.Question || !row.Answer_Summary || !row.Source_ID) return null;
+  return {
+    questionId: row.Question_ID,
+    destinationId: row.Destination_ID,
+    topicId: row.Topic_ID || undefined,
+    question: row.Question,
+    answerSummary: row.Answer_Summary,
+    detail: row.Detail || undefined,
+    sourceId: row.Source_ID,
+    factClassification: row.Fact_Classification || undefined,
+    preparationState: row.Preparation_State || undefined,
+    lastReviewed: row.Last_Reviewed || undefined,
+    slug: row.Slug || undefined,
+    indexable: booleanValue(row.Indexable),
+  };
+}
+
 async function loadBundle(): Promise<WillItFlyCardsRuntimeBundle> {
   const configured = Boolean(envValue("WILLITFLY_RUNTIME_SPREADSHEET_ID", "WILLITFLY_GOOGLE_SHEETS_SPREADSHEET_ID"));
-  if (!configured) return { configured, facts: [], cardSchemas: [], cardFieldLinks: [], assets: [], publicSources: [] };
+  if (!configured) {
+    return {
+      configured,
+      facts: [],
+      cardSchemas: [],
+      cardFieldLinks: [],
+      assets: [],
+      publicSources: [],
+      destinationQuestions: [],
+    };
+  }
 
-  const [factRows, schemaRows, linkRows, assetRows, sourceRows] = await Promise.all([
+  const [factRows, schemaRows, linkRows, assetRows, sourceRows, questionRows] = await Promise.all([
     readTab("03_Destination_Facts"),
     readTab("04.1_Card_Schemas"),
     readTab("04.2_Card_Field_Links"),
     readTab("06_Assets"),
     readTab("05_Public_Source_Links"),
+    readTab("07_Destination_Questions"),
   ]);
 
   return {
@@ -254,6 +299,7 @@ async function loadBundle(): Promise<WillItFlyCardsRuntimeBundle> {
     cardFieldLinks: linkRows.map(mapFieldLink).filter((item): item is RuntimeCardFieldLink => Boolean(item)),
     assets: assetRows.map(mapAsset).filter((item): item is WillItFlyAsset => Boolean(item)),
     publicSources: sourceRows.map(mapPublicSource).filter((item): item is WillItFlyPublicSource => Boolean(item)),
+    destinationQuestions: questionRows.map(mapQuestion).filter((item): item is WillItFlyDestinationQuestion => Boolean(item)),
   };
 }
 
