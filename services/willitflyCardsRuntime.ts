@@ -175,6 +175,8 @@ function mapFact(row: RuntimeRow): RuntimeDestinationFact | null {
     confidence: row.Confidence || undefined,
     lastReviewed: row.Last_Reviewed || undefined,
     reviewDue: row.Review_Due || undefined,
+    inheritedFromDestinationId: row.Inherited_From_Destination_ID || undefined,
+    inheritanceLevel: row.Inheritance_Level || undefined,
   };
 }
 
