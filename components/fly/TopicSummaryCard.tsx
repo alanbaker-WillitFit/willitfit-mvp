@@ -22,6 +22,9 @@ const CONTROLLED_LABELS: Record<string, string> = {
   CHECK_OFFICIAL_REQUIREMENTS: "Check the official entry requirements for your circumstances",
 };
 
+const ENTRY_CONTEXT_LIMITATION =
+  "Entry requirements depend on your passport, residence, route, purpose and travel date. WillItFly does not determine personal eligibility in RC1.";
+
 function controlledLabel(value: unknown): string {
   if (typeof value !== "string") return "";
   return CONTROLLED_LABELS[value] || value.replace(/_/g, " ").toLowerCase();
@@ -96,6 +99,10 @@ export default function TopicSummaryCard({ card }: TopicSummaryCardProps) {
                 </div>
               ))}
             </div>
+          ) : null}
+
+          {card.topicId === "ENTRY" && card.status === "official-confirmation-required" ? (
+            <p className={styles.message}>{ENTRY_CONTEXT_LIMITATION}</p>
           ) : null}
 
           {card.status === "official-confirmation-required" && card.publicSource ? (
