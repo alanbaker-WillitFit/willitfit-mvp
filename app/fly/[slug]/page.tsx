@@ -56,6 +56,12 @@ export default async function WillItFlyDestinationPage({ params }: PageProps) {
     publicSources: cardsRuntime.publicSources,
   }));
 
+  const parentDestination = destination.parentDestinationId
+    ? runtime.destinations.find((item) => item.destinationId === destination.parentDestinationId) ?? null
+    : null;
+  const childDestinations = runtime.destinations
+    .filter((item) => item.parentDestinationId === destination.destinationId)
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
   const defaultOriginFlightTime = resolveDefaultOriginFlightTime(
     runtime.travelTimes,
     destination.destinationId,
@@ -74,6 +80,8 @@ export default async function WillItFlyDestinationPage({ params }: PageProps) {
         <div className={styles.layout}>
           <DestinationLocationCard
             destination={destination}
+            parentDestination={parentDestination}
+            childDestinations={childDestinations}
             averageFlightMinutes={defaultOriginFlightTime?.averageFlightMinutes ?? null}
             destinationTimeZone={destinationTimeZone.timeZone}
             multipleTimeZones={destinationTimeZone.multiple}
