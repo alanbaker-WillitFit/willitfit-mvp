@@ -10,8 +10,8 @@ import { getOpenQuestions } from "@/services/askWillItFit";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "Ask WillItFit",
-  description: "Search WillItFit's reviewed travel knowledge, submit a question privately, or suggest an answer for moderation.",
+  title: "FAQs / People often ask | WillItFit",
+  description: "Browse reviewed questions people often ask, search WillItFit's travel knowledge, or submit a question privately for moderation.",
 };
 
 export default async function AskWillItFitPage() {
@@ -26,7 +26,7 @@ export default async function AskWillItFitPage() {
     <>
       <section className="bg-navy-700">
         <div className="wf-container py-12 sm:py-16">
-          <p className="font-body text-sm font-semibold uppercase tracking-wide text-green-400">Ask WillItFit</p>
+          <p className="font-body text-sm font-semibold uppercase tracking-wide text-green-400">FAQs / People often ask</p>
           <h1 className="mt-2 max-w-3xl font-heading text-4xl font-bold leading-tight text-white sm:text-5xl">
             Start with your question.
           </h1>
