@@ -9,7 +9,7 @@ interface HeaderProps { tipCategories: string[] }
 
 const LINKS = [
   ["WillitFit", "/"], ["Airlines", "/airlines"], ["Ask WillitFit", "/ask"],
-  ["Travel Essentials", "/products"], ["About", "/about"], ["FAQs", "/ask"],
+  ["Articles", "/articles"], ["Travel Essentials", "/products"], ["About", "/about"], ["FAQs", "/ask"],
 ] as const;
 
 function Brand() {

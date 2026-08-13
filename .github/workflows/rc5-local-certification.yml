@@ -5,6 +5,12 @@ on:
     branches:
       - rc5-cleanse-baseline
       - rc5-build-sprint
+      - rc5-stage-1-articles
+    paths:
+      - '**'
+  pull_request:
+    branches:
+      - main
     paths:
       - '**'
   workflow_dispatch:

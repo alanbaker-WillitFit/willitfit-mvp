@@ -34,7 +34,7 @@ export const REQUIRED_SHEET_HEADERS: Record<string, readonly string[]> = {
     "Content ID", "Page", "Section", "Content Type", "Title", "Content",
     "Display Order", "Active", "Review Status", "Publish",
   ],
-  "09_Affiliates": [
+  "09_Affiliate_Placements": [
     "Affiliate ID", "Category", "Product Name", "Destination URL",
     "Display Order", "Active", "Review Status", "Publish",
   ],
