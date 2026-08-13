@@ -9,22 +9,34 @@ interface ArticlePageProps {
   params: Promise<{ slug: string }>;
 }
 
+function articlesEnabled(): boolean {
+  return process.env.WILLITFLY_ENABLE_ARTICLES === "true";
+}
+
 export async function generateStaticParams() {
+  if (!articlesEnabled()) return [];
   const { articles } = await getArticles();
   return articles.map((article) => ({ slug: article.slug }));
 }
 
 export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
+  if (!articlesEnabled()) {
+    return { title: "Article not available", robots: { index: false, follow: false } };
+  }
+
   const { slug } = await params;
   const article = await getArticleBySlug(slug);
-  if (!article) return { title: "Article not found" };
+  if (!article) return { title: "Article not found", robots: { index: false, follow: false } };
+
   return {
     title: article.title,
-    description: article.summary || `Read ${article.title} from WillItFit.`,
+    description: article.summary || `Read ${article.title} from WillItFly.`,
   };
 }
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
+  if (!articlesEnabled()) notFound();
+
   const { slug } = await params;
   const article = await getArticleBySlug(slug);
   if (!article) notFound();
