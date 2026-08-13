@@ -171,7 +171,9 @@
   gap: 10px;
 }
 
-.searchForm input {
+.searchForm input,
+.journeyField input,
+.journeyField select {
   min-height: 48px;
   border: 1px solid #cfd6e1;
   border-radius: 7px;
@@ -181,7 +183,12 @@
   font: inherit;
 }
 
-.searchForm input:focus-visible {
+.searchForm input:focus-visible,
+.journeyField input:focus-visible,
+.journeyField select:focus-visible,
+.journeyToggle:focus-visible,
+.extraStopRow button:focus-visible,
+.journeyStops button:focus-visible {
   outline: 3px solid rgba(34, 197, 94, 0.2);
   outline-offset: 1px;
   border-color: #22c55e;
@@ -199,7 +206,8 @@
 }
 
 .searchForm button:disabled,
-.searchForm input:disabled {
+.searchForm input:disabled,
+.extraStopRow button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
@@ -215,6 +223,96 @@
 .searchStatus {
   margin-top: 3px;
   color: #526178;
+}
+
+.journeyDisclosure {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #edf0f4;
+}
+
+.journeyToggle {
+  border: 0;
+  padding: 6px 0;
+  background: transparent;
+  color: #0d1b3d;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.journeyOptions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.journeyField {
+  display: grid;
+  gap: 6px;
+}
+
+.journeyField:last-of-type,
+.journeyStops {
+  grid-column: 1 / -1;
+}
+
+.journeyField label {
+  font-weight: 750;
+  font-size: 0.9rem;
+}
+
+.journeyField label span,
+.journeyField > span {
+  color: #637083;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.extraStopRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.extraStopRow button {
+  min-width: 74px;
+  border: 1px solid #cfd6e1;
+  border-radius: 7px;
+  background: #fff;
+  color: #0d1b3d;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.journeyStops {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.journeyStops li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e4e8ef;
+  border-radius: 7px;
+  background: #f8fafc;
+}
+
+.journeyStops button {
+  border: 0;
+  background: transparent;
+  color: #526178;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .mapFrame {
@@ -422,12 +520,16 @@
     padding-top: 28px;
   }
 
-  .searchForm {
+  .searchForm,
+  .journeyOptions,
+  .extraStopRow {
     grid-template-columns: 1fr;
   }
 
-  .searchForm button {
+  .searchForm button,
+  .extraStopRow button {
     width: 100%;
+    min-height: 44px;
   }
 
   .sectionHeading {
