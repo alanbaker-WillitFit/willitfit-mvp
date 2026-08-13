@@ -39,9 +39,9 @@ export default function WillItFlyHomeExperience({ destinations }: Props) {
       <section className={styles.hero}>
         <div className={styles.container}>
           <div className={styles.heroIntro}>
-            <span className={styles.eyebrow}>WillItFly · RC1</span>
+            <span className={styles.eyebrow}>WillItFly</span>
             <h1>Know before you go.</h1>
-            <p>Search a governed destination to see its location and open the practical travel answers available in Runtime.</p>
+            <p>Search a destination to see its location and practical travel answers, with source-backed information shown where available.</p>
           </div>
 
           <div className={styles.searchPanel}>
@@ -81,15 +81,15 @@ export default function WillItFlyHomeExperience({ destinations }: Props) {
               <button type="submit" disabled={!selected}>View destination</button>
             </form>
             <p className={styles.searchHint} id="destination-search-hint">
-              Search by governed destination name or alias, for example UK or USA.
+              Search by destination name or recognised alias, for example UK or USA.
             </p>
             <p className={styles.searchStatus} id="destination-search-status" aria-live="polite">
               {sorted.length === 0
-                ? "No governed destinations are currently available."
+                ? "No destinations are currently available."
                 : selected
                   ? `Matched ${selected.displayName}.`
                   : query.trim()
-                    ? "Choose a suggestion or enter a complete governed name or alias."
+                    ? "Choose a suggestion or enter a complete destination name or alias."
                     : "Start typing to find a destination."}
             </p>
           </div>
@@ -102,7 +102,10 @@ export default function WillItFlyHomeExperience({ destinations }: Props) {
             />
           </div>
 
-          <div className={styles.identityCard}>
+          <div
+            className={styles.identityCard}
+            data-destination-id={selected?.destinationId || undefined}
+          >
             {selected ? (
               <>
                 <div className={styles.identityHeader}>
@@ -112,14 +115,13 @@ export default function WillItFlyHomeExperience({ destinations }: Props) {
                     <p>{selected.destinationType.toLowerCase()}</p>
                   </div>
                 </div>
-                <p className={styles.identityMeta}>Governed destination ID: {selected.destinationId}</p>
                 <button type="button" className={styles.hierarchyLink} onClick={openDestination}>Open destination answers →</button>
               </>
             ) : (
               <p className={styles.emptyNote}>
                 {sorted.length === 0
-                  ? "Runtime is connected, but no governed destination is currently available."
-                  : "Search for a destination to preview its governed identity and map location."}
+                  ? "No destinations are currently available."
+                  : "Search for a destination to preview its location."}
               </p>
             )}
           </div>
