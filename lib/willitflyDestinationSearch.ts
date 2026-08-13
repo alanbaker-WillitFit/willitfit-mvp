@@ -11,50 +11,52 @@ function normalizeSearchValue(value: string): string {
     .replace(/\s+/g, " ");
 }
 
-function searchTerms(destination: WillItFlyDestination): string[] {
-  return [
-    destination.displayName,
-    destination.slug.replace(/-/g, " "),
-    ...destination.aliases,
-  ]
+function canonicalTerms(destination: WillItFlyDestination): string[] {
+  return [destination.displayName, destination.slug.replace(/-/g, " ")]
     .map(normalizeSearchValue)
     .filter(Boolean);
 }
 
-export function resolveDestinationSearch(
-  destinations: WillItFlyDestination[],
-  query: string,
-): WillItFlyDestination | null {
+function aliasTerms(destination: WillItFlyDestination): string[] {
+  return destination.aliases.map(normalizeSearchValue).filter(Boolean);
+}
+
+function matchRank(destination: WillItFlyDestination, normalizedQuery: string): number | null {
+  const canonical = canonicalTerms(destination);
+  const aliases = aliasTerms(destination);
+
+  if (!normalizedQuery) return 6;
+  if (canonical.some((term) => term === normalizedQuery)) return 0;
+  if (aliases.some((term) => term === normalizedQuery)) return 1;
+  if (canonical.some((term) => term.startsWith(normalizedQuery))) return 2;
+  if (aliases.some((term) => term.startsWith(normalizedQuery))) return 3;
+  if (canonical.some((term) => term.includes(normalizedQuery))) return 4;
+  if (aliases.some((term) => term.includes(normalizedQuery))) return 5;
+  return null;
+}
+
+export function resolveDestinationSearch(destinations: WillItFlyDestination[], query: string): WillItFlyDestination | null {
   const normalizedQuery = normalizeSearchValue(query);
   if (!normalizedQuery) return null;
 
-  return destinations.find((destination) =>
-    searchTerms(destination).includes(normalizedQuery),
-  ) ?? null;
+  const exact = destinations
+    .map((destination) => ({ destination, rank: matchRank(destination, normalizedQuery) }))
+    .filter((entry): entry is { destination: WillItFlyDestination; rank: number } => entry.rank === 0 || entry.rank === 1)
+    .sort((a, b) => a.rank - b.rank || a.destination.displayName.localeCompare(b.destination.displayName));
+
+  if (exact.length === 0) return null;
+  const bestRank = exact[0]?.rank;
+  if (bestRank === undefined) return null;
+  const best = exact.filter((entry) => entry.rank === bestRank);
+  return best.length === 1 ? best[0]?.destination ?? null : null;
 }
 
-export function suggestDestinationSearch(
-  destinations: WillItFlyDestination[],
-  query: string,
-  limit = 8,
-): WillItFlyDestination[] {
+export function suggestDestinationSearch(destinations: WillItFlyDestination[], query: string, limit = 8): WillItFlyDestination[] {
   const normalizedQuery = normalizeSearchValue(query);
-  const candidates = destinations.map((destination) => {
-    const terms = searchTerms(destination);
-    let score = 3;
-
-    if (normalizedQuery) {
-      if (terms.some((term) => term === normalizedQuery)) score = 0;
-      else if (terms.some((term) => term.startsWith(normalizedQuery))) score = 1;
-      else if (terms.some((term) => term.includes(normalizedQuery))) score = 2;
-      else return null;
-    }
-
-    return { destination, score };
-  }).filter((entry): entry is { destination: WillItFlyDestination; score: number } => Boolean(entry));
-
-  return candidates
-    .sort((a, b) => a.score - b.score || a.destination.displayName.localeCompare(b.destination.displayName))
+  return destinations
+    .map((destination) => ({ destination, rank: matchRank(destination, normalizedQuery) }))
+    .filter((entry): entry is { destination: WillItFlyDestination; rank: number } => entry.rank !== null)
+    .sort((a, b) => a.rank - b.rank || a.destination.displayName.localeCompare(b.destination.displayName))
     .slice(0, limit)
     .map((entry) => entry.destination);
 }
