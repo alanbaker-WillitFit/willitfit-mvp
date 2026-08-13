@@ -118,6 +118,49 @@
   line-height: 1.35;
 }
 
+.hierarchy {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #e7ebf0;
+}
+
+.hierarchyTitle {
+  margin: 0 0 10px;
+  color: #7b8696;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hierarchyLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hierarchyLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 1px solid #dce5ef;
+  border-radius: 8px;
+  background: #fbfcfd;
+  color: #0d1b3d;
+  font-size: 0.85rem;
+  font-weight: 750;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.hierarchyLink:hover,
+.hierarchyLink:focus-visible {
+  border-color: #b9d7c2;
+  background: #f3fcf6;
+  color: #178b45;
+}
+
 .mapWrap {
   border-top: 1px solid #e5ebf2;
   min-height: 220px;
