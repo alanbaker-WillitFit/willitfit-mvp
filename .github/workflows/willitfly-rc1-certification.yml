@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: willitfly-rc1-certification-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   certify:
