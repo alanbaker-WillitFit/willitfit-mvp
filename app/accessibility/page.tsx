@@ -1,8 +1,16 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import PolicyPage from "@/components/PolicyPage";
 
-export const metadata: Metadata = { title: "Accessibility", description: "WillitFit accessibility commitment and contact route." };
+export const metadata: Metadata = {
+  title: "Accessibility",
+  description: "WillItFly accessibility commitment.",
+};
+
 export default function AccessibilityPage() {
-  return <PolicyPage title="Accessibility" intro="WillitFit is designed so travellers can check a bag using a keyboard, screen reader, zoomed text or reduced-motion settings."><section><h2 className="font-heading text-xl font-semibold text-navy-700">Our approach</h2><p className="mt-2">We use labelled controls, visible focus, meaningful headings, text alongside result colours and responsive layouts without horizontal scrolling.</p></section><section><h2 className="font-heading text-xl font-semibold text-navy-700">Tell us about a barrier</h2><p className="mt-2">If something prevents you from completing a check, <Link href="/contact" className="font-semibold text-green-700 underline">contact us</Link> and describe the page, device and assistive technology involved.</p></section></PolicyPage>;
+  return (
+    <PolicyPage title="Accessibility" intro="WillItFly is designed to make destination information usable with keyboards, screen readers, zoomed text and reduced-motion settings.">
+      <section><h2 className="font-heading text-xl font-semibold text-navy-700">Our approach</h2><p className="mt-2">We use labelled controls, visible focus, meaningful headings, text alongside visual states and responsive layouts.</p></section>
+      <section><h2 className="font-heading text-xl font-semibold text-navy-700">Report a barrier</h2><p className="mt-2">Accessibility issues should be reported through the published WillItFly contact channel so they can be reviewed and corrected.</p></section>
+    </PolicyPage>
+  );
 }
