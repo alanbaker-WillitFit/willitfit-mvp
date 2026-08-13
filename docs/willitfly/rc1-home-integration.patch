@@ -1,0 +1,50 @@
+diff --git a/app/page.tsx b/app/page.tsx
+index 7ad51eb..ff3bee8 100644
+--- a/app/page.tsx
++++ b/app/page.tsx
+@@ -1,90 +1,10 @@
+-import styles from "@/components/fly/WillItFlyPrelaunch.module.css";
+-
+-const QUESTIONS = [
+-  ["↔", "Do they drive on the left or right?"],
+-  ["£", "What currency is used?"],
+-  ["◷", "What's the time difference?"],
+-  ["☼", "What's the weather like?"],
+-  ["¤", "Is tipping expected?"],
+-  ["⌁", "Will my hair straighteners work?"],
+-] as const;
+-
+-const PROOF = [
+-  ["✓", "Trusted travel data", "Official and governed sources"],
+-  ["◎", "Built for travellers", "Practical questions, clear answers"],
+-  ["▣", "No personal data required", "Use the core experience without signing up"],
+-  ["⊕", "Growing coverage", "More destinations and topics added regularly"],
+-] as const;
+-
+-export default function HomePage() {
+-  return (
+-    <div className={styles.page}>
+-      <section className={styles.hero}>
+-        <div className={`${styles.container} ${styles.heroGrid}`}>
+-          <div>
+-            <div className={styles.kicker}><span className={styles.kickerDot} />WillItFly · coming soon</div>
+-            <h1>Smart answers for <span>every trip.</span></h1>
+-            <p className={styles.heroLead}>
+-              WillItFly gives you quick, practical answers to the travel questions that matter most —
+-              using governed destination data and clear source evidence so you can know before you go.
+-            </p>
+-          </div>
+-        </div>
+-      </section>
+-    </div>
+-  );
+-}
++import WillItFlyHomeExperience from "@/components/fly/WillItFlyHomeExperience";
++import { getWillItFlyRuntimeBundle } from "@/services/willitflyRuntime";
++
++export const revalidate = 300;
++
++export default async function HomePage() {
++  const runtime = await getWillItFlyRuntimeBundle();
++  return <WillItFlyHomeExperience destinations={runtime.destinations} />;
++}
