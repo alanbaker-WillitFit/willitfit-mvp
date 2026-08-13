@@ -10,9 +10,13 @@
     "deploy": "opennextjs-cloudflare build && wrangler deploy",
     "start": "next start",
     "lint": "next lint",
+    "lint:willitfly": "eslint \"app/fly/**/*.{ts,tsx}\" \"components/fly/**/*.{ts,tsx}\" \"lib/willitfly*.ts\" \"services/willitfly*.ts\" \"tests/willitfly*.test.{ts,tsx}\" app/page.tsx app/layout.tsx app/robots.ts app/sitemap.ts",
     "type-check": "tsc --noEmit",
+    "type-check:willitfly": "tsc -p tsconfig.willitfly.json --noEmit",
     "test": "vitest run --configLoader runner",
+    "test:willitfly": "vitest run --configLoader runner tests/willitflyCards.test.ts tests/willitflyGameLoop3.test.ts tests/willitflyGameLoop4.test.ts tests/willitflyGameProgression.test.ts tests/willitflyJourneyContext.test.ts tests/willitflyLabVisualContract.test.ts tests/willitflyLayerEngine.test.ts tests/willitflyLiveIntelligence.test.ts tests/willitflyMapProjection.test.ts tests/willitflyNavigation.test.ts tests/willitflyValueIntelligence.test.ts",
     "verify": "npm run type-check && npm run lint && npm test && npm run build",
+    "verify:willitfly": "npm run type-check:willitfly && npm run lint:willitfly && npm run test:willitfly && npm run build",
     "build:cloudflare": "opennextjs-cloudflare build",
     "deploy:dry-run": "opennextjs-cloudflare build && wrangler deploy --dry-run",
     "validate-build-content": "node archive/workbook-automation/content-automation/validate-build-content.mjs",
@@ -20,7 +24,7 @@
     "check-airline-policies": "node archive/workbook-automation/content-automation/check-airline-policies.mjs",
     "check:airlines": "npm run check-airline-policies",
     "export-runtime": "node archive/workbook-automation/content-automation/export-runtime.mjs",
-"publisher:dry-run": "node scripts/rc5-publisher/run.mjs --mode=dry-run"
+    "publisher:dry-run": "node scripts/rc5-publisher/run.mjs --mode=dry-run"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.20.1",
