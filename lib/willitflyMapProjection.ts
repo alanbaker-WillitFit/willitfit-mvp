@@ -22,14 +22,19 @@ export type WillItFlyMapCalibration = {
  * the geographic plate. Runtime remains authoritative for latitude/longitude;
  * these values describe only how that geographic truth is projected onto A01.
  *
+ * V2 was visually calibrated against the locked A01 source using the existing
+ * Sydney, Palma and Wales projection sentinels. The previous V1 plate bounds
+ * included too much of A01's decorative whitespace, which pushed European
+ * locations too far north and shifted the longitude plate east.
+ *
  * Keep this calibration build-owned. Never store per-destination x/y positions
  * in Runtime as a substitute for latitude/longitude.
  */
-export const WILLITFLY_HERO_MAP_CALIBRATION_V1: WillItFlyMapCalibration = {
-  left: 0.055,
-  right: 0.985,
-  top: 0.07,
-  bottom: 0.87,
+export const WILLITFLY_HERO_MAP_CALIBRATION_V2: WillItFlyMapCalibration = {
+  left: 0.034,
+  right: 0.964,
+  top: 0.157,
+  bottom: 0.848,
   maxLatitude: 83,
   minLatitude: -58,
 };
@@ -52,7 +57,7 @@ function round(value: number): number {
 export function projectLatLongToHeroMap(
   latitude: number | null | undefined,
   longitude: number | null | undefined,
-  calibration: WillItFlyMapCalibration = WILLITFLY_HERO_MAP_CALIBRATION_V1,
+  calibration: WillItFlyMapCalibration = WILLITFLY_HERO_MAP_CALIBRATION_V2,
 ): WillItFlyMapPoint | null {
   if (!isFiniteCoordinate(latitude) || !isFiniteCoordinate(longitude)) return null;
   if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
