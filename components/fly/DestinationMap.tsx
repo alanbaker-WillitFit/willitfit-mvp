@@ -88,6 +88,7 @@ export default function DestinationMap({
         <svg className={styles.routeOverlay} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
           {projectedJourney.slice(0, -1).map((item, index) => {
             const next = projectedJourney[index + 1];
+            if (!next) return null;
             return (
               <line
                 key={`${item.id}-${next.id}`}
