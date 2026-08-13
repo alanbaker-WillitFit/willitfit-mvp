@@ -45,6 +45,19 @@ function duplicateValues(values: string[]): Set<string> {
   return duplicates;
 }
 
+export function isApprovedFaq(record: RuntimeContentRecord): boolean {
+  const status = String(record.reviewStatus ?? "").trim().toLowerCase();
+  return record.published && ["approved", "reviewed"].includes(status);
+}
+
+export function selectPeopleOftenAskFaqs(
+  records: RuntimeContentRecord[],
+  limit = 3,
+): RuntimeContentRecord[] {
+  if (!Number.isInteger(limit) || limit <= 0) return [];
+  return records.filter(isApprovedFaq).slice(0, limit);
+}
+
 async function loadFaqs(): Promise<{
   content: RuntimeContentRecord[];
   source: "sheet" | "fallback";
