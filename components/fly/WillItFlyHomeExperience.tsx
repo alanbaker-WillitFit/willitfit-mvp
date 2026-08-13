@@ -3,6 +3,10 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import DestinationMap from "@/components/fly/DestinationMap";
+import {
+  resolveDestinationSearch,
+  suggestDestinationSearch,
+} from "@/lib/willitflyDestinationSearch";
 import type { WillItFlyDestination } from "@/services/willitflyRuntime";
 import styles from "./WillItFlyExperience.module.css";
 
@@ -16,8 +20,15 @@ export default function WillItFlyHomeExperience({ destinations }: Props) {
     () => [...destinations].sort((a, b) => a.displayName.localeCompare(b.displayName)),
     [destinations],
   );
-  const [slug, setSlug] = useState(sorted[0]?.slug ?? "");
-  const selected = sorted.find((item) => item.slug === slug) ?? sorted[0] ?? null;
+  const [query, setQuery] = useState("");
+  const selected = useMemo(
+    () => resolveDestinationSearch(sorted, query),
+    [query, sorted],
+  );
+  const suggestions = useMemo(
+    () => suggestDestinationSearch(sorted, query),
+    [query, sorted],
+  );
 
   function openDestination() {
     if (selected) router.push(`/fly/${selected.slug}`);
@@ -30,26 +41,57 @@ export default function WillItFlyHomeExperience({ destinations }: Props) {
           <div className={styles.heroIntro}>
             <span className={styles.eyebrow}>WillItFly · RC1</span>
             <h1>Know before you go.</h1>
-            <p>Choose a governed destination to see its location and open the practical travel answers available in Runtime.</p>
+            <p>Search a governed destination to see its location and open the practical travel answers available in Runtime.</p>
           </div>
 
           <div className={styles.searchPanel}>
-            <div className={styles.searchForm}>
-              <select
-                aria-label="Choose destination"
-                value={selected?.slug ?? ""}
-                onChange={(event) => setSlug(event.target.value)}
+            <form
+              className={styles.searchForm}
+              onSubmit={(event) => {
+                event.preventDefault();
+                openDestination();
+              }}
+            >
+              <input
+                aria-label="Search destination"
+                aria-describedby="destination-search-hint destination-search-status"
+                autoComplete="off"
                 disabled={sorted.length === 0}
-              >
-                {sorted.length === 0 ? <option>No governed destinations available</option> : null}
-                {sorted.map((destination) => (
-                  <option value={destination.slug} key={destination.destinationId}>
-                    {destination.displayName}
-                  </option>
-                ))}
-              </select>
-              <button type="button" onClick={openDestination} disabled={!selected}>View destination</button>
-            </div>
+                list="willitfly-destination-options"
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search country or destination"
+                type="search"
+                value={query}
+              />
+              <datalist id="willitfly-destination-options">
+                {suggestions.flatMap((destination) => [
+                  <option
+                    key={`${destination.destinationId}:name`}
+                    value={destination.displayName}
+                  />,
+                  ...destination.aliases.map((alias) => (
+                    <option
+                      key={`${destination.destinationId}:alias:${alias}`}
+                      label={`${destination.displayName} — alias`}
+                      value={alias}
+                    />
+                  )),
+                ])}
+              </datalist>
+              <button type="submit" disabled={!selected}>View destination</button>
+            </form>
+            <p className={styles.searchHint} id="destination-search-hint">
+              Search by governed destination name or alias, for example UK or USA.
+            </p>
+            <p className={styles.searchStatus} id="destination-search-status" aria-live="polite">
+              {sorted.length === 0
+                ? "No governed destinations are currently available."
+                : selected
+                  ? `Matched ${selected.displayName}.`
+                  : query.trim()
+                    ? "Choose a suggestion or enter a complete governed name or alias."
+                    : "Start typing to find a destination."}
+            </p>
           </div>
 
           <div className={styles.mapFrame}>
@@ -74,7 +116,11 @@ export default function WillItFlyHomeExperience({ destinations }: Props) {
                 <button type="button" className={styles.hierarchyLink} onClick={openDestination}>Open destination answers →</button>
               </>
             ) : (
-              <p className={styles.emptyNote}>Runtime is connected, but no governed destination is currently available.</p>
+              <p className={styles.emptyNote}>
+                {sorted.length === 0
+                  ? "Runtime is connected, but no governed destination is currently available."
+                  : "Search for a destination to preview its governed identity and map location."}
+              </p>
             )}
           </div>
         </div>
