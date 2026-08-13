@@ -163,8 +163,10 @@ function resolveFactCandidate(
 
   const nearest = valid.filter((candidate) => candidate.rank === nearestRank);
   if (nearest.length !== 1) return null;
-  if (isBlockingFact(nearest[0].fact)) return null;
-  return nearest[0].fact;
+  const selected = nearest[0];
+  if (!selected) return null;
+  if (isBlockingFact(selected.fact)) return null;
+  return selected.fact;
 }
 
 export function resolveTopicCard(input: ResolveTopicCardInput): ResolvedTopicCard {
