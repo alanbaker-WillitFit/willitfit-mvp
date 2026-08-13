@@ -102,15 +102,23 @@ const links: RuntimeCardFieldLink[] = [
   },
 ];
 
-function fact(topicId: WillItFlyTopicId, factKey: string, factValue: string, sourceId = "SRC-1", lastReviewed = "2026-08-11"): RuntimeDestinationFact {
+function fact(
+  topicId: WillItFlyTopicId,
+  factKey: string,
+  factValue: string,
+  sourceId = "SRC-1",
+  lastReviewed = "2026-08-11",
+  overrides: Partial<RuntimeDestinationFact> = {},
+): RuntimeDestinationFact {
   return {
-    factId: `FACT-${topicId}-${factKey}`,
+    factId: `FACT-${topicId}-${factKey}-${sourceId}`,
     destinationId: "DEST-TEST",
     topicId,
     factKey,
     factValue,
     sourceId,
     lastReviewed,
+    ...overrides,
   };
 }
 
@@ -153,6 +161,124 @@ describe("resolveTopicCard", () => {
 
     expect(result.status).toBe("unavailable");
     expect(result.missing).toContain("sim_esim");
+  });
+
+  it("prefers a direct destination fact over inherited parent and country candidates", () => {
+    const result = resolve("CONNECTIVITY", [
+      fact("CONNECTIVITY", "coverage_status", "DIRECT", "SRC-DIRECT"),
+      fact("CONNECTIVITY", "coverage_status", "PARENT", "SRC-PARENT", "2026-08-10", {
+        inheritedFromDestinationId: "DEST-PARENT",
+        inheritanceLevel: "PARENT_1",
+      }),
+      fact("CONNECTIVITY", "coverage_status", "COUNTRY", "SRC-COUNTRY", "2026-08-09", {
+        inheritedFromDestinationId: "DEST-COUNTRY",
+        inheritanceLevel: "COUNTRY",
+      }),
+      fact("CONNECTIVITY", "sim_esim", "SIM_AND_ESIM_AVAILABLE", "SRC-SIM"),
+    ]);
+
+    expect(result.status).toBe("ready");
+    expect(result.fields.coverageStatus).toBe("DIRECT");
+    expect(result.sourceIds).toContain("SRC-DIRECT");
+    expect(result.sourceIds).not.toContain("SRC-PARENT");
+    expect(result.sourceIds).not.toContain("SRC-COUNTRY");
+  });
+
+  it("uses the nearest explicit parent before farther parent and country fallback", () => {
+    const result = resolve("CONNECTIVITY", [
+      fact("CONNECTIVITY", "coverage_status", "NEAREST_PARENT", "SRC-P1", "2026-08-11", {
+        inheritedFromDestinationId: "DEST-PARENT-1",
+        inheritanceLevel: "PARENT_1",
+      }),
+      fact("CONNECTIVITY", "coverage_status", "FAR_PARENT", "SRC-P2", "2026-08-10", {
+        inheritedFromDestinationId: "DEST-PARENT-2",
+        inheritanceLevel: "PARENT_2",
+      }),
+      fact("CONNECTIVITY", "coverage_status", "COUNTRY", "SRC-COUNTRY", "2026-08-09", {
+        inheritedFromDestinationId: "DEST-COUNTRY",
+        inheritanceLevel: "COUNTRY",
+      }),
+      fact("CONNECTIVITY", "sim_esim", "SIM_AND_ESIM_AVAILABLE", "SRC-SIM"),
+    ]);
+
+    expect(result.status).toBe("ready");
+    expect(result.fields.coverageStatus).toBe("NEAREST_PARENT");
+    expect(result.factLineage.find((item) => item.factKey === "coverage_status")).toMatchObject({
+      sourceId: "SRC-P1",
+      inheritedFromDestinationId: "DEST-PARENT-1",
+      inheritanceLevel: "PARENT_1",
+    });
+  });
+
+  it("uses country fallback only when no direct or parent candidate exists", () => {
+    const result = resolve("CONNECTIVITY", [
+      fact("CONNECTIVITY", "coverage_status", "COUNTRY", "SRC-COUNTRY", "2026-08-09", {
+        inheritedFromDestinationId: "DEST-COUNTRY",
+        inheritanceLevel: "COUNTRY",
+      }),
+      fact("CONNECTIVITY", "sim_esim", "SIM_AND_ESIM_AVAILABLE", "SRC-SIM"),
+    ]);
+
+    expect(result.status).toBe("ready");
+    expect(result.fields.coverageStatus).toBe("COUNTRY");
+    expect(result.factLineage.find((item) => item.factKey === "coverage_status")).toMatchObject({
+      sourceId: "SRC-COUNTRY",
+      inheritanceLevel: "COUNTRY",
+    });
+  });
+
+  it("fails closed when the nearest inheritance rank is ambiguous", () => {
+    const result = resolve("CONNECTIVITY", [
+      fact("CONNECTIVITY", "coverage_status", "PARENT_A", "SRC-P1A", "2026-08-11", {
+        inheritedFromDestinationId: "DEST-PARENT-A",
+        inheritanceLevel: "PARENT_1",
+      }),
+      fact("CONNECTIVITY", "coverage_status", "PARENT_B", "SRC-P1B", "2026-08-11", {
+        inheritedFromDestinationId: "DEST-PARENT-B",
+        inheritanceLevel: "PARENT_1",
+      }),
+      fact("CONNECTIVITY", "sim_esim", "SIM_AND_ESIM_AVAILABLE", "SRC-SIM"),
+    ]);
+
+    expect(result.status).toBe("unavailable");
+    expect(result.missing).toContain("coverage_status");
+  });
+
+  it("blocks deeper fallback when the nearer candidate is stale or not applicable", () => {
+    for (const preparationState of ["STALE", "NOT_APPLICABLE"]) {
+      const result = resolve("CONNECTIVITY", [
+        fact("CONNECTIVITY", "coverage_status", "BLOCKER", "SRC-P1", "2026-08-11", {
+          inheritedFromDestinationId: "DEST-PARENT-1",
+          inheritanceLevel: "PARENT_1",
+          preparationState,
+        }),
+        fact("CONNECTIVITY", "coverage_status", "COUNTRY", "SRC-COUNTRY", "2026-08-09", {
+          inheritedFromDestinationId: "DEST-COUNTRY",
+          inheritanceLevel: "COUNTRY",
+        }),
+        fact("CONNECTIVITY", "sim_esim", "SIM_AND_ESIM_AVAILABLE", "SRC-SIM"),
+      ]);
+
+      expect(result.status).toBe("unavailable");
+      expect(result.missing).toContain("coverage_status");
+    }
+  });
+
+  it("fails closed for unknown or incomplete inheritance lineage", () => {
+    const result = resolve("CONNECTIVITY", [
+      fact("CONNECTIVITY", "coverage_status", "UNKNOWN", "SRC-UNKNOWN", "2026-08-11", {
+        inheritedFromDestinationId: "DEST-PARENT",
+        inheritanceLevel: "PARENT",
+      }),
+      fact("CONNECTIVITY", "coverage_status", "COUNTRY", "SRC-COUNTRY", "2026-08-09", {
+        inheritedFromDestinationId: "DEST-COUNTRY",
+        inheritanceLevel: "COUNTRY",
+      }),
+      fact("CONNECTIVITY", "sim_esim", "SIM_AND_ESIM_AVAILABLE", "SRC-SIM"),
+    ]);
+
+    expect(result.status).toBe("unavailable");
+    expect(result.missing).toContain("coverage_status");
   });
 
   it("returns official-confirmation-required for Entry only when the public source join resolves", () => {
