@@ -1,3 +1,4 @@
+import Link from "next/link";
 import DestinationMap from "@/components/fly/DestinationMap";
 import {
   currentTimeDifferenceFromUk,
@@ -9,6 +10,8 @@ import styles from "./DestinationCards.module.css";
 
 export type DestinationLocationCardProps = {
   destination: WillItFlyDestination;
+  parentDestination?: WillItFlyDestination | null;
+  childDestinations?: WillItFlyDestination[];
   averageFlightMinutes?: number | null;
   destinationTimeZone?: string | null;
   multipleTimeZones?: boolean;
@@ -16,6 +19,8 @@ export type DestinationLocationCardProps = {
 
 export default function DestinationLocationCard({
   destination,
+  parentDestination = null,
+  childDestinations = [],
   averageFlightMinutes = null,
   destinationTimeZone = null,
   multipleTimeZones = false,
@@ -28,6 +33,7 @@ export default function DestinationLocationCard({
   const timeDifference = timeDifferenceMinutes === null
     ? (multipleTimeZones ? "Multiple time zones" : null)
     : formatTimeDifference(timeDifferenceMinutes);
+  const hasHierarchyOptions = Boolean(parentDestination || childDestinations.length > 0);
 
   return (
     <aside className={styles.locationCard} aria-labelledby="destination-location-title">
@@ -59,6 +65,24 @@ export default function DestinationLocationCard({
               </div>
             ) : null}
           </dl>
+        ) : null}
+
+        {hasHierarchyOptions ? (
+          <nav className={styles.hierarchy} aria-label={`More ${destination.displayName} destination options`}>
+            <p className={styles.hierarchyTitle}>More destination options</p>
+            <div className={styles.hierarchyLinks}>
+              {parentDestination ? (
+                <Link href={`/fly/${parentDestination.slug}`} className={styles.hierarchyLink}>
+                  {parentDestination.displayName}
+                </Link>
+              ) : null}
+              {childDestinations.map((child) => (
+                <Link href={`/fly/${child.slug}`} className={styles.hierarchyLink} key={child.destinationId}>
+                  {child.displayName}
+                </Link>
+              ))}
+            </div>
+          </nav>
         ) : null}
       </div>
       <div className={styles.mapWrap}>
