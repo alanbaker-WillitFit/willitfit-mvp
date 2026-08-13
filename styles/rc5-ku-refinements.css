@@ -135,17 +135,27 @@
   font-weight: 750;
 }
 
-/* Temporarily disable Advanced / Oversized baggage while the product plan is reviewed.
-   The implementation and governed asset remain in the branch for a later controlled patch. */
-.wf-checker-step--advanced {
-  display: none !important;
+/* R061 — Advanced / Oversized baggage remains an approved RC5 discovery surface.
+   Use the recovered governed RC5 visual when the advanced journey is opened. */
+#advanced-baggage-options::before {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  margin: 14px 0 18px;
+  border: 1px solid #dce3ee;
+  border-radius: 14px;
+  background: #f7f5f2 url('/assets/special-baggage/advanced-oversized-baggage-hero-rc5.webp') center / cover no-repeat;
+  content: '';
 }
 
-/* Advanced / Oversized baggage is selected in the form and published in the result card. */
-#advanced-baggage-options::before,
 .wf-checker-step--advanced > .wf-card::before {
-  display: none;
-  content: none;
+  display: block;
+  width: min(100%, 360px);
+  aspect-ratio: 1 / 1;
+  margin: 0 auto 16px;
+  border-radius: 12px;
+  background: #f7f5f2 url('/assets/special-baggage/advanced-oversized-baggage-hero-rc5.webp') center / cover no-repeat;
+  content: '';
 }
 
 .wf-special-result-card__status {
@@ -211,6 +221,10 @@
 
   .wf-travel-essentials--rail .wf-essential-card__image img {
     object-fit: contain;
+  }
+
+  #advanced-baggage-options::before {
+    aspect-ratio: 16 / 9;
   }
 }
 
