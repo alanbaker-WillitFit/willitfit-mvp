@@ -3,31 +3,31 @@ import { projectLatLongToHeroMap } from "@/lib/willitflyMapProjection";
 import { getWillItFlyMarkerFrame } from "@/lib/willitflyMarker";
 
 describe("WillItFly hero map projection", () => {
-  it("projects Sydney into the south-east map quadrant", () => {
+  it("projects Sydney onto the east coast of Australia on A01", () => {
     const point = projectLatLongToHeroMap(-33.8688, 151.2093);
     expect(point).not.toBeNull();
-    expect(point!.xPercent).toBeGreaterThan(85);
-    expect(point!.xPercent).toBeLessThan(95);
-    expect(point!.yPercent).toBeGreaterThan(65);
-    expect(point!.yPercent).toBeLessThan(80);
+    expect(point!.xPercent).toBeGreaterThan(87);
+    expect(point!.xPercent).toBeLessThan(91);
+    expect(point!.yPercent).toBeGreaterThan(70);
+    expect(point!.yPercent).toBeLessThan(76);
   });
 
-  it("projects Palma near the centre-right of Europe", () => {
+  it("projects Palma onto the western Mediterranean on A01", () => {
     const point = projectLatLongToHeroMap(39.5696, 2.6502);
     expect(point).not.toBeNull();
-    expect(point!.xPercent).toBeGreaterThan(48);
-    expect(point!.xPercent).toBeLessThan(57);
-    expect(point!.yPercent).toBeGreaterThan(27);
-    expect(point!.yPercent).toBeLessThan(36);
+    expect(point!.xPercent).toBeGreaterThan(49);
+    expect(point!.xPercent).toBeLessThan(53);
+    expect(point!.yPercent).toBeGreaterThan(35);
+    expect(point!.yPercent).toBeLessThan(39);
   });
 
-  it("projects Wales independently from a country-level pin", () => {
+  it("projects Wales onto Great Britain independently from a country-level pin", () => {
     const point = projectLatLongToHeroMap(52.1307, -3.7837);
     expect(point).not.toBeNull();
     expect(point!.xPercent).toBeGreaterThan(47);
-    expect(point!.xPercent).toBeLessThan(55);
-    expect(point!.yPercent).toBeGreaterThan(20);
-    expect(point!.yPercent).toBeLessThan(30);
+    expect(point!.xPercent).toBeLessThan(51);
+    expect(point!.yPercent).toBeGreaterThan(29);
+    expect(point!.yPercent).toBeLessThan(33);
   });
 
   it("fails closed for missing or invalid coordinates", () => {
