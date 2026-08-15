@@ -247,6 +247,9 @@ export default function WillItFlyHomeExperience({ destinations }: Props) {
                   <div>
                     <h2>{selected.displayName}</h2>
                     <p>{selected.destinationType.toLowerCase()}</p>
+                    {selected.destinationType === "COUNTRY" && selected.capitalName ? (
+                      <p>Capital · {selected.capitalName}</p>
+                    ) : null}
                   </div>
                 </div>
                 {journeyOpen ? (
