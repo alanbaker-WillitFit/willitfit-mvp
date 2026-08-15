@@ -40,6 +40,7 @@ export type WillItFlyDestination = {
   aliases: string[];
   latitude: number | null;
   longitude: number | null;
+  capitalName?: string;
   displayFlagCode?: string;
   displayFlagEmoji?: string;
   countryFlagAssetId?: string;
@@ -128,7 +129,9 @@ function reviewedValue(value: string | undefined): boolean {
 }
 
 function numberValue(value: string | undefined): number | null {
-  const parsed = Number(String(value ?? "").trim());
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return null;
+  const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -313,6 +316,7 @@ function mapDestination(row: RuntimeRow, previewMode: boolean): WillItFlyDestina
     aliases: idList(row.Aliases),
     latitude: numberValue(row.Latitude),
     longitude: numberValue(row.Longitude),
+    capitalName: row.Capital_Name || undefined,
     displayFlagCode: row.Display_Flag_Code || undefined,
     displayFlagEmoji: row.Display_Flag_Emoji || undefined,
     countryFlagAssetId: row.Country_Flag_Asset_ID || undefined,
