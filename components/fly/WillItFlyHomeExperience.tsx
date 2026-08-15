@@ -95,144 +95,142 @@ export default function WillItFlyHomeExperience({ destinations }: Props) {
   return (
     <div className={styles.page}>
       <section className={styles.hero}>
-        <div className={styles.container}>
-          <div className={styles.heroIntro}>
-            <span className={styles.eyebrow}>WillItFly</span>
-            <h1>Know before you go.</h1>
-            <p>Search a destination to see its location and practical travel answers, with source-backed information shown where available.</p>
-          </div>
+        <div className={styles.heroMap}>
+          <h1 className="sr-only">Know before you go.</h1>
+          <DestinationMap
+            destinationName={selected?.displayName ?? "WillItFly"}
+            latitude={selected?.latitude ?? null}
+            longitude={selected?.longitude ?? null}
+            journeyPoints={selected ? journeyPoints : undefined}
+            className={styles.heroDestinationMap}
+          />
 
-          <div className={styles.searchPanel}>
-            <form
-              className={styles.searchForm}
-              onSubmit={(event) => {
-                event.preventDefault();
-                openDestination();
-              }}
-            >
-              <input
-                aria-label="Where are you travelling?"
-                aria-describedby="destination-search-hint destination-search-status"
-                autoComplete="off"
-                disabled={sorted.length === 0}
-                list="willitfly-destination-options"
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Where are you travelling?"
-                type="search"
-                value={query}
-              />
-              <datalist id="willitfly-destination-options">
-                {suggestions.flatMap((destination) => [
-                  <option key={`${destination.destinationId}:name`} value={destination.displayName} />,
-                  ...destination.aliases.map((alias) => (
-                    <option
-                      key={`${destination.destinationId}:alias:${alias}`}
-                      label={`${destination.displayName} — alias`}
-                      value={alias}
-                    />
-                  )),
-                ])}
-              </datalist>
-              <button type="submit" disabled={!selected}>View destination</button>
-            </form>
-            <p className={styles.searchHint} id="destination-search-hint">
-              Search by destination name or recognised alias, for example UK or USA.
-            </p>
-            <p className={styles.searchStatus} id="destination-search-status" aria-live="polite">
-              {sorted.length === 0
-                ? "No destinations are currently available."
-                : selected
-                  ? `Matched ${selected.displayName}.`
-                  : query.trim()
-                    ? "Choose a suggestion or enter a complete destination name or alias."
-                    : "Start typing to find a destination."}
-            </p>
-
-            {selected ? (
-              <div className={styles.journeyDisclosure}>
-                <button
-                  type="button"
-                  className={styles.journeyToggle}
-                  aria-expanded={journeyOpen}
-                  aria-controls="willitfly-journey-options"
-                  onClick={() => setJourneyOpen(current => !current)}
-                >
-                  {journeyOpen ? "Fewer journey options" : "More journey options…"}
-                </button>
-
-                {journeyOpen ? (
-                  <div className={styles.journeyOptions} id="willitfly-journey-options">
-                    <div className={styles.journeyField}>
-                      <label htmlFor="willitfly-origin">Travelling from</label>
-                      <input
-                        id="willitfly-origin"
-                        list="willitfly-origin-options"
-                        onChange={(event) => setOriginQuery(event.target.value)}
-                        type="search"
-                        value={originQuery}
+          <div className={styles.heroSearchDock}>
+            <div className={styles.searchPanel}>
+              <form
+                className={styles.searchForm}
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  openDestination();
+                }}
+              >
+                <input
+                  aria-label="Where are you travelling?"
+                  aria-describedby="destination-search-hint destination-search-status"
+                  autoComplete="off"
+                  disabled={sorted.length === 0}
+                  list="willitfly-destination-options"
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Where are you travelling?"
+                  type="search"
+                  value={query}
+                />
+                <datalist id="willitfly-destination-options">
+                  {suggestions.flatMap((destination) => [
+                    <option key={`${destination.destinationId}:name`} value={destination.displayName} />,
+                    ...destination.aliases.map((alias) => (
+                      <option
+                        key={`${destination.destinationId}:alias:${alias}`}
+                        label={`${destination.displayName} — alias`}
+                        value={alias}
                       />
-                      <datalist id="willitfly-origin-options">
-                        {originSuggestions.map(item => <option key={item.destinationId} value={item.displayName} />)}
-                      </datalist>
-                      <span>{origin ? `Origin: ${origin.displayName}` : "Choose a governed origin."}</span>
-                    </div>
+                    )),
+                  ])}
+                </datalist>
+                <button type="submit" disabled={!selected}>View destination</button>
+              </form>
+              <p className={styles.searchHint} id="destination-search-hint">
+                Search by destination name or recognised alias, for example UK or USA.
+              </p>
+              <p className={styles.searchStatus} id="destination-search-status" aria-live="polite">
+                {sorted.length === 0
+                  ? "No destinations are currently available."
+                  : selected
+                    ? `Matched ${selected.displayName}.`
+                    : query.trim()
+                      ? "Choose a suggestion or enter a complete destination name or alias."
+                      : "Start typing to find a destination."}
+              </p>
 
-                    <div className={styles.journeyField}>
-                      <label htmlFor="willitfly-month">Travel month <span>(optional)</span></label>
-                      <select id="willitfly-month" value={travelMonth} onChange={(event) => setTravelMonth(event.target.value)}>
-                        <option value="">No month selected</option>
-                        {MONTHS.map(month => <option key={month} value={month}>{month}</option>)}
-                      </select>
-                    </div>
+              {selected ? (
+                <div className={styles.journeyDisclosure}>
+                  <button
+                    type="button"
+                    className={styles.journeyToggle}
+                    aria-expanded={journeyOpen}
+                    aria-controls="willitfly-journey-options"
+                    onClick={() => setJourneyOpen(current => !current)}
+                  >
+                    {journeyOpen ? "Fewer journey options" : "More journey options…"}
+                  </button>
 
-                    <div className={styles.journeyField}>
-                      <label htmlFor="willitfly-extra-stop">Add another destination <span>(optional)</span></label>
-                      <div className={styles.extraStopRow}>
+                  {journeyOpen ? (
+                    <div className={styles.journeyOptions} id="willitfly-journey-options">
+                      <div className={styles.journeyField}>
+                        <label htmlFor="willitfly-origin">Travelling from</label>
                         <input
-                          id="willitfly-extra-stop"
-                          list="willitfly-extra-options"
-                          onChange={(event) => setExtraQuery(event.target.value)}
-                          placeholder="Search another destination"
+                          id="willitfly-origin"
+                          list="willitfly-origin-options"
+                          onChange={(event) => setOriginQuery(event.target.value)}
                           type="search"
-                          value={extraQuery}
+                          value={originQuery}
                         />
-                        <button type="button" onClick={addExtraDestination} disabled={!extraCandidate}>Add</button>
+                        <datalist id="willitfly-origin-options">
+                          {originSuggestions.map(item => <option key={item.destinationId} value={item.displayName} />)}
+                        </datalist>
+                        <span>{origin ? `Origin: ${origin.displayName}` : "Choose a governed origin."}</span>
                       </div>
-                      <datalist id="willitfly-extra-options">
-                        {extraSuggestions.map(item => <option key={item.destinationId} value={item.displayName} />)}
-                      </datalist>
+
+                      <div className={styles.journeyField}>
+                        <label htmlFor="willitfly-month">Travel month <span>(optional)</span></label>
+                        <select id="willitfly-month" value={travelMonth} onChange={(event) => setTravelMonth(event.target.value)}>
+                          <option value="">No month selected</option>
+                          {MONTHS.map(month => <option key={month} value={month}>{month}</option>)}
+                        </select>
+                      </div>
+
+                      <div className={styles.journeyField}>
+                        <label htmlFor="willitfly-extra-stop">Add another destination <span>(optional)</span></label>
+                        <div className={styles.extraStopRow}>
+                          <input
+                            id="willitfly-extra-stop"
+                            list="willitfly-extra-options"
+                            onChange={(event) => setExtraQuery(event.target.value)}
+                            placeholder="Search another destination"
+                            type="search"
+                            value={extraQuery}
+                          />
+                          <button type="button" onClick={addExtraDestination} disabled={!extraCandidate}>Add</button>
+                        </div>
+                        <datalist id="willitfly-extra-options">
+                          {extraSuggestions.map(item => <option key={item.destinationId} value={item.displayName} />)}
+                        </datalist>
+                      </div>
+
+                      {extraDestinations.length > 0 ? (
+                        <ol className={styles.journeyStops} aria-label="Additional journey destinations">
+                          {extraDestinations.map((item, index) => (
+                            <li key={item.destinationId}>
+                              <span>{index + 2}. {item.displayName}</span>
+                              <button
+                                type="button"
+                                onClick={() => setExtraDestinationIds(current => current.filter(id => id !== item.destinationId))}
+                              >
+                                Remove
+                              </button>
+                            </li>
+                          ))}
+                        </ol>
+                      ) : null}
                     </div>
-
-                    {extraDestinations.length > 0 ? (
-                      <ol className={styles.journeyStops} aria-label="Additional journey destinations">
-                        {extraDestinations.map((item, index) => (
-                          <li key={item.destinationId}>
-                            <span>{index + 2}. {item.displayName}</span>
-                            <button
-                              type="button"
-                              onClick={() => setExtraDestinationIds(current => current.filter(id => id !== item.destinationId))}
-                            >
-                              Remove
-                            </button>
-                          </li>
-                        ))}
-                      </ol>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           </div>
+        </div>
 
-          <div className={styles.mapFrame}>
-            <DestinationMap
-              destinationName={selected?.displayName ?? "WillItFly"}
-              latitude={selected?.latitude ?? null}
-              longitude={selected?.longitude ?? null}
-              journeyPoints={selected ? journeyPoints : undefined}
-            />
-          </div>
-
+        <div className={styles.container}>
           <div
             className={styles.identityCard}
             data-destination-id={selected?.destinationId || undefined}
