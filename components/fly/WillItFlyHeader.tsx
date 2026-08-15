@@ -134,7 +134,14 @@ function NavigationLink({ route, onNavigate }: { route: RuntimeNavigationRoute; 
 export default function WillItFlyHeader({ routes }: { routes: RuntimeNavigationRoute[] }) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const navigationRoutes = useMemo(() => routes.length > 0 ? routes : RC1_SHELL_ROUTES, [routes]);
+  const navigationRoutes = useMemo(() => {
+    const publishedRoutes = new Map(
+      routes
+        .filter((route) => route.active && route.publish)
+        .map((route) => [route.routeKey.toLowerCase(), route]),
+    );
+    return RC1_SHELL_ROUTES.map((shellRoute) => publishedRoutes.get(shellRoute.routeKey.toLowerCase()) ?? shellRoute);
+  }, [routes]);
 
   useEffect(() => {
     if (!open) return;
