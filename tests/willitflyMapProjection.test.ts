@@ -30,9 +30,10 @@ describe("WillItFly hero map projection", () => {
     expect(point!.yPercent).toBeLessThan(33);
   });
 
-  it("fails closed for missing or invalid coordinates", () => {
+  it("fails closed for missing, blank-sentinel or invalid coordinates", () => {
     expect(projectLatLongToHeroMap(null, 2)).toBeNull();
     expect(projectLatLongToHeroMap(52, undefined)).toBeNull();
+    expect(projectLatLongToHeroMap(0, 0)).toBeNull();
     expect(projectLatLongToHeroMap(95, 2)).toBeNull();
     expect(projectLatLongToHeroMap(52, 181)).toBeNull();
   });
