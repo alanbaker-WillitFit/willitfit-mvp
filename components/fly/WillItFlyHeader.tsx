@@ -52,8 +52,8 @@ const RC1_SHELL_ROUTES: RuntimeNavigationRoute[] = [
 
 function Brand() {
   return (
-    <span className={styles.brand}>
-      <strong>Will<span>It</span>Fly</strong>
+    <span className={styles.brandAsset}>
+      <img src="/lab/assets/willitfly-logo.png" alt="WillItFly" />
       <small>Know Before You Go.</small>
     </span>
   );
