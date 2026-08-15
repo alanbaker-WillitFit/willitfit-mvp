@@ -53,6 +53,12 @@ function round(value: number): number {
  * Returns null rather than guessing when coordinates are absent, invalid, or
  * outside the latitude represented by the artwork. Longitude uses the full
  * world span; latitude is mapped inside A01's calibrated visible plate.
+ *
+ * The current Runtime loader historically coerces an empty numeric cell to 0.
+ * A paired 0/0 coordinate therefore cannot be trusted as governed location
+ * evidence and must fail closed rather than drawing a false marker in the Gulf
+ * of Guinea. This guard can be removed once the Runtime numeric parser is
+ * migrated to preserve blank cells as null.
  */
 export function projectLatLongToHeroMap(
   latitude: number | null | undefined,
@@ -60,6 +66,7 @@ export function projectLatLongToHeroMap(
   calibration: WillItFlyMapCalibration = WILLITFLY_HERO_MAP_CALIBRATION_V2,
 ): WillItFlyMapPoint | null {
   if (!isFiniteCoordinate(latitude) || !isFiniteCoordinate(longitude)) return null;
+  if (latitude === 0 && longitude === 0) return null;
   if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
   if (latitude < calibration.minLatitude || latitude > calibration.maxLatitude) return null;
 
