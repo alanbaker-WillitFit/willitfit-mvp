@@ -1,9 +1,54 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { RuntimeNavigationRoute } from "@/lib/willitflyNavigation";
 import styles from "./WillItFlyExperience.module.css";
+
+const RC1_SHELL_ROUTES: RuntimeNavigationRoute[] = [
+  {
+    navigationId: "rc1-destinations",
+    position: 1,
+    displayOrder: 1,
+    routeKey: "destinations",
+    label: "Destinations",
+    path: "/fly",
+    linkType: "INTERNAL",
+    targetProduct: "WillItFly",
+    active: true,
+    publish: true,
+    surface: "HEADER",
+    external: false,
+  },
+  {
+    navigationId: "rc1-sources",
+    position: 2,
+    displayOrder: 2,
+    routeKey: "sources",
+    label: "Sources",
+    path: "/fly/sources",
+    linkType: "INTERNAL",
+    targetProduct: "WillItFly",
+    active: true,
+    publish: true,
+    surface: "HEADER",
+    external: false,
+  },
+  {
+    navigationId: "rc1-travel-updates",
+    position: 3,
+    displayOrder: 3,
+    routeKey: "travel-updates",
+    label: "Travel Updates",
+    path: "/fly/travel-updates",
+    linkType: "INTERNAL",
+    targetProduct: "WillItFly",
+    active: true,
+    publish: true,
+    surface: "HEADER",
+    external: false,
+  },
+];
 
 function Brand() {
   return (
@@ -35,6 +80,7 @@ function NavigationLink({ route, onNavigate }: { route: RuntimeNavigationRoute; 
 export default function WillItFlyHeader({ routes }: { routes: RuntimeNavigationRoute[] }) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const navigationRoutes = useMemo(() => routes.length > 0 ? routes : RC1_SHELL_ROUTES, [routes]);
 
   useEffect(() => {
     if (!open) return;
@@ -63,7 +109,7 @@ export default function WillItFlyHeader({ routes }: { routes: RuntimeNavigationR
         </Link>
 
         <nav className={styles.desktopNav} aria-label="Primary navigation">
-          {routes.map((route) => <NavigationLink key={route.navigationId} route={route} />)}
+          {navigationRoutes.map((route) => <NavigationLink key={route.navigationId} route={route} />)}
         </nav>
 
         <button
@@ -81,11 +127,9 @@ export default function WillItFlyHeader({ routes }: { routes: RuntimeNavigationR
 
       {open ? (
         <nav id="willitfly-mobile-navigation" className={styles.mobileMenu} aria-label="Mobile navigation">
-          {routes.length > 0 ? routes.map((route) => (
+          {navigationRoutes.map((route) => (
             <NavigationLink key={route.navigationId} route={route} onNavigate={() => setOpen(false)} />
-          )) : (
-            <span className={styles.menuEmpty}>Navigation is not published yet.</span>
-          )}
+          ))}
         </nav>
       ) : null}
     </header>
