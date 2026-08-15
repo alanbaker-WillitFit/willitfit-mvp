@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./DestinationMap.module.css";
-import { projectLatLongToHeroMap } from "@/lib/willitflyMapProjection";
+import { projectLatLongToHeroMap, type WillItFlyMapPoint } from "@/lib/willitflyMapProjection";
 import { WILLITFLY_HERO_MAP_ASSET } from "@/lib/willitflyAssets";
 
 export type JourneyMapPoint = {
@@ -21,6 +21,31 @@ export type DestinationMapProps = {
   className?: string;
 };
 
+type RenderMetrics = {
+  containerWidth: number;
+  containerHeight: number;
+  imageWidth: number;
+  imageHeight: number;
+};
+
+function projectIntoCoverFrame(point: WillItFlyMapPoint, metrics: RenderMetrics | null): WillItFlyMapPoint {
+  if (!metrics) return point;
+
+  const { containerWidth, containerHeight, imageWidth, imageHeight } = metrics;
+  if (containerWidth <= 0 || containerHeight <= 0 || imageWidth <= 0 || imageHeight <= 0) return point;
+
+  const scale = Math.max(containerWidth / imageWidth, containerHeight / imageHeight);
+  const renderedWidth = imageWidth * scale;
+  const renderedHeight = imageHeight * scale;
+  const cropX = (renderedWidth - containerWidth) / 2;
+  const cropY = (renderedHeight - containerHeight) / 2;
+
+  return {
+    xPercent: ((point.xPercent / 100) * renderedWidth - cropX) / containerWidth * 100,
+    yPercent: ((point.yPercent / 100) * renderedHeight - cropY) / containerHeight * 100,
+  };
+}
+
 export default function DestinationMap({
   destinationName,
   latitude,
@@ -29,6 +54,10 @@ export default function DestinationMap({
   mapSrc = WILLITFLY_HERO_MAP_ASSET,
   className,
 }: DestinationMapProps) {
+  const figureRef = useRef<HTMLElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const [metrics, setMetrics] = useState<RenderMetrics | null>(null);
+
   const point = useMemo(
     () => projectLatLongToHeroMap(latitude, longitude),
     [latitude, longitude],
@@ -39,24 +68,61 @@ export default function DestinationMap({
       .filter((item): item is JourneyMapPoint & { point: NonNullable<ReturnType<typeof projectLatLongToHeroMap>> } => Boolean(item.point)),
     [journeyPoints],
   );
-  const hasJourney = projectedJourney.length > 1;
+
+  useEffect(() => {
+    const figure = figureRef.current;
+    const image = imageRef.current;
+    if (!figure || !image) return;
+
+    const sync = () => {
+      if (!image.naturalWidth || !image.naturalHeight) return;
+      setMetrics({
+        containerWidth: figure.clientWidth,
+        containerHeight: figure.clientHeight,
+        imageWidth: image.naturalWidth,
+        imageHeight: image.naturalHeight,
+      });
+    };
+
+    sync();
+    const observer = new ResizeObserver(sync);
+    observer.observe(figure);
+    image.addEventListener("load", sync);
+
+    return () => {
+      observer.disconnect();
+      image.removeEventListener("load", sync);
+    };
+  }, [mapSrc]);
+
+  const renderedPoint = useMemo(
+    () => point ? projectIntoCoverFrame(point, metrics) : null,
+    [metrics, point],
+  );
+  const renderedJourney = useMemo(
+    () => projectedJourney.map((item) => ({ ...item, point: projectIntoCoverFrame(item.point, metrics) })),
+    [metrics, projectedJourney],
+  );
+
+  const hasJourney = renderedJourney.length > 1;
   const activePoints = hasJourney
-    ? projectedJourney
-    : point
-      ? [{ id: "destination", name: destinationName, latitude, longitude, point }]
+    ? renderedJourney
+    : renderedPoint
+      ? [{ id: "destination", name: destinationName, latitude, longitude, point: renderedPoint }]
       : [];
 
   return (
     <figure
+      ref={figureRef}
       className={[styles.map, className].filter(Boolean).join(" ")}
       data-has-location={activePoints.length > 0 ? "true" : "false"}
-      aria-label={hasJourney ? "Map showing the selected journey" : point ? `Map showing ${destinationName}` : "WillItFly world map"}
+      aria-label={hasJourney ? "Map showing the selected journey" : renderedPoint ? `Map showing ${destinationName}` : "WillItFly world map"}
     >
-      <img className={styles.mapImage} src={mapSrc} alt="" aria-hidden="true" />
+      <img ref={imageRef} className={styles.mapImage} src={mapSrc} alt="" aria-hidden="true" />
       {hasJourney ? (
         <svg className={styles.routeOverlay} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          {projectedJourney.slice(0, -1).map((item, index) => {
-            const next = projectedJourney[index + 1];
+          {renderedJourney.slice(0, -1).map((item, index) => {
+            const next = renderedJourney[index + 1];
             if (!next) return null;
             return (
               <line
@@ -83,8 +149,8 @@ export default function DestinationMap({
       ))}
       <figcaption className="sr-only">
         {hasJourney
-          ? `Journey from ${projectedJourney.map(item => item.name).join(" to ")}.`
-          : point
+          ? `Journey from ${renderedJourney.map(item => item.name).join(" to ")}.`
+          : renderedPoint
             ? `${destinationName} is marked on the WillItFly world map.`
             : "No governed map coordinate is available for this destination."}
       </figcaption>
