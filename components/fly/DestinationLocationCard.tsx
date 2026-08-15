@@ -49,6 +49,9 @@ export default function DestinationLocationCard({
           {isCountry ? "Country" : destination.destinationType.toLowerCase()}
           {destination.regionId ? ` · Region ${destination.regionId}` : ""}
         </p>
+        {isCountry && destination.capitalName ? (
+          <p className={styles.locationMeta}>Capital · {destination.capitalName}</p>
+        ) : null}
 
         {(flightTime || timeDifference) ? (
           <dl className={styles.journeyFacts}>
