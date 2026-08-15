@@ -230,38 +230,30 @@ export default function WillItFlyHomeExperience({ destinations }: Props) {
           </div>
         </div>
 
-        <div className={styles.container}>
-          <div
-            className={styles.identityCard}
-            data-destination-id={selected?.destinationId || undefined}
-            data-origin-id={origin?.destinationId || undefined}
-            data-travel-month={travelMonth || undefined}
-          >
-            {selected ? (
-              <>
-                <div className={styles.identityHeader}>
-                  {selected.displayFlagEmoji ? <span className={styles.flag} aria-hidden="true">{selected.displayFlagEmoji}</span> : null}
-                  <div>
-                    <h2>{selected.displayName}</h2>
-                    <p>{selected.destinationType.toLowerCase()}</p>
-                  </div>
+        {selected ? (
+          <div className={styles.container}>
+            <div
+              className={styles.identityCard}
+              data-destination-id={selected.destinationId}
+              data-origin-id={origin?.destinationId || undefined}
+              data-travel-month={travelMonth || undefined}
+            >
+              <div className={styles.identityHeader}>
+                {selected.displayFlagEmoji ? <span className={styles.flag} aria-hidden="true">{selected.displayFlagEmoji}</span> : null}
+                <div>
+                  <h2>{selected.displayName}</h2>
+                  <p>{selected.destinationType.toLowerCase()}</p>
                 </div>
-                <p className={styles.identityMeta}>
-                  From {origin?.displayName || "your selected origin"}
-                  {travelMonth ? ` · ${travelMonth}` : ""}
-                  {extraDestinations.length ? ` · ${extraDestinations.length + 1} stops` : ""}
-                </p>
-                <button type="button" className={styles.hierarchyLink} onClick={openDestination}>Open destination answers →</button>
-              </>
-            ) : (
-              <p className={styles.emptyNote}>
-                {sorted.length === 0
-                  ? "No destinations are currently available."
-                  : "Search for a destination to preview its location."}
+              </div>
+              <p className={styles.identityMeta}>
+                From {origin?.displayName || "your selected origin"}
+                {travelMonth ? ` · ${travelMonth}` : ""}
+                {extraDestinations.length ? ` · ${extraDestinations.length + 1} stops` : ""}
               </p>
-            )}
+              <button type="button" className={styles.hierarchyLink} onClick={openDestination}>Open destination answers →</button>
+            </div>
           </div>
-        </div>
+        ) : null}
       </section>
     </div>
   );
