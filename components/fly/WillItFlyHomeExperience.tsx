@@ -233,34 +233,34 @@ export default function WillItFlyHomeExperience({ destinations }: Props) {
               ) : null}
             </div>
           </div>
-        </div>
 
-        {selected ? (
-          <div className={styles.container}>
-            <div
-              className={styles.identityCard}
-              data-destination-id={selected.destinationId}
-              data-origin-id={origin?.destinationId || undefined}
-              data-travel-month={travelMonth || undefined}
-            >
-              <div className={styles.identityHeader}>
-                {selected.displayFlagEmoji ? <span className={styles.flag} aria-hidden="true">{selected.displayFlagEmoji}</span> : null}
-                <div>
-                  <h2>{selected.displayName}</h2>
-                  <p>{selected.destinationType.toLowerCase()}</p>
+          {selected ? (
+            <div className={styles.identityDock}>
+              <div
+                className={styles.identityCard}
+                data-destination-id={selected.destinationId}
+                data-origin-id={origin?.destinationId || undefined}
+                data-travel-month={travelMonth || undefined}
+              >
+                <div className={styles.identityHeader}>
+                  {selected.displayFlagEmoji ? <span className={styles.flag} aria-hidden="true">{selected.displayFlagEmoji}</span> : null}
+                  <div>
+                    <h2>{selected.displayName}</h2>
+                    <p>{selected.destinationType.toLowerCase()}</p>
+                  </div>
                 </div>
+                {journeyOpen ? (
+                  <p className={styles.identityMeta}>
+                    From {origin?.displayName || "your selected origin"}
+                    {travelMonth ? ` · ${travelMonth}` : ""}
+                    {extraDestinations.length ? ` · ${extraDestinations.length + 1} stops` : ""}
+                  </p>
+                ) : null}
+                <button type="button" className={styles.hierarchyLink} onClick={openDestination}>Open destination answers →</button>
               </div>
-              {journeyOpen ? (
-                <p className={styles.identityMeta}>
-                  From {origin?.displayName || "your selected origin"}
-                  {travelMonth ? ` · ${travelMonth}` : ""}
-                  {extraDestinations.length ? ` · ${extraDestinations.length + 1} stops` : ""}
-                </p>
-              ) : null}
-              <button type="button" className={styles.hierarchyLink} onClick={openDestination}>Open destination answers →</button>
             </div>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </section>
     </div>
   );
