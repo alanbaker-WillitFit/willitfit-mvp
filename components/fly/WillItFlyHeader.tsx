@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { RuntimeNavigationRoute } from "@/lib/willitflyNavigation";
@@ -52,9 +53,20 @@ const RC1_SHELL_ROUTES: RuntimeNavigationRoute[] = [
 
 function Brand() {
   return (
-    <span className={styles.brandAsset}>
-      <img src="/lab/assets/willitfly-logo.png" alt="WillItFly" />
-      <small>Know Before You Go.</small>
+    <span style={{ display: "grid", gap: 2 }}>
+      <span style={{ position: "relative", display: "block", width: 154, height: 34 }}>
+        <Image
+          src="/lab/assets/willitfly-logo.png"
+          alt="WillItFly"
+          fill
+          sizes="154px"
+          style={{ objectFit: "contain", objectPosition: "left center" }}
+          priority
+        />
+      </span>
+      <small style={{ color: "#637083", fontSize: "0.7rem", letterSpacing: "0.02em" }}>
+        Know Before You Go.
+      </small>
     </span>
   );
 }
