@@ -68,6 +68,7 @@ export default function WillItFlyHomeExperience({ destinations }: Props) {
     [extraQuery, sorted],
   );
   const journeyPoints = useMemo(() => {
+    if (!journeyOpen) return undefined;
     const points = [origin, selected, ...extraDestinations].filter(
       (item): item is WillItFlyDestination => Boolean(item),
     );
@@ -77,7 +78,7 @@ export default function WillItFlyHomeExperience({ destinations }: Props) {
       latitude: item.latitude,
       longitude: item.longitude,
     }));
-  }, [extraDestinations, origin, selected]);
+  }, [extraDestinations, journeyOpen, origin, selected]);
 
   function openDestination() {
     if (selected) router.push(`/fly/${selected.slug}`);
@@ -120,7 +121,11 @@ export default function WillItFlyHomeExperience({ destinations }: Props) {
                   autoComplete="off"
                   disabled={sorted.length === 0}
                   list="willitfly-destination-options"
-                  onChange={(event) => setQuery(event.target.value)}
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    setJourneyOpen(false);
+                    setExtraDestinationIds([]);
+                  }}
                   placeholder="Where are you travelling?"
                   type="search"
                   value={query}
@@ -245,11 +250,13 @@ export default function WillItFlyHomeExperience({ destinations }: Props) {
                   <p>{selected.destinationType.toLowerCase()}</p>
                 </div>
               </div>
-              <p className={styles.identityMeta}>
-                From {origin?.displayName || "your selected origin"}
-                {travelMonth ? ` · ${travelMonth}` : ""}
-                {extraDestinations.length ? ` · ${extraDestinations.length + 1} stops` : ""}
-              </p>
+              {journeyOpen ? (
+                <p className={styles.identityMeta}>
+                  From {origin?.displayName || "your selected origin"}
+                  {travelMonth ? ` · ${travelMonth}` : ""}
+                  {extraDestinations.length ? ` · ${extraDestinations.length + 1} stops` : ""}
+                </p>
+              ) : null}
               <button type="button" className={styles.hierarchyLink} onClick={openDestination}>Open destination answers →</button>
             </div>
           </div>
