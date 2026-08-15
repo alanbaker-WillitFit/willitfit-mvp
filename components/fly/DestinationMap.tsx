@@ -1,16 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import styles from "./DestinationMap.module.css";
 import { projectLatLongToHeroMap } from "@/lib/willitflyMapProjection";
-import {
-  getWillItFlyMarkerFrame,
-  WILLITFLY_LOCATION_MARKER_FRAME_MS,
-} from "@/lib/willitflyMarker";
-import {
-  WILLITFLY_HERO_MAP_ASSET,
-  WILLITFLY_LOCATION_MARKER_ASSETS,
-} from "@/lib/willitflyAssets";
+import { WILLITFLY_HERO_MAP_ASSET } from "@/lib/willitflyAssets";
 
 export type JourneyMapPoint = {
   id: string;
@@ -25,7 +18,6 @@ export type DestinationMapProps = {
   longitude: number | null | undefined;
   journeyPoints?: JourneyMapPoint[];
   mapSrc?: string;
-  markerFrames?: readonly [string, string, string];
   className?: string;
 };
 
@@ -35,7 +27,6 @@ export default function DestinationMap({
   longitude,
   journeyPoints,
   mapSrc = WILLITFLY_HERO_MAP_ASSET,
-  markerFrames = WILLITFLY_LOCATION_MARKER_ASSETS,
   className,
 }: DestinationMapProps) {
   const point = useMemo(
@@ -49,28 +40,6 @@ export default function DestinationMap({
     [journeyPoints],
   );
   const hasJourney = projectedJourney.length > 1;
-  const [step, setStep] = useState(0);
-  const [reducedMotion, setReducedMotion] = useState(false);
-
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () => setReducedMotion(media.matches);
-    sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
-  }, []);
-
-  useEffect(() => {
-    if ((!point && projectedJourney.length === 0) || reducedMotion) return;
-    const timer = window.setInterval(
-      () => setStep(current => current + 1),
-      WILLITFLY_LOCATION_MARKER_FRAME_MS,
-    );
-    return () => window.clearInterval(timer);
-  }, [point, projectedJourney.length, reducedMotion]);
-
-  const frameIndex = reducedMotion ? 1 : getWillItFlyMarkerFrame(step);
-  const markerSrc = markerFrames[frameIndex] ?? markerFrames[0];
   const activePoints = hasJourney
     ? projectedJourney
     : point
@@ -109,7 +78,7 @@ export default function DestinationMap({
           aria-hidden="true"
           data-journey-position={hasJourney ? index : undefined}
         >
-          <img src={markerSrc} alt="" />
+          <span className={styles.markerDot} />
         </span>
       ))}
       <figcaption className="sr-only">
