@@ -11,19 +11,27 @@ type FactLine = {
 };
 
 const CONTROLLED_LABELS: Record<string, string> = {
-  MOBILE_COVERAGE_AVAILABLE_VARIES_BY_OPERATOR_LOCATION: "Mobile coverage is available and varies by operator and location",
-  MOBILE_SERVICE_AVAILABLE_COVERAGE_NOT_ESTABLISHED: "Mobile service is available; local coverage should be checked",
-  SIM_AND_ESIM_AVAILABLE: "SIM and eSIM options are available",
-  SIM_AVAILABLE_ESIM_NOT_CONFIRMED: "SIM options are available; eSIM has not been confirmed",
-  CARDS_CONTACTLESS_COMMON_CASH_AVAILABLE: "Cards and contactless are common; cash remains available",
-  CARDS_AND_CASH_AVAILABLE_CHECK_ACCEPTANCE: "Cards and cash are available; check individual acceptance",
-  CASH_AVAILABLE_CHECK_CARD_ACCEPTANCE: "Cash is available; check individual card acceptance",
-  PAYMENT_SYSTEMS_AVAILABLE_CHECK_CASH_CARD_ACCEPTANCE: "Payment systems are available; check cash and card acceptance",
-  CHECK_OFFICIAL_REQUIREMENTS: "Check the official entry requirements for your circumstances",
+  MOBILE_COVERAGE_AVAILABLE_VARIES_BY_OPERATOR_LOCATION: "Mobile coverage varies by operator and location",
+  MOBILE_SERVICE_AVAILABLE_COVERAGE_NOT_ESTABLISHED: "Mobile service available; check local coverage",
+  SIM_AND_ESIM_AVAILABLE: "SIM and eSIM available",
+  SIM_AVAILABLE_ESIM_NOT_CONFIRMED: "SIM available; eSIM not confirmed",
+  CARDS_CONTACTLESS_COMMON_CASH_AVAILABLE: "Cards/contactless common; cash available",
+  CARDS_AND_CASH_AVAILABLE_CHECK_ACCEPTANCE: "Cards and cash available; check acceptance",
+  CASH_AVAILABLE_CHECK_CARD_ACCEPTANCE: "Cash available; check card acceptance",
+  PAYMENT_SYSTEMS_AVAILABLE_CHECK_CASH_CARD_ACCEPTANCE: "Check cash and card acceptance",
+  CHECK_OFFICIAL_REQUIREMENTS: "Check official requirements",
 };
 
 const ENTRY_CONTEXT_LIMITATION =
-  "Entry requirements depend on your passport, residence, route, purpose and travel date. WillItFly does not determine personal eligibility in RC1.";
+  "Entry requirements depend on passport, residence, route, purpose and travel date. WillItFly does not determine personal eligibility in RC1.";
+
+const TOPIC_SYMBOLS: Record<ResolvedTopicCard["topicId"], string> = {
+  POWER: "⌁",
+  CONNECTIVITY: "◉",
+  MONEY: "▭",
+  ENTRY: "◇",
+  WEATHER: "☼",
+};
 
 function controlledLabel(value: unknown): string {
   if (typeof value !== "string") return "";
@@ -39,7 +47,7 @@ function factLines(card: ResolvedTopicCard): FactLine[] {
       return [
         { label: "Voltage", value: card.fields.voltage ? `${card.fields.voltage} V` : "" },
         { label: "Frequency", value: card.fields.frequency ? `${card.fields.frequency} Hz` : "" },
-        { label: "Plug type", value: plugs ? `Type ${plugs}` : "" },
+        { label: "Plug", value: plugs ? `Type ${plugs}` : "" },
         { label: "Adapter", value: controlledLabel(card.fields.adapterImplication) },
       ].filter((line) => Boolean(line.value));
     }
@@ -65,7 +73,7 @@ function factLines(card: ResolvedTopicCard): FactLine[] {
 }
 
 function statusLabel(card: ResolvedTopicCard): string {
-  if (card.status === "ready") return "Ready";
+  if (card.status === "ready") return "Reviewed";
   if (card.status === "official-confirmation-required") return "Official check";
   return "Unavailable";
 }
@@ -78,42 +86,52 @@ function statusClass(card: ResolvedTopicCard): string {
 
 export default function TopicSummaryCard({ card }: TopicSummaryCardProps) {
   const lines = factLines(card);
+  const summaryLines = lines.slice(0, 2);
+  const detailLines = lines.slice(2);
 
   return (
     <article className={styles.topicCard} data-topic={card.topicId} data-status={card.status}>
-      <div className={styles.topicHeader}>
-        <h2>{card.title}</h2>
-        <span className={statusClass(card)}>{statusLabel(card)}</span>
-      </div>
+      <div className={styles.topicIcon} aria-hidden="true">{TOPIC_SYMBOLS[card.topicId]}</div>
+      <h2>{card.title}</h2>
+      <span className={statusClass(card)}>{statusLabel(card)}</span>
 
       {card.status === "unavailable" ? (
-        <p className={styles.message}>This information is still being prepared. WillItFly will not guess or substitute unsupported data.</p>
+        <p className={styles.message}>Not yet available. WillItFly will not guess.</p>
       ) : (
         <>
-          {lines.length > 0 ? (
-            <div className={styles.factGrid}>
-              {lines.map((line) => (
-                <div className={styles.fact} key={`${card.cardId}-${line.label}`}>
-                  <span className={styles.factLabel}>{line.label}</span>
-                  <span className={styles.factValue}>{line.value}</span>
+          {summaryLines.length > 0 ? (
+            <dl className={styles.summaryFacts}>
+              {summaryLines.map((line) => (
+                <div key={`${card.cardId}-${line.label}`}>
+                  <dt>{line.label}</dt>
+                  <dd>{line.value}</dd>
                 </div>
               ))}
-            </div>
+            </dl>
           ) : null}
 
-          {card.topicId === "ENTRY" && card.status === "official-confirmation-required" ? (
-            <p className={styles.message}>{ENTRY_CONTEXT_LIMITATION}</p>
-          ) : null}
-
-          {card.status === "official-confirmation-required" && card.publicSource ? (
-            <a
-              className={styles.sourceLink}
-              href={card.publicSource.url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Check official requirements →
-            </a>
+          {(detailLines.length > 0 || card.topicId === "ENTRY" || card.publicSource) ? (
+            <details className={styles.cardDetails}>
+              <summary>Details</summary>
+              {detailLines.length > 0 ? (
+                <dl className={styles.detailFacts}>
+                  {detailLines.map((line) => (
+                    <div key={`${card.cardId}-detail-${line.label}`}>
+                      <dt>{line.label}</dt>
+                      <dd>{line.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : null}
+              {card.topicId === "ENTRY" && card.status === "official-confirmation-required" ? (
+                <p>{ENTRY_CONTEXT_LIMITATION}</p>
+              ) : null}
+              {card.status === "official-confirmation-required" && card.publicSource ? (
+                <a href={card.publicSource.url} target="_blank" rel="noopener noreferrer">
+                  Check official requirements →
+                </a>
+              ) : null}
+            </details>
           ) : null}
         </>
       )}
