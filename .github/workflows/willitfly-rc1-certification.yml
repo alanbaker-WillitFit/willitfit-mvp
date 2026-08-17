@@ -41,5 +41,6 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      # Feature-branch certification must execute against the exact implementation head.
       - name: Certify WillItFly RC1 boundary
         run: npm run verify:willitfly
