@@ -71,7 +71,7 @@ export default function DestinationGlobe({
         <div className={styles.globeShadow} />
         <div className={styles.globe}>
           <div
-            className={styles.texture}
+            className={`${styles.texture} ${!orientation ? styles.textureIdle : ""}`}
             style={{
               backgroundImage: `url(${WILLITFLY_HERO_MAP_ASSET})`,
               backgroundPosition: `${texturePosition.xPercent}% ${texturePosition.yPercent}%`,
