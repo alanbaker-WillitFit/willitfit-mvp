@@ -75,13 +75,27 @@ export default async function WillItFlyDestinationPage({ params }: PageProps) {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        <p className={styles.eyebrow}>WillItFly destination guide</p>
-        <h1 className={styles.heading}>{destination.displayName}</h1>
-        <p className={styles.lead}>
-          Practical travel answers from reviewed sources. If something has not been verified, WillItFly shows it as unavailable rather than guessing.
-        </p>
+        <header className={styles.destinationHeader}>
+          <div>
+            <p className={styles.eyebrow}>Destinations</p>
+            <div className={styles.destinationTitleRow}>
+              <h1 className={styles.heading}>{destination.displayName}</h1>
+              {destination.displayFlagEmoji ? (
+                <span className={styles.headerFlag} aria-hidden="true">{destination.displayFlagEmoji}</span>
+              ) : null}
+            </div>
+            <p className={styles.lead}>
+              Essential travel information from reviewed sources. Unverified information remains unavailable rather than being guessed.
+            </p>
+          </div>
+        </header>
 
         <div className={styles.layout}>
+          <p className={styles.cardsLabel}>Essential information for travellers</p>
+          <section className={styles.cards} aria-label={`${destination.displayName} essential travel information`}>
+            {cards.map((card) => <TopicSummaryCard card={card} key={card.cardId} />)}
+          </section>
+
           <DestinationLocationCard
             destination={destination}
             parentDestination={parentDestination}
@@ -90,9 +104,6 @@ export default async function WillItFlyDestinationPage({ params }: PageProps) {
             destinationTimeZone={destinationTimeZone.timeZone}
             multipleTimeZones={destinationTimeZone.multiple}
           />
-          <section className={styles.cards} aria-label={`${destination.displayName} travel information`}>
-            {cards.map((card) => <TopicSummaryCard card={card} key={card.cardId} />)}
-          </section>
         </div>
 
         <DestinationMoreAbout
