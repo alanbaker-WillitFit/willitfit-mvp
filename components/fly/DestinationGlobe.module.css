@@ -81,11 +81,13 @@
   z-index: 4;
 }
 
-.routeOverlay line {
+.routeOverlay path {
+  fill: none;
   stroke: rgba(13, 27, 61, 0.5);
   stroke-width: 0.48;
   stroke-linecap: round;
   stroke-dasharray: 1.4 1.1;
+  vector-effect: non-scaling-stroke;
 }
 
 .marker {
