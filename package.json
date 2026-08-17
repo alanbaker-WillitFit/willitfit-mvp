@@ -11,7 +11,7 @@
     "start": "next start",
     "lint": "eslint \"app/**/*.{ts,tsx}\" \"components/**/*.{ts,tsx}\" \"lib/**/*.ts\" \"services/**/*.ts\" \"tests/willitfly*.test.{ts,tsx}\"",
     "type-check": "tsc -p tsconfig.json --noEmit --incremental false",
-    "test": "vitest run --configLoader runner tests/willitflyCards.test.ts tests/willitflyGameLoop3.test.ts tests/willitflyGameLoop4.test.ts tests/willitflyGameProgression.test.ts tests/willitflyJourneyContext.test.ts tests/willitflyLabVisualContract.test.ts tests/willitflyLayerEngine.test.ts tests/willitflyLiveIntelligence.test.ts tests/willitflyMapProjection.test.ts tests/willitflyNavigation.test.ts tests/willitflyValueIntelligence.test.ts",
+    "test": "vitest run --configLoader runner tests/willitflyCards.test.ts tests/willitflyDestinationSearch.test.ts tests/willitflyGameLoop3.test.ts tests/willitflyGameLoop4.test.ts tests/willitflyGameProgression.test.ts tests/willitflyGlobeProjection.test.ts tests/willitflyJourneyContext.test.ts tests/willitflyLabVisualContract.test.ts tests/willitflyLayerEngine.test.ts tests/willitflyLiveIntelligence.test.ts tests/willitflyMapProjection.test.ts tests/willitflyNavigation.test.ts tests/willitflyValueIntelligence.test.ts",
     "verify": "npm run type-check && npm run lint && npm test && npm run build",
     "verify:willitfly": "npm run verify",
     "build:cloudflare": "opennextjs-cloudflare build",

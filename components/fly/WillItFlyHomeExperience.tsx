@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import DestinationMap from "@/components/fly/DestinationMap";
+import DestinationGlobe from "@/components/fly/DestinationGlobe";
 import {
   resolveDestinationSearch,
   suggestDestinationSearch,
@@ -97,8 +97,8 @@ export default function WillItFlyHomeExperience({ destinations }: Props) {
     <div className={styles.page}>
       <section className={styles.hero}>
         <div className={styles.heroMap}>
-          <h1 className="sr-only">Know before you go.</h1>
-          <DestinationMap
+          <h1 className="sr-only">Know before you fly.</h1>
+          <DestinationGlobe
             destinationName={selected?.displayName ?? "WillItFly"}
             latitude={selected?.latitude ?? null}
             longitude={selected?.longitude ?? null}
