@@ -25,13 +25,32 @@ const CONTROLLED_LABELS: Record<string, string> = {
 const ENTRY_CONTEXT_LIMITATION =
   "Entry requirements depend on passport, residence, route, purpose and travel date. WillItFly does not determine personal eligibility in RC1.";
 
-const TOPIC_SYMBOLS: Record<ResolvedTopicCard["topicId"], string> = {
-  POWER: "⌁",
-  CONNECTIVITY: "◉",
-  MONEY: "▭",
-  ENTRY: "◇",
-  WEATHER: "☼",
-};
+function TopicIcon({ topicId }: { topicId: ResolvedTopicCard["topicId"] }) {
+  const common = {
+    viewBox: "0 0 24 24",
+    width: 22,
+    height: 22,
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.6,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+
+  switch (topicId) {
+    case "POWER":
+      return <svg {...common}><path d="M8 3v6M16 3v6M6 9h12v3a6 6 0 0 1-12 0V9ZM12 18v3" /></svg>;
+    case "CONNECTIVITY":
+      return <svg {...common}><path d="M4 9a12 12 0 0 1 16 0M7 12a8 8 0 0 1 10 0M10 15a4 4 0 0 1 4 0" /><circle cx="12" cy="18" r="1" fill="currentColor" stroke="none" /></svg>;
+    case "MONEY":
+      return <svg {...common}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 9h18M7 15h4" /></svg>;
+    case "ENTRY":
+      return <svg {...common}><rect x="6" y="3" width="12" height="18" rx="2" /><path d="M9 7h6M9 11h4M9 16h6" /></svg>;
+    case "WEATHER":
+      return <svg {...common}><path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6.2 9.4 4.5 4.5 0 0 0 7 18Z" /><path d="M16 4V2M20 6l1.5-1.5M12 5l-1.5-1.5" /></svg>;
+  }
+}
 
 function controlledLabel(value: unknown): string {
   if (typeof value !== "string") return "";
@@ -91,7 +110,7 @@ export default function TopicSummaryCard({ card }: TopicSummaryCardProps) {
 
   return (
     <article className={styles.topicCard} data-topic={card.topicId} data-status={card.status}>
-      <div className={styles.topicIcon} aria-hidden="true">{TOPIC_SYMBOLS[card.topicId]}</div>
+      <div className={styles.topicIcon}><TopicIcon topicId={card.topicId} /></div>
       <h2>{card.title}</h2>
       <span className={statusClass(card)}>{statusLabel(card)}</span>
 
