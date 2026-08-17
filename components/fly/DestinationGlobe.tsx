@@ -18,6 +18,18 @@ export type DestinationGlobeProps = {
   className?: string;
 };
 
+function routePath(
+  from: { xPercent: number; yPercent: number },
+  to: { xPercent: number; yPercent: number },
+) {
+  const midX = (from.xPercent + to.xPercent) / 2;
+  const midY = (from.yPercent + to.yPercent) / 2;
+  const distance = Math.hypot(to.xPercent - from.xPercent, to.yPercent - from.yPercent);
+  const lift = Math.min(10, Math.max(3, distance * 0.18));
+  const controlY = Math.max(4, midY - lift);
+  return `M ${from.xPercent} ${from.yPercent} Q ${midX} ${controlY} ${to.xPercent} ${to.yPercent}`;
+}
+
 export default function DestinationGlobe({
   destinationName,
   latitude,
@@ -84,12 +96,9 @@ export default function DestinationGlobe({
                 const next = projectedJourney[index + 1];
                 if (!next || !point.projected?.visible || !next.projected?.visible) return null;
                 return (
-                  <line
+                  <path
                     key={`${point.id}-${next.id}`}
-                    x1={point.projected.xPercent}
-                    y1={point.projected.yPercent}
-                    x2={next.projected.xPercent}
-                    y2={next.projected.yPercent}
+                    d={routePath(point.projected, next.projected)}
                   />
                 );
               })}
