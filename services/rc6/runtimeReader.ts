@@ -3,6 +3,7 @@ import {
   type Rc6DatasetContract,
   type Rc6DatasetName,
 } from "./runtimeContract";
+import { rc6DatasetConsumptionBlock } from "./consumptionPolicy";
 import { validateRc6Headers } from "./schemaRegistry";
 
 export type Rc6RuntimeReadState =
@@ -25,9 +26,15 @@ export async function readRc6Dataset<T extends Record<string, string>>(
   reader: Rc6TabReader,
 ): Promise<Rc6RuntimeReadResult<T>> {
   const dataset = RC6_RUNTIME_DATASETS[name];
+  const consumptionBlock = rc6DatasetConsumptionBlock(name);
 
-  if (dataset.state === "HELD") {
-    return { dataset, state: "HELD_OR_NOT_PUBLIC", rows: [] };
+  if (dataset.state === "HELD" || consumptionBlock) {
+    return {
+      dataset,
+      state: "HELD_OR_NOT_PUBLIC",
+      rows: [],
+      ...(consumptionBlock ? { error: consumptionBlock } : {}),
+    };
   }
 
   try {
