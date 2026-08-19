@@ -1,4 +1,4 @@
-import { readRc6Dataset } from "./runtimeReader";
+import { readRc6Dataset, type Rc6TabReader } from "./runtimeReader";
 
 type RuntimeRow = Record<string, string>;
 
@@ -32,17 +32,18 @@ function controlMap(rows: readonly RuntimeRow[]): Map<string, string> {
   return map;
 }
 
-export async function getRc6Settings(): Promise<Rc6Settings> {
-  const result = await readRc6Dataset<RuntimeRow>("settings");
-  if (result.kind !== "READY_WITH_ROWS") return DEFAULT_SETTINGS;
+export async function getRc6Settings(reader: Rc6TabReader): Promise<Rc6Settings> {
+  const result = await readRc6Dataset<RuntimeRow>("settings", reader);
+  if (result.state !== "READY_WITH_ROWS") return DEFAULT_SETTINGS;
 
   const controls = controlMap(result.rows);
   const navEnabled = normaliseBoolean(controls.get("willitfly_nav_enabled"));
   const navUrl = controls.get("willitfly_nav_url") ?? "";
+  const safeNavUrl = /^https:\/\//i.test(navUrl) ? navUrl : "";
 
   return Object.freeze({
-    willItFlyNavEnabled: navEnabled && /^https:\/\//i.test(navUrl),
-    willItFlyNavUrl: /^https:\/\//i.test(navUrl) ? navUrl : "",
+    willItFlyNavEnabled: navEnabled && Boolean(safeNavUrl),
+    willItFlyNavUrl: safeNavUrl,
     runtimeRole: controls.get("runtime_role") ?? "",
     publicationState: controls.get("publication_state") ?? "",
     cutoverAuthorised: normaliseBoolean(controls.get("cutover_authorised")),
