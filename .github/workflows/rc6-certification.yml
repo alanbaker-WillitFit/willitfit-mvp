@@ -134,7 +134,7 @@ jobs:
         run: npm run build
 
       - name: Build OpenNext Cloudflare candidate
-        run: npm run build:cf
+        run: npm run build:cloudflare
 
       - name: Upload dependency candidate files
         uses: actions/upload-artifact@v4
