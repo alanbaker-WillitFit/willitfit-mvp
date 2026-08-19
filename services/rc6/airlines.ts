@@ -97,10 +97,12 @@ export async function getRc6Airlines(reader: Rc6TabReader): Promise<Rc6AirlineId
 
   const ids = new Set<string>();
   const slugs = new Set<string>();
+  const iataCodes = new Set<string>();
   for (const airline of mapped) {
-    if (ids.has(airline.airlineId) || slugs.has(airline.slug)) return [];
+    if (ids.has(airline.airlineId) || slugs.has(airline.slug) || iataCodes.has(airline.iataCode)) return [];
     ids.add(airline.airlineId);
     slugs.add(airline.slug);
+    iataCodes.add(airline.iataCode);
   }
 
   return mapped;
