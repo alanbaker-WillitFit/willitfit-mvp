@@ -6,74 +6,73 @@ This register records concrete contradictions discovered during the RC6 allowlis
 
 ## CD-001 — Airline rule sizing method/operator dropped from Runtime_RC6
 
-**Status:** OPEN — BUILD BLOCKER FOR AIRLINE-RULE CONSUMPTION
+**Status:** CLOSED — SOURCE + PROJECTION + BUILD CONTRACT REPAIRED 2026-08-19
 
-### Observed Runtime_RC6 contract
+### Original defect
 
-`00.3_Build_Contract` marks `03_Airline Rules` as READY with 425 rows.
+`00.3_Build_Contract` marked `03_Airline Rules` as READY with 425 rows, but Runtime_RC6 originally omitted the governed `Sizing Method` and `Limit Operator` fields that remained present in Mother_RC6.
 
-The current Runtime_RC6 `03_Airline Rules` projection exposes these headers:
+Without those fields, the Build could only distinguish fixed-dimension, linear-total and strict/inclusive limits by parsing prose or reconstructing governance from the numeric columns. That workaround was rejected.
 
-- Rule ID
-- Airline ID
-- Fare
-- Bag Type
-- Length cm
-- Width cm
-- Depth cm
-- Weight kg
-- Linear Size cm
-- Wheels Included
-- Handles Included
-- Fits Under Seat
-- Soft Bag Guidance
-- Rule Wording
-- Source Reference
-- Last Checked
-- Review Status
-- Publish
-- Notes
+### Source repair
 
-It does **not** expose `Sizing Method` or `Limit Operator`.
+A full Mother_RC6 audit found six published Virgin Atlantic rows with malformed/misaligned sizing semantics:
 
-### Upstream Mother_RC6 evidence
+- `VA-PER-20260721-041`
+- `VA-CAB-20260721-041`
+- `VA-PER-20260721-042`
+- `VA-CAB-20260721-042`
+- `VA-PER-20260721-043`
+- `VA-CAB-20260721-043`
 
-Mother_RC6 `03_Airline Rules` still contains governed fields including:
+All six were corrected at source to:
 
-- `Sizing Method`
-- `Limit Operator`
-- `Entitlement Status`
-- `Applicability Conditions`
-- `Weight Basis`
+- `Sizing Method = fixed dimensions`
+- `Limit Operator = lte`
 
-Examples confirm the fields are materially required rather than decorative. Fixed-dimension records are governed as `fixed dimensions` / `lte`. Checked-baggage records include linear-total rules where the operator distinguishes strict limits such as `under 275 cm` / `less than 158 cm` from inclusive limits such as `must not exceed 158 cm`.
+The remaining malformed-looking upstream rows were unpublished/fail-closed and were not promoted into the published contract.
 
-### Why this blocks the Build
+### Runtime projection repair
 
-The Build could infer an operator from `Rule Wording`, `Soft Bag Guidance`, `Notes`, or the presence/absence of fixed dimensions. That is rejected.
+Runtime_RC6 `03_Airline Rules` now projects `Sizing Method` and `Limit Operator` for all 425 published rules as stored values.
 
-Doing so would move governance into application code, make wording changes capable of changing checker maths, and recreate the RC5 failure mode where the Build carried assumptions not represented by the Runtime contract.
+The repaired published contract resolves to:
 
-RC6 rule consumption therefore remains fail-closed until Runtime_RC6 projects the governed sizing semantics explicitly.
+- 275 fixed-dimension rules;
+- 150 linear-total rules;
+- 0 published weight-only rules;
+- 0 published rules with unresolved sizing semantics.
 
-### Required resolution
+Exactly five governed rules use the strict `<` (`lt`) operator:
 
-The governed Runtime projection for `03_Airline Rules` must expose, at minimum, the fields required to deterministically construct the Build sizing rule without prose inference:
+- `EZY-CHK-20260801-001`
+- `EZY-CHK-20260801-002`
+- `EZY-CHK-20260801-003`
+- `MAS-CHK-20260801-001`
+- `MAS-CHK-20260801-002`
 
-- `Sizing Method`
-- `Limit Operator`
+All other published rules use `lte`.
 
-Any additional governed applicability/weight semantics required by the final checker contract should be projected deliberately rather than inferred.
+The Runtime Build Contract and Runtime Certification notes were updated to state that both governed fields are mandatory in future projections.
 
-After projection correction:
+### Build contract repair
 
-1. re-read Runtime_RC6 headers and representative fixed/linear/weight cases;
-2. update the RC6 schema registry;
-3. implement the RC6 airline-rule mapper;
-4. test fixed dimensions, `lt`, `lte`, weight-only/incomplete cases and publication gates;
-5. reconcile representative Runtime rows against the pure RC6 fit engine;
-6. only then wire the checker to Runtime rules.
+The RC6 schema registry now requires both `Sizing Method` and `Limit Operator` for `03_Airline Rules`.
 
-### Explicit non-workaround
+The temporary airline-rule consumption block has been removed. The canonical Runtime reader may now consume the dataset only when the full RC6 schema is present.
 
-No RC6 production code may parse prose to derive `Sizing Method` or `Limit Operator` while CD-001 is open.
+Regression coverage now proves:
+
+1. the canonical `03_Airline Rules` tab can be consumed when the governed fields are present;
+2. a future projection that drops either governed field fails closed at schema validation;
+3. no prose inference is required or permitted.
+
+### Continuing rule
+
+`Sizing Method` and `Limit Operator` are part of the RC6 Runtime contract, not optional implementation hints. Any future Mother → Runtime publication path must preserve them explicitly.
+
+No RC6 production code may derive these semantics from `Rule Wording`, `Soft Bag Guidance`, `Notes`, or numeric-column heuristics as a substitute for the governed fields.
+
+### Next implementation step
+
+Build the RC6 airline-rule mapper against the repaired Runtime contract, then test fixed dimensions, `lt`, `lte`, publication gates, completeness/uniqueness and representative Runtime-to-fit-engine reconciliation before wiring the checker UI.
