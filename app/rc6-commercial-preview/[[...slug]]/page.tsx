@@ -2,16 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Rc6CommercialPageRenderer from "@/components/rc6/Rc6CommercialPageRenderer";
+import { safeJsonLd } from "@/lib/jsonLd";
 import { rc6CommercialPageBySlug } from "@/services/rc6/commercial";
+import { resolveRc6PageSeo } from "@/services/rc6/pageMetadata";
 import { loadRc6DraftCommercialCatalogue } from "@/services/rc6/runtimeBinding";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-export const metadata: Metadata = {
-  title: "RC6 Commercial Preview",
-  robots: { index: false, follow: false },
-};
 
 type PageProps = {
   params: Promise<{ slug?: string[] }>;
@@ -19,6 +16,35 @@ type PageProps = {
 
 function previewEnabled(): boolean {
   return process.env.RC6_DRAFT_COMMERCIAL_ENABLED === "true";
+}
+
+const PREVIEW_METADATA: Metadata = {
+  title: "RC6 Commercial Preview",
+  robots: { index: false, follow: false },
+};
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  if (!previewEnabled()) return PREVIEW_METADATA;
+
+  const { slug = [] } = await params;
+  const resolvedSlug = slug.join("/");
+  if (!resolvedSlug) return PREVIEW_METADATA;
+
+  const catalogue = await loadRc6DraftCommercialCatalogue();
+  if (!catalogue) return PREVIEW_METADATA;
+
+  const resolvedPage = rc6CommercialPageBySlug(catalogue, resolvedSlug);
+  if (!resolvedPage) return PREVIEW_METADATA;
+
+  const seo = resolveRc6PageSeo(resolvedPage.page);
+  if (!seo) return PREVIEW_METADATA;
+
+  return {
+    title: seo.title,
+    description: seo.description,
+    alternates: { canonical: seo.canonicalUrl },
+    robots: { index: false, follow: false },
+  };
 }
 
 export default async function Rc6CommercialPreviewPage({ params }: PageProps) {
@@ -61,5 +87,16 @@ export default async function Rc6CommercialPreviewPage({ params }: PageProps) {
   const resolvedPage = rc6CommercialPageBySlug(catalogue, resolvedSlug);
   if (!resolvedPage) notFound();
 
-  return <Rc6CommercialPageRenderer catalogue={catalogue} resolvedPage={resolvedPage} />;
+  const seo = resolveRc6PageSeo(resolvedPage.page);
+  if (!seo) notFound();
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(seo.structuredData) }}
+      />
+      <Rc6CommercialPageRenderer catalogue={catalogue} resolvedPage={resolvedPage} />
+    </>
+  );
 }
