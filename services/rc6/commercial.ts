@@ -71,11 +71,8 @@ const KEY_BY_DATASET: Readonly<Record<(typeof DATASET_NAMES)[number], string>> =
   methodology: "methodId",
 });
 
-const CONFIDENCE_RANK: Readonly<Record<string, number>> = Object.freeze({
-  LOW: 1,
-  MEDIUM: 2,
-  HIGH: 3,
-});
+const CONFIDENCE_RANK: Readonly<Record<string, number>> = Object.freeze({ LOW: 1, MEDIUM: 2, HIGH: 3 });
+const RECOMMENDATION_TIER_RANK: Readonly<Record<string, number>> = Object.freeze({ PRIMARY: 1, SECONDARY: 2 });
 
 function normalized(value: string | undefined): string {
   return (value ?? "").trim();
@@ -102,10 +99,15 @@ function indexRows(rows: readonly Row[], key: string): ReadonlyMap<string, Row> 
   return new Map(rows.map((row) => [normalized(row[key]), row]));
 }
 
+function timestamp(value: string | undefined): number | null {
+  const parsed = Date.parse(normalized(value));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function timestampAgeMs(value: string | undefined, now: Date): number | null {
-  const timestamp = Date.parse(normalized(value));
-  if (!Number.isFinite(timestamp)) return null;
-  return Math.max(0, now.getTime() - timestamp);
+  const parsed = timestamp(value);
+  if (parsed === null) return null;
+  return Math.max(0, now.getTime() - parsed);
 }
 
 function freshDynamicRecord(name: "offers" | "priceIntelligence" | "affiliateRoutes", value: string | undefined, now: Date): boolean {
@@ -119,8 +121,30 @@ function confidenceMeets(actual: string | undefined, required: string | undefine
   if (!requiredValue) return true;
   const requiredRank = CONFIDENCE_RANK[requiredValue];
   const actualRank = CONFIDENCE_RANK[upper(actual)];
-  if (requiredRank === undefined || actualRank === undefined) return false;
-  return actualRank >= requiredRank;
+  return requiredRank !== undefined && actualRank !== undefined && actualRank >= requiredRank;
+}
+
+function governedLimit(value: string | undefined): number | null {
+  const text = normalized(value);
+  if (!text) return null;
+  const parsed = Number(text);
+  if (!Number.isInteger(parsed) || parsed < 0) return 0;
+  return parsed;
+}
+
+function placementActiveAt(row: Row, now: Date): boolean {
+  if (!active(row)) return false;
+  const validFromText = normalized(row.validFrom);
+  const validToText = normalized(row.validTo);
+  if (validFromText) {
+    const validFrom = timestamp(validFromText);
+    if (validFrom === null || now.getTime() < validFrom) return false;
+  }
+  if (validToText) {
+    const validTo = timestamp(validToText);
+    if (validTo === null || now.getTime() > validTo) return false;
+  }
+  return true;
 }
 
 async function loadRows(name: Rc6DatasetName, reader: Rc6TabReader): Promise<readonly Row[] | null> {
@@ -130,12 +154,7 @@ async function loadRows(name: Rc6DatasetName, reader: Rc6TabReader): Promise<rea
   return result.rows;
 }
 
-function entityExists(
-  entityType: string,
-  entityId: string,
-  products: ReadonlyMap<string, Row>,
-  groups: ReadonlyMap<string, Row>,
-): boolean {
+function entityExists(entityType: string, entityId: string, products: ReadonlyMap<string, Row>, groups: ReadonlyMap<string, Row>): boolean {
   const type = upper(entityType);
   if (type === "PRODUCT") return products.has(entityId);
   if (type === "PRODUCT_GROUP") return groups.has(entityId);
@@ -185,38 +204,20 @@ export function buildRc6CommercialCatalogue(rows: Rc6CommercialRows): Rc6Commerc
   if (pageSections.some((row) => !pagesById.has(normalized(row.pageId)))) return null;
 
   return Object.freeze({
-    productGroups,
-    brands,
-    products,
-    productCompatibility,
-    productAssessments: rows.productAssessments,
-    retailers: rows.retailers,
-    offers: rows.offers,
-    priceIntelligence: rows.priceIntelligence,
-    affiliateRoutes: rows.affiliateRoutes,
-    recommendations,
-    cards: rows.cards,
-    cardPlacements,
-    pages,
-    pageSections,
-    methodology,
+    productGroups, brands, products, productCompatibility, productAssessments: rows.productAssessments, retailers: rows.retailers,
+    offers: rows.offers, priceIntelligence: rows.priceIntelligence, affiliateRoutes: rows.affiliateRoutes, recommendations,
+    cards: rows.cards, cardPlacements, pages, pageSections, methodology,
   });
 }
 
 export async function getRc6CommercialCatalogue(reader: Rc6TabReader): Promise<Rc6CommercialCatalogue | null> {
   const loaded = await Promise.all(DATASET_NAMES.map((name) => loadRows(name, reader)));
   if (loaded.some((rows) => rows === null)) return null;
-
   const byName = Object.fromEntries(DATASET_NAMES.map((name, index) => [name, loaded[index] ?? []])) as unknown as Rc6CommercialRows;
   return buildRc6CommercialCatalogue(byName);
 }
 
-export function rc6EligibleOffersForProduct(
-  catalogue: Rc6CommercialCatalogue,
-  productId: string,
-  marketCode = "GB",
-  now: Date = new Date(),
-): Rc6EligibleOffer[] {
+export function rc6EligibleOffersForProduct(catalogue: Rc6CommercialCatalogue, productId: string, marketCode = "GB", now: Date = new Date()): Rc6EligibleOffer[] {
   const resolvedProductId = normalized(productId);
   const resolvedMarket = upper(marketCode);
   const retailerById = indexRows(catalogue.retailers, "retailerId");
@@ -241,18 +242,10 @@ export function rc6EligibleOffersForProduct(
     .sort((left, right) => Number(left.offer.effectivePrice || Number.POSITIVE_INFINITY) - Number(right.offer.effectivePrice || Number.POSITIVE_INFINITY));
 }
 
-export function rc6CurrentPriceIntelligenceForProduct(
-  catalogue: Rc6CommercialCatalogue,
-  productId: string,
-  marketCode = "GB",
-  now: Date = new Date(),
-): Row | null {
+export function rc6CurrentPriceIntelligenceForProduct(catalogue: Rc6CommercialCatalogue, productId: string, marketCode = "GB", now: Date = new Date()): Row | null {
   const resolvedProductId = normalized(productId);
   const resolvedMarket = upper(marketCode);
-  const eligibleOfferIds = new Set(
-    rc6EligibleOffersForProduct(catalogue, resolvedProductId, resolvedMarket, now).map((entry) => normalized(entry.offer.offerId)),
-  );
-
+  const eligibleOfferIds = new Set(rc6EligibleOffersForProduct(catalogue, resolvedProductId, resolvedMarket, now).map((entry) => normalized(entry.offer.offerId)));
   return catalogue.priceIntelligence.find((row) =>
     normalized(row.productId) === resolvedProductId
       && upper(row.marketCode) === resolvedMarket
@@ -261,27 +254,23 @@ export function rc6CurrentPriceIntelligenceForProduct(
   ) ?? null;
 }
 
-function recommendationRequirementsMet(
-  catalogue: Rc6CommercialCatalogue,
-  recommendation: Row,
-  marketCode: string,
-): boolean {
+function recommendationRequirementsMet(catalogue: Rc6CommercialCatalogue, recommendation: Row, marketCode: string): boolean {
   const productId = normalized(recommendation.productId);
   const requiredCompatibility = upper(recommendation.requiredCompatibility);
+  const minimumConfidence = upper(recommendation.minimumEvidenceConfidence);
 
   if (requiredCompatibility && requiredCompatibility !== "NOT_APPLICABLE") {
     const compatibilityPass = catalogue.productCompatibility.some((row) =>
       normalized(row.productId) === productId
         && upper(row.marketCode) === marketCode
-        && upper(row.fitStatus) === requiredCompatibility,
+        && upper(row.fitStatus) === requiredCompatibility
+        && confidenceMeets(row.confidence, minimumConfidence),
     );
     if (!compatibilityPass) return false;
   }
 
   const minimumScoreText = normalized(recommendation.minimumProductScore);
-  const minimumConfidence = upper(recommendation.minimumEvidenceConfidence);
   if (!minimumScoreText && !minimumConfidence) return true;
-
   const minimumScore = minimumScoreText ? Number(minimumScoreText) : Number.NEGATIVE_INFINITY;
   if (!Number.isFinite(minimumScore)) return false;
 
@@ -293,13 +282,7 @@ function recommendationRequirementsMet(
   });
 }
 
-export function rc6RecommendationsForContext(
-  catalogue: Rc6CommercialCatalogue,
-  contextType: string,
-  contextId: string,
-  marketCode = "GB",
-  now: Date = new Date(),
-): Row[] {
+export function rc6RecommendationsForContext(catalogue: Rc6CommercialCatalogue, contextType: string, contextId: string, marketCode = "GB", now: Date = new Date()): Row[] {
   const resolvedType = upper(contextType);
   const resolvedId = normalized(contextId);
   const resolvedMarket = upper(marketCode);
@@ -309,16 +292,16 @@ export function rc6RecommendationsForContext(
     .filter((row) => upper(row.contextType) === resolvedType)
     .filter((row) => normalized(row.contextId) === resolvedId)
     .filter((row) => recommendationRequirementsMet(catalogue, row, resolvedMarket))
-    .filter((row) => rc6EligibleOffersForProduct(catalogue, normalized(row.productId), resolvedMarket, now).length > 0);
+    .filter((row) => rc6EligibleOffersForProduct(catalogue, normalized(row.productId), resolvedMarket, now).length > 0)
+    .sort((left, right) => {
+      const leftRank = RECOMMENDATION_TIER_RANK[upper(left.recommendationTier)] ?? 99;
+      const rightRank = RECOMMENDATION_TIER_RANK[upper(right.recommendationTier)] ?? 99;
+      if (leftRank !== rightRank) return leftRank - rightRank;
+      return normalized(left.recommendationId).localeCompare(normalized(right.recommendationId));
+    });
 }
 
-export function rc6CardsForContext(
-  catalogue: Rc6CommercialCatalogue,
-  contextType: string,
-  contextId: string,
-  marketCode = "GB",
-  now: Date = new Date(),
-): Rc6CommercialCard[] {
+export function rc6CardsForContext(catalogue: Rc6CommercialCatalogue, contextType: string, contextId: string, marketCode = "GB", now: Date = new Date()): Rc6CommercialCard[] {
   const resolvedType = upper(contextType);
   const resolvedId = normalized(contextId);
   const resolvedMarket = upper(marketCode);
@@ -330,20 +313,21 @@ export function rc6CardsForContext(
     .filter((placement) => upper(placement.marketCode) === resolvedMarket)
     .filter((placement) => upper(placement.contextType) === resolvedType)
     .filter((placement) => normalized(placement.contextId) === resolvedId)
+    .filter((placement) => placementActiveAt(placement, now))
     .sort((a, b) => Number(a.priority || 0) - Number(b.priority || 0));
 
   for (const placement of placements) {
     const card = cardById.get(normalized(placement.cardId));
     if (!card) continue;
     const product = upper(card.entityType) === "PRODUCT" ? productById.get(normalized(card.entityId)) ?? null : null;
-    const eligibleOffers = product
-      ? rc6EligibleOffersForProduct(catalogue, normalized(product.productId), resolvedMarket, now)
-      : [];
+    const eligibleOffers = product ? rc6EligibleOffersForProduct(catalogue, normalized(product.productId), resolvedMarket, now) : [];
     if (product && eligibleOffers.length === 0) continue;
     output.push({ card, placement, product, eligibleOffers });
   }
 
-  return output;
+  const limits = placements.map((placement) => governedLimit(placement.maxDisplayCount)).filter((limit): limit is number => limit !== null);
+  const cap = limits.length > 0 ? Math.min(...limits) : null;
+  return cap === null ? output : output.slice(0, cap);
 }
 
 function cardsForContextType(catalogue: Rc6CommercialCatalogue, contextType: string, marketCode: string, now: Date): Row[] {
@@ -357,41 +341,31 @@ function cardsForContextType(catalogue: Rc6CommercialCatalogue, contextType: str
   return Array.from(new Map(cards.map((entry) => [normalized(entry.card.cardId), entry.card])).values());
 }
 
+function limitItems(items: Row[], limitValue: string | undefined): Row[] {
+  const limit = governedLimit(limitValue);
+  return limit === null ? items : items.slice(0, limit);
+}
+
 function pageSectionItems(catalogue: Rc6CommercialCatalogue, section: Row, now: Date): Row[] {
   const sourceType = upper(section.dataSourceType);
   const sourceId = normalized(section.dataSourceId);
   const marketCode = normalized(section.marketCode) || "GB";
+  let items: Row[] = [];
 
-  if (sourceType === "PRODUCT") {
-    return catalogue.products.filter((row) => normalized(row.productId) === sourceId);
-  }
-  if (sourceType === "PRODUCT_GROUP") {
-    return catalogue.productGroups.filter((row) => normalized(row.productGroupId) === sourceId);
-  }
-  if (sourceType === "PRODUCT_GROUPS") {
+  if (sourceType === "PRODUCT") items = catalogue.products.filter((row) => normalized(row.productId) === sourceId);
+  else if (sourceType === "PRODUCT_GROUP") items = catalogue.productGroups.filter((row) => normalized(row.productGroupId) === sourceId);
+  else if (sourceType === "PRODUCT_GROUPS") {
     const ids = new Set(sourceId.split(",").map((id) => normalized(id)).filter(Boolean));
-    return catalogue.productGroups.filter((row) => ids.has(normalized(row.productGroupId)));
-  }
-  if (sourceType === "RECOMMENDATION_CONTEXT") {
-    return rc6RecommendationsForContext(catalogue, "TRAVEL_ESSENTIALS", sourceId, marketCode, now);
-  }
-  if (sourceType === "PRODUCT_OFFERS") {
-    return rc6EligibleOffersForProduct(catalogue, sourceId, marketCode, now).map((entry) => entry.offer);
-  }
-  if (sourceType === "METHOD") {
-    return catalogue.methodology.filter((row) => normalized(row.methodId) === sourceId);
-  }
-  if (sourceType === "CARD_CONTEXT") {
-    return cardsForContextType(catalogue, sourceId, marketCode, now);
-  }
-  return [];
+    items = catalogue.productGroups.filter((row) => ids.has(normalized(row.productGroupId)));
+  } else if (sourceType === "RECOMMENDATION_CONTEXT") items = rc6RecommendationsForContext(catalogue, "TRAVEL_ESSENTIALS", sourceId, marketCode, now);
+  else if (sourceType === "PRODUCT_OFFERS") items = rc6EligibleOffersForProduct(catalogue, sourceId, marketCode, now).map((entry) => entry.offer);
+  else if (sourceType === "METHOD") items = catalogue.methodology.filter((row) => normalized(row.methodId) === sourceId);
+  else if (sourceType === "CARD_CONTEXT") items = cardsForContextType(catalogue, sourceId, marketCode, now);
+
+  return limitItems(items, section.maxItems);
 }
 
-export function rc6CommercialPageBySlug(
-  catalogue: Rc6CommercialCatalogue,
-  slug: string,
-  now: Date = new Date(),
-): Rc6CommercialPage | null {
+export function rc6CommercialPageBySlug(catalogue: Rc6CommercialCatalogue, slug: string, now: Date = new Date()): Rc6CommercialPage | null {
   const resolvedSlug = normalized(slug).replace(/^\/+|\/+$/g, "");
   const page = catalogue.pages.find((row) => normalized(row.slug).replace(/^\/+|\/+$/g, "") === resolvedSlug);
   if (!page) return null;
@@ -401,17 +375,10 @@ export function rc6CommercialPageBySlug(
     .sort((a, b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0))
     .map((section) => ({ section, items: pageSectionItems(catalogue, section, now) }));
 
-  if (sections.some(({ section, items }) => upper(section.requiredFlag) === "TRUE" && items.length === 0 && upper(section.sectionType) !== "HERO")) {
-    return null;
-  }
-
+  if (sections.some(({ section, items }) => upper(section.requiredFlag) === "TRUE" && items.length === 0 && upper(section.sectionType) !== "HERO")) return null;
   return { page, sections };
 }
 
 export function rc6CommercialFreshnessPolicy(): Readonly<Record<"offers" | "priceIntelligence" | "affiliateRoutes", ReturnType<typeof getRc6CachePolicy>>> {
-  return Object.freeze({
-    offers: getRc6CachePolicy("offers"),
-    priceIntelligence: getRc6CachePolicy("priceIntelligence"),
-    affiliateRoutes: getRc6CachePolicy("affiliateRoutes"),
-  });
+  return Object.freeze({ offers: getRc6CachePolicy("offers"), priceIntelligence: getRc6CachePolicy("priceIntelligence"), affiliateRoutes: getRc6CachePolicy("affiliateRoutes") });
 }
