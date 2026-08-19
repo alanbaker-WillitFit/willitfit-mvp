@@ -10,12 +10,38 @@ describe("RC6 canonical Runtime reader", () => {
     const calls: string[] = [];
     const result = await readRc6Dataset("airlines", async <T extends Record<string, string>>(tabName: string) => {
       calls.push(tabName);
-      return [{ "Airline ID": "TEST", "Airline Name": "Test Air" }] as unknown as T[];
+      return [{
+        "Airline ID": "TEST",
+        "Airline Name": "Test Air",
+        "IATA Code": "TT",
+        "Search Terms": "Test Air, TT",
+        Country: "United Kingdom",
+        "Website URL": "https://example.com",
+        "Baggage URL": "https://example.com/baggage",
+        "Display Order": "1",
+        Active: "Yes",
+        "Review Status": "Approved",
+        "Last Reviewed": "2026-08-01",
+        Publish: "Yes",
+      }] as unknown as T[];
     });
 
     expect(calls).toEqual(["02_Airlines"]);
     expect(result.state).toBe("READY_WITH_ROWS");
     expect(canServeRc6Rows(result)).toBe(true);
+  });
+
+  it("blocks airline-rule consumption before touching the Runtime adapter while CD-001 is open", async () => {
+    const calls: string[] = [];
+    const result = await readRc6Dataset("airlineRules", async <T extends Record<string, string>>(tabName: string) => {
+      calls.push(tabName);
+      return [] as T[];
+    });
+
+    expect(calls).toEqual([]);
+    expect(result.state).toBe("HELD_OR_NOT_PUBLIC");
+    expect(result.error).toContain("CD-001");
+    expect(canServeRc6Rows(result)).toBe(false);
   });
 
   it("treats a successful zero-row read as authoritative empty", async () => {
