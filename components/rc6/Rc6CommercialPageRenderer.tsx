@@ -42,13 +42,13 @@ function OfferList({ catalogue, productId, marketCode }: { catalogue: Rc6Commerc
   return (
     <div className="space-y-3">
       {offers.map(({ offer, retailer, affiliateRoute }) => (
-        <div key={offer.offerId} className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div key={normalized(offer.offerId)} className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-medium text-navy-700">{retailer.name}</p>
             <p className="mt-1 text-sm text-slate-600">{offer.currency} {offer.effectivePrice} · {offer.stockStatus}</p>
           </div>
           <a
-            href={affiliateRoute.destinationUrl}
+            href={normalized(affiliateRoute.destinationUrl)}
             target="_blank"
             rel="sponsored nofollow noopener noreferrer"
             className="inline-flex min-h-10 items-center justify-center rounded-lg border border-navy-700 px-3 py-2 text-sm font-semibold text-navy-700 hover:bg-slate-50"
@@ -86,27 +86,28 @@ export default function Rc6CommercialPageRenderer({ catalogue, resolvedPage }: P
         {sections.map(({ section, items }) => {
           const sectionType = upper(section.sectionType);
           const marketCode = normalized(section.marketCode) || "GB";
+          const sectionId = normalized(section.pageSectionId);
 
           if (sectionType === "HERO") return null;
 
           return (
-            <section key={section.pageSectionId} aria-labelledby={`${section.pageSectionId}-heading`}>
-              {section.heading ? <h2 id={`${section.pageSectionId}-heading`} className="font-heading text-2xl font-semibold text-navy-700">{section.heading}</h2> : null}
+            <section key={sectionId} aria-labelledby={`${sectionId}-heading`}>
+              {section.heading ? <h2 id={`${sectionId}-heading`} className="font-heading text-2xl font-semibold text-navy-700">{section.heading}</h2> : null}
               {section.intro ? <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{section.intro}</p> : null}
 
               <div className="mt-5">
-                {sectionType === "PRODUCT_FACTS" ? items.map((item) => <ProductFacts key={item.productId} product={item} />) : null}
+                {sectionType === "PRODUCT_FACTS" ? items.map((item) => <ProductFacts key={normalized(item.productId)} product={item} />) : null}
 
                 {sectionType === "OFFER_LIST" ? (
                   <OfferList catalogue={catalogue} productId={normalized(section.dataSourceId)} marketCode={marketCode} />
                 ) : null}
 
-                {sectionType === "METHODOLOGY" ? items.map((item) => <Methodology key={`${item.methodId}-${item.methodVersion}`} method={item} />) : null}
+                {sectionType === "METHODOLOGY" ? items.map((item) => <Methodology key={`${normalized(item.methodId)}-${normalized(item.methodVersion)}`} method={item} />) : null}
 
                 {sectionType === "PRODUCT_GROUP_GRID" ? (
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {items.map((item) => (
-                      <div key={item.productGroupId} className="rounded-2xl border border-slate-200 bg-white p-5">
+                      <div key={normalized(item.productGroupId)} className="rounded-2xl border border-slate-200 bg-white p-5">
                         <h3 className="font-heading font-semibold text-navy-700">{item.name}</h3>
                         {item.description ? <p className="mt-2 text-sm leading-6 text-slate-600">{item.description}</p> : null}
                       </div>
@@ -117,9 +118,19 @@ export default function Rc6CommercialPageRenderer({ catalogue, resolvedPage }: P
                 {sectionType === "RECOMMENDATION_GRID" ? (
                   <div className="grid gap-5 lg:grid-cols-2">
                     {items.flatMap((recommendation) =>
-                      rc6CardsForContext(catalogue, recommendation.contextType, recommendation.contextId, marketCode)
+                      rc6CardsForContext(
+                        catalogue,
+                        normalized(recommendation.contextType),
+                        normalized(recommendation.contextId),
+                        marketCode,
+                      )
                         .filter((entry) => normalized(entry.product?.productId) === normalized(recommendation.productId))
-                        .map((entry) => <Rc6CommercialActionPanel key={`${recommendation.recommendationId}-${entry.card.cardId}`} entry={entry} />),
+                        .map((entry) => (
+                          <Rc6CommercialActionPanel
+                            key={`${normalized(recommendation.recommendationId)}-${normalized(entry.card.cardId)}`}
+                            entry={entry}
+                          />
+                        )),
                     )}
                   </div>
                 ) : null}
@@ -133,7 +144,12 @@ export default function Rc6CommercialPageRenderer({ catalogue, resolvedPage }: P
                       const product = catalogue.products.find((row) => normalized(row.productId) === productId) ?? null;
                       const placement = catalogue.cardPlacements.find((row) => normalized(row.cardId) === normalized(item.cardId));
                       if (!product || !placement || eligibleOffers.length === 0) return [];
-                      return [<Rc6CommercialActionPanel key={item.cardId} entry={{ card: item, placement, product, eligibleOffers }} />];
+                      return [
+                        <Rc6CommercialActionPanel
+                          key={normalized(item.cardId)}
+                          entry={{ card: item, placement, product, eligibleOffers }}
+                        />,
+                      ];
                     })}
                   </div>
                 ) : null}
