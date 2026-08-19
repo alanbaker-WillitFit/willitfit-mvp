@@ -3,7 +3,7 @@ import type { Rc6DatasetName } from "./runtimeContract";
 
 type Row = Readonly<Record<string, string>>;
 
-type Rc6CommercialRows = Readonly<{
+export type Rc6CommercialRows = Readonly<{
   productGroups: readonly Row[];
   brands: readonly Row[];
   products: readonly Row[];
@@ -47,20 +47,8 @@ export type Rc6CommercialPage = Readonly<{
 }>;
 
 const DATASET_NAMES = [
-  "productGroups",
-  "brands",
-  "products",
-  "productCompatibility",
-  "productAssessments",
-  "retailers",
-  "offers",
-  "priceIntelligence",
-  "affiliateRoutes",
-  "recommendations",
-  "cards",
-  "cardPlacements",
-  "pages",
-  "pageSections",
+  "productGroups", "brands", "products", "productCompatibility", "productAssessments", "retailers", "offers",
+  "priceIntelligence", "affiliateRoutes", "recommendations", "cards", "cardPlacements", "pages", "pageSections",
   "methodology",
 ] as const satisfies readonly Rc6DatasetName[];
 
@@ -127,7 +115,7 @@ function entityExists(
   return true;
 }
 
-function filterEligibleRows(rows: Rc6CommercialRows): Rc6CommercialRows | null {
+export function buildRc6CommercialCatalogue(rows: Rc6CommercialRows): Rc6CommercialCatalogue | null {
   for (const name of DATASET_NAMES) {
     if (!uniqueIds(rows[name], KEY_BY_DATASET[name])) return null;
   }
@@ -192,7 +180,7 @@ export async function getRc6CommercialCatalogue(reader: Rc6TabReader): Promise<R
   if (loaded.some((rows) => rows === null)) return null;
 
   const byName = Object.fromEntries(DATASET_NAMES.map((name, index) => [name, loaded[index] ?? []])) as unknown as Rc6CommercialRows;
-  return filterEligibleRows(byName);
+  return buildRc6CommercialCatalogue(byName);
 }
 
 export function rc6EligibleOffersForProduct(
@@ -267,6 +255,17 @@ export function rc6CardsForContext(
     .filter((entry): entry is Rc6CommercialCard => entry !== null);
 }
 
+function cardsForContextType(catalogue: Rc6CommercialCatalogue, contextType: string, marketCode: string): Row[] {
+  const ids = new Set(
+    catalogue.cardPlacements
+      .filter((row) => upper(row.marketCode) === upper(marketCode))
+      .filter((row) => upper(row.contextType) === upper(contextType))
+      .map((row) => normalized(row.contextId)),
+  );
+  const cards = Array.from(ids).flatMap((id) => rc6CardsForContext(catalogue, contextType, id, marketCode));
+  return Array.from(new Map(cards.map((entry) => [normalized(entry.card.cardId), entry.card])).values());
+}
+
 function pageSectionItems(catalogue: Rc6CommercialCatalogue, section: Row): Row[] {
   const sourceType = upper(section.dataSourceType);
   const sourceId = normalized(section.dataSourceId);
@@ -291,7 +290,7 @@ function pageSectionItems(catalogue: Rc6CommercialCatalogue, section: Row): Row[
     return catalogue.methodology.filter((row) => normalized(row.methodId) === sourceId);
   }
   if (sourceType === "CARD_CONTEXT") {
-    return rc6CardsForContext(catalogue, sourceId, sourceId, section.marketCode).map((entry) => entry.card);
+    return cardsForContextType(catalogue, sourceId, section.marketCode);
   }
   return [];
 }
