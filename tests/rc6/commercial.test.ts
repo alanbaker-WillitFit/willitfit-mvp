@@ -3,12 +3,16 @@ import {
   buildRc6CommercialCatalogue,
   rc6CardsForContext,
   rc6CommercialPageBySlug,
+  rc6CurrentPriceIntelligenceForProduct,
   rc6EligibleOffersForProduct,
   rc6RecommendationsForContext,
   type Rc6CommercialRows,
 } from "@/services/rc6/commercial";
 
 type Row = Record<string, string>;
+
+const NOW = new Date("2026-08-19T17:30:00Z");
+const FRESH = "2026-08-19T16:00:00Z";
 
 const group = (id = "PG05", overrides: Partial<Row> = {}): Row => ({ productGroupId: id, name: id, status: "ACTIVE", ...overrides });
 const brand = (id = "TEST-BRAND", overrides: Partial<Row> = {}): Row => ({ brandId: id, name: id, status: "ACTIVE", ...overrides });
@@ -28,6 +32,7 @@ const offer = (id = "TEST-OFFER", overrides: Partial<Row> = {}): Row => ({
   marketCode: "GB",
   effectivePrice: "24.99",
   stockStatus: "IN_STOCK",
+  lastCheckedAt: FRESH,
   ...overrides,
 });
 const route = (id = "TEST-AFF", overrides: Partial<Row> = {}): Row => ({
@@ -35,6 +40,7 @@ const route = (id = "TEST-AFF", overrides: Partial<Row> = {}): Row => ({
   offerId: "TEST-OFFER",
   marketCode: "GB",
   destinationUrl: "https://example.com/test",
+  lastVerifiedAt: FRESH,
   ...overrides,
 });
 const recommendation = (id = "TEST-REC", overrides: Partial<Row> = {}): Row => ({
@@ -44,6 +50,40 @@ const recommendation = (id = "TEST-REC", overrides: Partial<Row> = {}): Row => (
   contextId: "PG05",
   productId: "TEST-PROD",
   recommendationStatus: "ACTIVE",
+  ...overrides,
+});
+const compatibility = (id = "TEST-COMP", overrides: Partial<Row> = {}): Row => ({
+  compatibilityId: id,
+  productId: "TEST-PROD",
+  marketCode: "GB",
+  fitStatus: "PASS",
+  status: "ACTIVE",
+  ...overrides,
+});
+const method = (id = "TEST-METHOD", overrides: Partial<Row> = {}): Row => ({
+  methodId: id,
+  methodVersion: "1.0",
+  status: "ACTIVE",
+  ...overrides,
+});
+const assessment = (id = "TEST-ASSESS", overrides: Partial<Row> = {}): Row => ({
+  productId: "TEST-PROD",
+  assessmentId: id,
+  methodId: "TEST-METHOD",
+  methodVersion: "1.0",
+  productScore: "82",
+  confidence: "HIGH",
+  ...overrides,
+});
+const priceIntelligence = (id = "TEST-PRICE", overrides: Partial<Row> = {}): Row => ({
+  productId: "TEST-PROD",
+  priceIntelligenceId: id,
+  marketCode: "GB",
+  methodId: "TEST-METHOD",
+  methodVersion: "1.0",
+  currentBestOfferId: "TEST-OFFER",
+  currentBestPrice: "24.99",
+  calculatedAt: FRESH,
   ...overrides,
 });
 const card = (id = "TEST-CARD", overrides: Partial<Row> = {}): Row => ({
@@ -144,7 +184,7 @@ describe("RC6 commercial catalogue", () => {
       ],
     }))!;
 
-    expect(rc6EligibleOffersForProduct(catalogue, "TEST-PROD").map((entry) => entry.offer.offerId)).toEqual(["TEST-OFFER"]);
+    expect(rc6EligibleOffersForProduct(catalogue, "TEST-PROD", "GB", NOW).map((entry) => entry.offer.offerId)).toEqual(["TEST-OFFER"]);
   });
 
   it("sorts eligible routed offers by effective price, not nominal price", () => {
@@ -156,30 +196,113 @@ describe("RC6 commercial catalogue", () => {
       affiliateRoutes: [route(), route("TEST-AFF-2", { offerId: "TEST-OFFER-2" })],
     }))!;
 
-    expect(rc6EligibleOffersForProduct(catalogue, "TEST-PROD").map((entry) => entry.offer.offerId)).toEqual([
+    expect(rc6EligibleOffersForProduct(catalogue, "TEST-PROD", "GB", NOW).map((entry) => entry.offer.offerId)).toEqual([
       "TEST-OFFER-2",
       "TEST-OFFER",
     ]);
   });
 
+  it("allows an offer exactly at the 48-hour hard-stale boundary and rejects it beyond the boundary", () => {
+    const boundary = buildRc6CommercialCatalogue(rows({ offers: [offer("TEST-OFFER", { lastCheckedAt: "2026-08-17T17:30:00Z" })] }))!;
+    const stale = buildRc6CommercialCatalogue(rows({ offers: [offer("TEST-OFFER", { lastCheckedAt: "2026-08-17T17:29:59Z" })] }))!;
+
+    expect(rc6EligibleOffersForProduct(boundary, "TEST-PROD", "GB", NOW)).toHaveLength(1);
+    expect(rc6EligibleOffersForProduct(stale, "TEST-PROD", "GB", NOW)).toEqual([]);
+  });
+
+  it("rejects an affiliate route beyond its seven-day hard-stale limit", () => {
+    const catalogue = buildRc6CommercialCatalogue(rows({
+      affiliateRoutes: [route("TEST-AFF", { lastVerifiedAt: "2026-08-12T17:29:59Z" })],
+    }))!;
+    expect(rc6EligibleOffersForProduct(catalogue, "TEST-PROD", "GB", NOW)).toEqual([]);
+  });
+
+  it("fails an actionable offer closed when freshness timestamps are malformed", () => {
+    const catalogue = buildRc6CommercialCatalogue(rows({ offers: [offer("TEST-OFFER", { lastCheckedAt: "not-a-date" })] }))!;
+    expect(rc6EligibleOffersForProduct(catalogue, "TEST-PROD", "GB", NOW)).toEqual([]);
+  });
+
+  it("enforces Product Score and evidence confidence from the recommendation row", () => {
+    const catalogue = buildRc6CommercialCatalogue(rows({
+      methodology: [method()],
+      productAssessments: [assessment()],
+      recommendations: [recommendation("TEST-REC", { minimumProductScore: "80", minimumEvidenceConfidence: "MEDIUM" })],
+    }))!;
+
+    expect(rc6RecommendationsForContext(catalogue, "TRAVEL_ESSENTIALS", "PG05", "GB", NOW)).toHaveLength(1);
+    expect(rc6RecommendationsForContext(
+      buildRc6CommercialCatalogue(rows({
+        methodology: [method()],
+        productAssessments: [assessment("TEST-ASSESS", { productScore: "79" })],
+        recommendations: [recommendation("TEST-REC", { minimumProductScore: "80", minimumEvidenceConfidence: "MEDIUM" })],
+      }))!,
+      "TRAVEL_ESSENTIALS",
+      "PG05",
+      "GB",
+      NOW,
+    )).toEqual([]);
+    expect(rc6RecommendationsForContext(
+      buildRc6CommercialCatalogue(rows({
+        methodology: [method()],
+        productAssessments: [assessment("TEST-ASSESS", { confidence: "LOW" })],
+        recommendations: [recommendation("TEST-REC", { minimumProductScore: "80", minimumEvidenceConfidence: "MEDIUM" })],
+      }))!,
+      "TRAVEL_ESSENTIALS",
+      "PG05",
+      "GB",
+      NOW,
+    )).toEqual([]);
+  });
+
+  it("enforces required compatibility and permits explicit NOT_APPLICABLE", () => {
+    const required = buildRc6CommercialCatalogue(rows({
+      productCompatibility: [compatibility()],
+      recommendations: [recommendation("TEST-REC", { requiredCompatibility: "PASS" })],
+    }))!;
+    const missing = buildRc6CommercialCatalogue(rows({
+      recommendations: [recommendation("TEST-REC", { requiredCompatibility: "PASS" })],
+    }))!;
+    const notApplicable = buildRc6CommercialCatalogue(rows({
+      recommendations: [recommendation("TEST-REC", { requiredCompatibility: "NOT_APPLICABLE" })],
+    }))!;
+
+    expect(rc6RecommendationsForContext(required, "TRAVEL_ESSENTIALS", "PG05", "GB", NOW)).toHaveLength(1);
+    expect(rc6RecommendationsForContext(missing, "TRAVEL_ESSENTIALS", "PG05", "GB", NOW)).toEqual([]);
+    expect(rc6RecommendationsForContext(notApplicable, "TRAVEL_ESSENTIALS", "PG05", "GB", NOW)).toHaveLength(1);
+  });
+
+  it("returns price intelligence only while fresh and tied to an eligible routed offer", () => {
+    const catalogue = buildRc6CommercialCatalogue(rows({
+      methodology: [method()],
+      priceIntelligence: [priceIntelligence()],
+    }))!;
+    const stale = buildRc6CommercialCatalogue(rows({
+      methodology: [method()],
+      priceIntelligence: [priceIntelligence("TEST-PRICE", { calculatedAt: "2026-08-16T17:29:59Z" })],
+    }))!;
+
+    expect(rc6CurrentPriceIntelligenceForProduct(catalogue, "TEST-PROD", "GB", NOW)?.priceIntelligenceId).toBe("TEST-PRICE");
+    expect(rc6CurrentPriceIntelligenceForProduct(stale, "TEST-PROD", "GB", NOW)).toBeNull();
+  });
+
   it("suppresses recommendations when the product has no eligible affiliate offer", () => {
     const catalogue = buildRc6CommercialCatalogue(rows({ affiliateRoutes: [] }))!;
-    expect(rc6RecommendationsForContext(catalogue, "TRAVEL_ESSENTIALS", "PG05")).toEqual([]);
+    expect(rc6RecommendationsForContext(catalogue, "TRAVEL_ESSENTIALS", "PG05", "GB", NOW)).toEqual([]);
   });
 
   it("suppresses product Action Panels when no eligible affiliate offer exists", () => {
     const catalogue = buildRc6CommercialCatalogue(rows({ affiliateRoutes: [] }))!;
-    expect(rc6CardsForContext(catalogue, "TRAVEL_ESSENTIALS", "PG05")).toEqual([]);
+    expect(rc6CardsForContext(catalogue, "TRAVEL_ESSENTIALS", "PG05", "GB", NOW)).toEqual([]);
   });
 
   it("fails a published page closed when a required data section resolves empty", () => {
     const catalogue = buildRc6CommercialCatalogue(rows({ affiliateRoutes: [] }))!;
-    expect(rc6CommercialPageBySlug(catalogue, "/test/packing-cubes/")).toBeNull();
+    expect(rc6CommercialPageBySlug(catalogue, "/test/packing-cubes/", NOW)).toBeNull();
   });
 
   it("resolves a published page when its required recommendation section has eligible content", () => {
     const catalogue = buildRc6CommercialCatalogue(rows())!;
-    const resolved = rc6CommercialPageBySlug(catalogue, "test/packing-cubes");
+    const resolved = rc6CommercialPageBySlug(catalogue, "test/packing-cubes", NOW);
     expect(resolved?.page.pageId).toBe("TEST-PAGE");
     expect(resolved?.sections[0]?.items.map((item) => item.recommendationId)).toEqual(["TEST-REC"]);
   });
@@ -199,7 +322,7 @@ describe("RC6 commercial catalogue", () => {
       })],
     }))!;
 
-    const resolved = rc6CommercialPageBySlug(catalogue, "test/packing-cubes");
+    const resolved = rc6CommercialPageBySlug(catalogue, "test/packing-cubes", NOW);
     expect(resolved?.sections[0]?.items.map((item) => item.cardId).sort()).toEqual(["TEST-CARD", "TEST-CARD-2"]);
   });
 });
