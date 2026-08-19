@@ -99,16 +99,18 @@ jobs:
 
       - name: Apply explicit dependency candidate
         run: |
-          npm install --save-exact next@15.5.23
-          npm install --save-dev --save-exact eslint-config-next@15.5.23 wrangler@4.124.0
+          npm install --save-exact @opennextjs/cloudflare@1.20.2 next@16.3.1
+          npm install --save-dev --save-exact eslint-config-next@15.5.23 postcss@8.5.26 wrangler@4.124.0
           npm uninstall --save-dev xlsx
           npm pkg set engines.node=">=22"
+          npm pkg set scripts.lint="eslint . --ext .js,.jsx,.ts,.tsx"
+          npm update brace-expansion nanoid js-yaml
 
       - name: Record resolved candidate versions
         run: |
           node --version
           npm --version
-          npm ls next eslint-config-next wrangler miniflare workerd sharp undici nanoid postcss brace-expansion js-yaml --all || true
+          npm ls @opennextjs/cloudflare next eslint-config-next wrangler miniflare workerd sharp undici nanoid postcss brace-expansion js-yaml --all || true
 
       - name: Audit production candidate
         run: npm audit --omit=dev --audit-level=high
@@ -128,8 +130,11 @@ jobs:
       - name: Test candidate
         run: npm test
 
-      - name: Build candidate
+      - name: Build Next.js candidate
         run: npm run build
+
+      - name: Build OpenNext Cloudflare candidate
+        run: npm run build:cf
 
       - name: Upload dependency candidate files
         uses: actions/upload-artifact@v4
