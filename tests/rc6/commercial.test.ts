@@ -49,6 +49,7 @@ const recommendation = (id = "TEST-REC", overrides: Partial<Row> = {}): Row => (
   contextType: "TRAVEL_ESSENTIALS",
   contextId: "PG05",
   productId: "TEST-PROD",
+  recommendationTier: "PRIMARY",
   recommendationStatus: "ACTIVE",
   ...overrides,
 });
@@ -60,12 +61,7 @@ const compatibility = (id = "TEST-COMP", overrides: Partial<Row> = {}): Row => (
   status: "ACTIVE",
   ...overrides,
 });
-const method = (id = "TEST-METHOD", overrides: Partial<Row> = {}): Row => ({
-  methodId: id,
-  methodVersion: "1.0",
-  status: "ACTIVE",
-  ...overrides,
-});
+const method = (id = "TEST-METHOD", overrides: Partial<Row> = {}): Row => ({ methodId: id, methodVersion: "1.0", status: "ACTIVE", ...overrides });
 const assessment = (id = "TEST-ASSESS", overrides: Partial<Row> = {}): Row => ({
   productId: "TEST-PROD",
   assessmentId: id,
@@ -102,6 +98,9 @@ const placement = (id = "TEST-PLACE", overrides: Partial<Row> = {}): Row => ({
   contextType: "TRAVEL_ESSENTIALS",
   contextId: "PG05",
   priority: "1",
+  maxDisplayCount: "5",
+  validFrom: "2026-08-01T00:00:00Z",
+  validTo: "2026-09-01T00:00:00Z",
   status: "ACTIVE",
   ...overrides,
 });
@@ -122,6 +121,7 @@ const section = (id: string, overrides: Partial<Row> = {}): Row => ({
   dataSourceType: "RECOMMENDATION_CONTEXT",
   dataSourceId: "PG05",
   displayOrder: "1",
+  maxItems: "5",
   requiredFlag: "TRUE",
   status: "ACTIVE",
   ...overrides,
@@ -161,7 +161,6 @@ describe("RC6 commercial catalogue", () => {
       recommendations: [recommendation(), recommendation("TEST-REC-HELD", { productId: "TEST-HELD", recommendationStatus: "HELD" })],
       pages: [page(), page("TEST-PAGE-HELD", { slug: "test/held", publicationState: "HELD" })],
     }));
-
     expect(catalogue?.products).toHaveLength(1);
     expect(catalogue?.recommendations).toHaveLength(1);
     expect(catalogue?.pages).toHaveLength(1);
@@ -183,37 +182,26 @@ describe("RC6 commercial catalogue", () => {
         offer("TEST-OFFER-OOS", { effectivePrice: "9.99", stockStatus: "OUT_OF_STOCK" }),
       ],
     }))!;
-
     expect(rc6EligibleOffersForProduct(catalogue, "TEST-PROD", "GB", NOW).map((entry) => entry.offer.offerId)).toEqual(["TEST-OFFER"]);
   });
 
   it("sorts eligible routed offers by effective price, not nominal price", () => {
     const catalogue = buildRc6CommercialCatalogue(rows({
-      offers: [
-        offer("TEST-OFFER", { effectivePrice: "24.99" }),
-        offer("TEST-OFFER-2", { effectivePrice: "21.50" }),
-      ],
+      offers: [offer("TEST-OFFER", { effectivePrice: "24.99" }), offer("TEST-OFFER-2", { effectivePrice: "21.50" })],
       affiliateRoutes: [route(), route("TEST-AFF-2", { offerId: "TEST-OFFER-2" })],
     }))!;
-
-    expect(rc6EligibleOffersForProduct(catalogue, "TEST-PROD", "GB", NOW).map((entry) => entry.offer.offerId)).toEqual([
-      "TEST-OFFER-2",
-      "TEST-OFFER",
-    ]);
+    expect(rc6EligibleOffersForProduct(catalogue, "TEST-PROD", "GB", NOW).map((entry) => entry.offer.offerId)).toEqual(["TEST-OFFER-2", "TEST-OFFER"]);
   });
 
   it("allows an offer exactly at the 48-hour hard-stale boundary and rejects it beyond the boundary", () => {
     const boundary = buildRc6CommercialCatalogue(rows({ offers: [offer("TEST-OFFER", { lastCheckedAt: "2026-08-17T17:30:00Z" })] }))!;
     const stale = buildRc6CommercialCatalogue(rows({ offers: [offer("TEST-OFFER", { lastCheckedAt: "2026-08-17T17:29:59Z" })] }))!;
-
     expect(rc6EligibleOffersForProduct(boundary, "TEST-PROD", "GB", NOW)).toHaveLength(1);
     expect(rc6EligibleOffersForProduct(stale, "TEST-PROD", "GB", NOW)).toEqual([]);
   });
 
   it("rejects an affiliate route beyond its seven-day hard-stale limit", () => {
-    const catalogue = buildRc6CommercialCatalogue(rows({
-      affiliateRoutes: [route("TEST-AFF", { lastVerifiedAt: "2026-08-12T17:29:59Z" })],
-    }))!;
+    const catalogue = buildRc6CommercialCatalogue(rows({ affiliateRoutes: [route("TEST-AFF", { lastVerifiedAt: "2026-08-12T17:29:59Z" })] }))!;
     expect(rc6EligibleOffersForProduct(catalogue, "TEST-PROD", "GB", NOW)).toEqual([]);
   });
 
@@ -228,59 +216,48 @@ describe("RC6 commercial catalogue", () => {
       productAssessments: [assessment()],
       recommendations: [recommendation("TEST-REC", { minimumProductScore: "80", minimumEvidenceConfidence: "MEDIUM" })],
     }))!;
-
     expect(rc6RecommendationsForContext(catalogue, "TRAVEL_ESSENTIALS", "PG05", "GB", NOW)).toHaveLength(1);
-    expect(rc6RecommendationsForContext(
-      buildRc6CommercialCatalogue(rows({
-        methodology: [method()],
-        productAssessments: [assessment("TEST-ASSESS", { productScore: "79" })],
-        recommendations: [recommendation("TEST-REC", { minimumProductScore: "80", minimumEvidenceConfidence: "MEDIUM" })],
-      }))!,
-      "TRAVEL_ESSENTIALS",
-      "PG05",
-      "GB",
-      NOW,
-    )).toEqual([]);
-    expect(rc6RecommendationsForContext(
-      buildRc6CommercialCatalogue(rows({
-        methodology: [method()],
-        productAssessments: [assessment("TEST-ASSESS", { confidence: "LOW" })],
-        recommendations: [recommendation("TEST-REC", { minimumProductScore: "80", minimumEvidenceConfidence: "MEDIUM" })],
-      }))!,
-      "TRAVEL_ESSENTIALS",
-      "PG05",
-      "GB",
-      NOW,
-    )).toEqual([]);
+
+    const lowScore = buildRc6CommercialCatalogue(rows({
+      methodology: [method()],
+      productAssessments: [assessment("TEST-ASSESS", { productScore: "79" })],
+      recommendations: [recommendation("TEST-REC", { minimumProductScore: "80", minimumEvidenceConfidence: "MEDIUM" })],
+    }))!;
+    expect(rc6RecommendationsForContext(lowScore, "TRAVEL_ESSENTIALS", "PG05", "GB", NOW)).toEqual([]);
+
+    const lowConfidence = buildRc6CommercialCatalogue(rows({
+      methodology: [method()],
+      productAssessments: [assessment("TEST-ASSESS", { confidence: "LOW" })],
+      recommendations: [recommendation("TEST-REC", { minimumProductScore: "80", minimumEvidenceConfidence: "MEDIUM" })],
+    }))!;
+    expect(rc6RecommendationsForContext(lowConfidence, "TRAVEL_ESSENTIALS", "PG05", "GB", NOW)).toEqual([]);
   });
 
-  it("enforces required compatibility and permits explicit NOT_APPLICABLE", () => {
+  it("enforces required compatibility and its evidence confidence, while permitting NOT_APPLICABLE", () => {
     const required = buildRc6CommercialCatalogue(rows({
-      productCompatibility: [compatibility()],
-      recommendations: [recommendation("TEST-REC", { requiredCompatibility: "PASS" })],
+      productCompatibility: [compatibility("TEST-COMP", { confidence: "MEDIUM" })],
+      methodology: [method()],
+      productAssessments: [assessment("TEST-ASSESS", { confidence: "MEDIUM" })],
+      recommendations: [recommendation("TEST-REC", { requiredCompatibility: "PASS", minimumEvidenceConfidence: "MEDIUM" })],
     }))!;
-    const missing = buildRc6CommercialCatalogue(rows({
-      recommendations: [recommendation("TEST-REC", { requiredCompatibility: "PASS" })],
+    const weakCompatibility = buildRc6CommercialCatalogue(rows({
+      productCompatibility: [compatibility("TEST-COMP", { confidence: "LOW" })],
+      methodology: [method()],
+      productAssessments: [assessment("TEST-ASSESS", { confidence: "MEDIUM" })],
+      recommendations: [recommendation("TEST-REC", { requiredCompatibility: "PASS", minimumEvidenceConfidence: "MEDIUM" })],
     }))!;
-    const notApplicable = buildRc6CommercialCatalogue(rows({
-      recommendations: [recommendation("TEST-REC", { requiredCompatibility: "NOT_APPLICABLE" })],
-    }))!;
-
+    const notApplicable = buildRc6CommercialCatalogue(rows({ recommendations: [recommendation("TEST-REC", { requiredCompatibility: "NOT_APPLICABLE" })] }))!;
     expect(rc6RecommendationsForContext(required, "TRAVEL_ESSENTIALS", "PG05", "GB", NOW)).toHaveLength(1);
-    expect(rc6RecommendationsForContext(missing, "TRAVEL_ESSENTIALS", "PG05", "GB", NOW)).toEqual([]);
+    expect(rc6RecommendationsForContext(weakCompatibility, "TRAVEL_ESSENTIALS", "PG05", "GB", NOW)).toEqual([]);
     expect(rc6RecommendationsForContext(notApplicable, "TRAVEL_ESSENTIALS", "PG05", "GB", NOW)).toHaveLength(1);
   });
 
   it("returns price intelligence only while fresh and tied to an eligible routed offer", () => {
-    const catalogue = buildRc6CommercialCatalogue(rows({
-      methodology: [method()],
-      priceIntelligence: [priceIntelligence()],
-    }))!;
+    const catalogue = buildRc6CommercialCatalogue(rows({ methodology: [method()], priceIntelligence: [priceIntelligence()] }))!;
     const stale = buildRc6CommercialCatalogue(rows({
       methodology: [method()],
       priceIntelligence: [priceIntelligence("TEST-PRICE", { calculatedAt: "2026-08-16T17:29:59Z" })],
     }))!;
-
     expect(rc6CurrentPriceIntelligenceForProduct(catalogue, "TEST-PROD", "GB", NOW)?.priceIntelligenceId).toBe("TEST-PRICE");
     expect(rc6CurrentPriceIntelligenceForProduct(stale, "TEST-PROD", "GB", NOW)).toBeNull();
   });
@@ -295,6 +272,27 @@ describe("RC6 commercial catalogue", () => {
     expect(rc6CardsForContext(catalogue, "TRAVEL_ESSENTIALS", "PG05", "GB", NOW)).toEqual([]);
   });
 
+  it("suppresses placements outside their governed validity window", () => {
+    const future = buildRc6CommercialCatalogue(rows({ cardPlacements: [placement("TEST-PLACE", { validFrom: "2026-08-20T00:00:00Z" })] }))!;
+    const expired = buildRc6CommercialCatalogue(rows({ cardPlacements: [placement("TEST-PLACE", { validTo: "2026-08-19T17:29:59Z" })] }))!;
+    expect(rc6CardsForContext(future, "TRAVEL_ESSENTIALS", "PG05", "GB", NOW)).toEqual([]);
+    expect(rc6CardsForContext(expired, "TRAVEL_ESSENTIALS", "PG05", "GB", NOW)).toEqual([]);
+  });
+
+  it("enforces the strictest governed maxDisplayCount for a context", () => {
+    const catalogue = buildRc6CommercialCatalogue(rows({
+      products: [product(), product("TEST-PROD-2")],
+      offers: [offer(), offer("TEST-OFFER-2", { productId: "TEST-PROD-2" })],
+      affiliateRoutes: [route(), route("TEST-AFF-2", { offerId: "TEST-OFFER-2" })],
+      cards: [card(), card("TEST-CARD-2", { entityId: "TEST-PROD-2" })],
+      cardPlacements: [
+        placement("TEST-PLACE", { maxDisplayCount: "1" }),
+        placement("TEST-PLACE-2", { cardId: "TEST-CARD-2", priority: "2", maxDisplayCount: "5" }),
+      ],
+    }))!;
+    expect(rc6CardsForContext(catalogue, "TRAVEL_ESSENTIALS", "PG05", "GB", NOW).map((entry) => entry.card.cardId)).toEqual(["TEST-CARD"]);
+  });
+
   it("fails a published page closed when a required data section resolves empty", () => {
     const catalogue = buildRc6CommercialCatalogue(rows({ affiliateRoutes: [] }))!;
     expect(rc6CommercialPageBySlug(catalogue, "/test/packing-cubes/", NOW)).toBeNull();
@@ -307,6 +305,21 @@ describe("RC6 commercial catalogue", () => {
     expect(resolved?.sections[0]?.items.map((item) => item.recommendationId)).toEqual(["TEST-REC"]);
   });
 
+  it("sorts recommendation tier deterministically and enforces section maxItems", () => {
+    const catalogue = buildRc6CommercialCatalogue(rows({
+      products: [product(), product("TEST-PROD-2")],
+      offers: [offer(), offer("TEST-OFFER-2", { productId: "TEST-PROD-2" })],
+      affiliateRoutes: [route(), route("TEST-AFF-2", { offerId: "TEST-OFFER-2" })],
+      recommendations: [
+        recommendation("TEST-REC-SECONDARY", { recommendationTier: "SECONDARY" }),
+        recommendation("TEST-REC-PRIMARY", { productId: "TEST-PROD-2", recommendationTier: "PRIMARY" }),
+      ],
+      pageSections: [section("TEST-SEC", { maxItems: "1" })],
+    }))!;
+    const resolved = rc6CommercialPageBySlug(catalogue, "test/packing-cubes", NOW);
+    expect(resolved?.sections[0]?.items.map((item) => item.recommendationId)).toEqual(["TEST-REC-PRIMARY"]);
+  });
+
   it("aggregates page-level card contexts across child product-group placements", () => {
     const catalogue = buildRc6CommercialCatalogue(rows({
       productGroups: [group("PG05"), group("PG06")],
@@ -315,13 +328,8 @@ describe("RC6 commercial catalogue", () => {
       affiliateRoutes: [route(), route("TEST-AFF-2", { offerId: "TEST-OFFER-2" })],
       cards: [card(), card("TEST-CARD-2", { entityId: "TEST-PROD-2" })],
       cardPlacements: [placement(), placement("TEST-PLACE-2", { cardId: "TEST-CARD-2", contextId: "PG06" })],
-      pageSections: [section("TEST-CARD-SEC", {
-        sectionType: "CARD_GRID",
-        dataSourceType: "CARD_CONTEXT",
-        dataSourceId: "TRAVEL_ESSENTIALS",
-      })],
+      pageSections: [section("TEST-CARD-SEC", { sectionType: "CARD_GRID", dataSourceType: "CARD_CONTEXT", dataSourceId: "TRAVEL_ESSENTIALS" })],
     }))!;
-
     const resolved = rc6CommercialPageBySlug(catalogue, "test/packing-cubes", NOW);
     expect(resolved?.sections[0]?.items.map((item) => item.cardId).sort()).toEqual(["TEST-CARD", "TEST-CARD-2"]);
   });
