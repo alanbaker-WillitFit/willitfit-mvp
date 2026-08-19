@@ -224,7 +224,7 @@ export function rc6RecommendationsForContext(
     .filter((row) => upper(row.marketCode) === resolvedMarket)
     .filter((row) => upper(row.contextType) === resolvedType)
     .filter((row) => normalized(row.contextId) === resolvedId)
-    .filter((row) => rc6EligibleOffersForProduct(catalogue, row.productId, resolvedMarket).length > 0);
+    .filter((row) => rc6EligibleOffersForProduct(catalogue, normalized(row.productId), resolvedMarket).length > 0);
 }
 
 export function rc6CardsForContext(
@@ -238,21 +238,26 @@ export function rc6CardsForContext(
   const resolvedMarket = upper(marketCode);
   const cardById = indexRows(catalogue.cards, "cardId");
   const productById = indexRows(catalogue.products, "productId");
+  const output: Rc6CommercialCard[] = [];
 
-  return catalogue.cardPlacements
+  const placements = catalogue.cardPlacements
     .filter((placement) => upper(placement.marketCode) === resolvedMarket)
     .filter((placement) => upper(placement.contextType) === resolvedType)
     .filter((placement) => normalized(placement.contextId) === resolvedId)
-    .sort((a, b) => Number(a.priority || 0) - Number(b.priority || 0))
-    .map((placement) => {
-      const card = cardById.get(normalized(placement.cardId));
-      if (!card) return null;
-      const product = upper(card.entityType) === "PRODUCT" ? productById.get(normalized(card.entityId)) ?? null : null;
-      const eligibleOffers = product ? rc6EligibleOffersForProduct(catalogue, product.productId, resolvedMarket) : [];
-      if (product && eligibleOffers.length === 0) return null;
-      return { card, placement, product, eligibleOffers };
-    })
-    .filter((entry): entry is Rc6CommercialCard => entry !== null);
+    .sort((a, b) => Number(a.priority || 0) - Number(b.priority || 0));
+
+  for (const placement of placements) {
+    const card = cardById.get(normalized(placement.cardId));
+    if (!card) continue;
+    const product = upper(card.entityType) === "PRODUCT" ? productById.get(normalized(card.entityId)) ?? null : null;
+    const eligibleOffers = product
+      ? rc6EligibleOffersForProduct(catalogue, normalized(product.productId), resolvedMarket)
+      : [];
+    if (product && eligibleOffers.length === 0) continue;
+    output.push({ card, placement, product, eligibleOffers });
+  }
+
+  return output;
 }
 
 function cardsForContextType(catalogue: Rc6CommercialCatalogue, contextType: string, marketCode: string): Row[] {
@@ -269,6 +274,7 @@ function cardsForContextType(catalogue: Rc6CommercialCatalogue, contextType: str
 function pageSectionItems(catalogue: Rc6CommercialCatalogue, section: Row): Row[] {
   const sourceType = upper(section.dataSourceType);
   const sourceId = normalized(section.dataSourceId);
+  const marketCode = normalized(section.marketCode) || "GB";
 
   if (sourceType === "PRODUCT") {
     return catalogue.products.filter((row) => normalized(row.productId) === sourceId);
@@ -281,16 +287,16 @@ function pageSectionItems(catalogue: Rc6CommercialCatalogue, section: Row): Row[
     return catalogue.productGroups.filter((row) => ids.has(normalized(row.productGroupId)));
   }
   if (sourceType === "RECOMMENDATION_CONTEXT") {
-    return rc6RecommendationsForContext(catalogue, "TRAVEL_ESSENTIALS", sourceId, section.marketCode);
+    return rc6RecommendationsForContext(catalogue, "TRAVEL_ESSENTIALS", sourceId, marketCode);
   }
   if (sourceType === "PRODUCT_OFFERS") {
-    return rc6EligibleOffersForProduct(catalogue, sourceId, section.marketCode).map((entry) => entry.offer);
+    return rc6EligibleOffersForProduct(catalogue, sourceId, marketCode).map((entry) => entry.offer);
   }
   if (sourceType === "METHOD") {
     return catalogue.methodology.filter((row) => normalized(row.methodId) === sourceId);
   }
   if (sourceType === "CARD_CONTEXT") {
-    return cardsForContextType(catalogue, sourceId, section.marketCode);
+    return cardsForContextType(catalogue, sourceId, marketCode);
   }
   return [];
 }
