@@ -9,3 +9,4 @@ Purpose: make RC6 certification evidence directly observable through GitHub Acti
 - The certification base is not a release or merge target.
 - Draft PR runs are evidence channels only and must not be merged into the certification base as a release action.
 - RC6 certification remains: projection contract → type-check → lint → tests → production build.
+- 2026-08-19 17:34 BST: repository Actions policy confirmed enabled; fresh RC6 push issued to trigger certification evidence.
