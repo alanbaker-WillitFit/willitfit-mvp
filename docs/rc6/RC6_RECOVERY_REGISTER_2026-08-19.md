@@ -31,7 +31,7 @@ No RC5 branch is to be modified as part of RC6. Historical branches are evidence
 | RR-001 | Core fit calculation / dimensions | Frozen RC5 code + prior certification history | Proven core behaviour | REUSE LOGIC | Extract dependencies; prove no legacy Runtime/tab assumptions; full fit regression |
 | RR-002 | Result UX / BagVisualizer | Frozen RC5 code | Mature result presentation | REUSE LOGIC | Visual + accessibility + fit-state regression |
 | RR-003 | Google Sheets auth/read mechanics | Frozen RC5 `services/googleSheets.ts` | Read-only, schema-aware, retry/LKG mechanics | REUSE LOGIC | Rebuild behind RC6 dataset/cache contract; no direct Mother reads |
-| RR-004 | WIFIT-BRAND-TICK-01 | 13 Aug checkpoint; Drive master `willitfit-master-tick-logo.png` | Approved master registered; exact binary transfer outstanding | RECOVER EXACTLY | Exact binary only; reserved path `public/assets/logo/willitfit-master-tick-logo.png`; mobile/desktop visual acceptance; asset regression |
+| RR-004 | WIFIT-BRAND-TICK-01 | 13 Aug checkpoint + verified Drive file | Approved master registered; exact binary transfer outstanding | RECOVER EXACTLY | Drive ID `1D3VP0nOFUXpXDpK0LWRuFmOY-IBaXKrK`; exact binary only; reserved path `public/assets/logo/willitfit-master-tick-logo.png`; mobile/desktop visual acceptance; asset regression |
 | RR-005 | Advanced/Oversized hero asset | 13 Aug checkpoint; historical asset branch | Approved WebP recovered into RC5 path | RECOVER EXACTLY | Verify exact governed binary/path; do not redraw or substitute |
 | RR-006 | Oversized Size Guides listing image defect R-022 | 13 Aug checkpoint | Open low-severity listing-only rendering defect | REBUILD/FIX IN RC6 | Root-cause test Next/Image/card sizing/static packaging/cache; clean-session visual verification |
 | RR-007 | FAQ / People often ask user labelling | 13 Aug checkpoint + frozen RC5 | Partially implemented; consistency review outstanding | REBUILD/VERIFY | Header/nav, `/ask`, homepage, sitemap/SEO, accessibility wording |
@@ -46,6 +46,10 @@ No RC5 branch is to be modified as part of RC6. Historical branches are evidence
 | RR-016 | Travel Notifications / Ask empty schemas | RC6 Build Contract Pack | Historical private/test rows excluded | REBUILD FAIL-CLOSED | Schema-valid zero rows must not trigger legacy fallback or public exposure |
 | RR-017 | Gate Rush | RC6 Build Contract exception | Held pending rebuild certification | EVIDENCE ONLY / HOLD | Do not activate until separately rebuilt/certified |
 | RR-018 | Runtime schema/source registry | Frozen RC5 mixed registry | Contains legacy/mixed contracts | REBUILD | RC6-only canonical dataset registry generated from approved contract |
+| RR-019 | Size Guide aggregation UX | `rc5-size-guide-pilot` | Useful grouping/airline-linking concepts but direct legacy Travel Essentials dependency and fallback path | REUSE CONCEPT / REBUILD | Rebuild from RC6 Runtime contract; no legacy affiliate dependency; no uncontrolled fallback; verify SEO/image behaviour |
+| RR-020 | Strict positive publication test | `rc5-cleanse-baseline` runtime-content logic | Better principle than permissive publication, but still includes legacy fallback/module aliases | REUSE PRINCIPLE / REBUILD | Require explicit governed publication state per RC6 dataset; no legacy status fallback unless contract explicitly permits |
+| RR-021 | Cleanse schema allowlisting | `rc5-cleanse-baseline` | Earlier attempt at known-tab/header allowlisting but contains RC4/RC5 product flags and legacy affiliate schema | REUSE PRINCIPLE / REBUILD | RC6-only schema registry; reject unknown production datasets unless explicitly declared |
+| RR-022 | Customer question submission endpoint | `rc5-cleanse-baseline` | External feed API exists in divergent evidence branch | EVIDENCE ONLY / REBUILD LATER | RC6 public Ask datasets are empty and historical submissions are private/test; no public activation until separate privacy/security/contract approval |
 
 ## Historical RC5 branch recovery audit
 
@@ -61,9 +65,9 @@ The branch inventory from the 13 August checkpoint has been rechecked against fr
 | `rc5-publisher-implementation` | Behind; 0 unique commits | Integrated history; publisher remains outside website build authority |
 | `rc5-stage-1-articles` | Behind; 0 unique commits | Integrated history |
 | `rc5-lab-willitfly-gate-rush` | Behind; 0 unique commits | Integrated history; RC6 Gate Rush still held by explicit exception |
-| `rc5-size-guide-pilot` | **DIVERGED: 14 unique commits** | RECOVERY CANDIDATE — requires file-by-file review before RC6 decision |
+| `rc5-size-guide-pilot` | **DIVERGED: 14 unique commits** | RECOVERY CANDIDATE — concepts now classified; remaining routes/CSS/SEO still require review |
 | `rc5-gate-rush-preparation-20260806` | **DIVERGED: 1 unique commit** | EVIDENCE ONLY — Gate Rush is held in RC6 |
-| `rc5-cleanse-baseline` | **DIVERGED: 8 unique commits** | RECOVERY CANDIDATE — inspect differences individually; no bulk import |
+| `rc5-cleanse-baseline` | **DIVERGED: 8 unique commits** | RECOVERY CANDIDATE — principles classified; remaining files still require review |
 
 ### Diverged branch: `rc5-size-guide-pilot`
 
@@ -78,7 +82,12 @@ Unique branch differences include:
 - `services/sizeGuides.ts`
 - `components/Header.tsx` changes
 
-**Decision:** do not copy wholesale. Audit routes, data source, SEO behaviour, image handling and dependency graph against Runtime_RC6 and R-022. Recover only what passes RC6 architecture review.
+Review result so far:
+
+- `services/sizeGuides.ts` contains useful grouping logic for fixed dimensions and checked-bag linear totals, airline linking and metric/imperial display. It also has fallback behaviour tied to the inherited airline service. **Do not import wholesale. Reuse concepts only.**
+- `SizeGuidePage.tsx` has a useful progressive disclosure pattern and checker-return CTA, but imports the legacy `TravelEssentials` affiliate layer directly and reports local fallback as a valid source. **Do not import wholesale. Rebuild presentation against RC6 governed readers and empty-state rules.**
+
+Remaining branch routes/CSS/header changes are still evidence pending inspection. R-022 must be solved by root cause, not by copying this branch blindly.
 
 ### Diverged branch: `rc5-gate-rush-preparation-20260806`
 
@@ -90,7 +99,12 @@ Unique files are Gate Rush static HTML routes. RC6 contract explicitly holds Gat
 
 Unique differences touch `.env.example`, RC5 certification, customer-question API, Ask UI, the approved Advanced/Oversized WebP, airline/runtime readers and the sheet schema registry.
 
-**Decision:** inspect individually. The binary asset may be recovered only via its governed asset authority. Reader/schema changes are not accepted by branch provenance alone and must be judged against RC6 contracts. Private/test Ask data must remain excluded.
+Review result so far:
+
+- Its `sheetSchemas.ts` demonstrates a useful allowlist principle but explicitly carries columns such as `WillItFit RC4`, `WillItFit RC5`, `WillItFly RC1` and the legacy `09_Affiliate_Placements` contract. **Principle retained, implementation rejected for RC6.**
+- Its `runtimeContent.ts` improves publication semantics by requiring positive approval signals, but still contains legacy-status fallback and legacy module alias behaviour. **Reuse the positive-approval principle; rebuild the implementation dataset-by-dataset.**
+- Its customer-question POST endpoint is operational evidence only. Because RC6 Ask Questions/Answers are schema-ready empty and previous submissions were excluded as private/test, **do not recover this endpoint into the public RC6 core without a separate governed privacy/security decision.**
+- The Advanced/Oversized WebP in this branch remains subject to the exact governed asset authority rather than branch provenance.
 
 ## Known RC5 risk controls that become RC6 certification requirements
 
@@ -125,11 +139,21 @@ RC6 certification will include explicit scans for prohibited legacy references. 
 
 Absence must be proved, not assumed.
 
+## Release-quality principle
+
+RC6 is quality-gated, not date-driven. There is no requirement to go live quickly. After build certification, RC6 must pass a full smoke campaign, real-data reconciliation, legacy-contamination certification, Draft/staging soak, and a separate explicit release approval before Public promotion.
+
+Target release states:
+
+`Built → Certified → Smoke Tested → Soak Tested → Release Candidate → Approved for Public → Live`
+
+Certification does not imply deployment approval.
+
 ## Next recovery loop
 
-1. Inspect `rc5-size-guide-pilot` file-by-file and classify each item.
-2. Inspect `rc5-cleanse-baseline` unique differences file-by-file.
+1. Finish `rc5-size-guide-pilot` route/CSS/header review and determine whether any exact implementation deserves recovery.
+2. Finish `rc5-cleanse-baseline` `.env`/airline/Ask UI/certification review.
 3. Search remaining governing RC5 checkpoints/registers for unresolved fixes or approved assets not yet represented here.
-4. Verify the exact Drive location/identity of WIFIT-BRAND-TICK-01 without modifying it.
+4. Verify other exact governed asset identities required by RC6.
 5. Produce the RC6 Clean Assembly Manifest from this register.
 6. No functional RC6 implementation until the recovery/assembly manifest is reviewed and locked.
