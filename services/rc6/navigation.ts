@@ -1,4 +1,4 @@
-import { readRc6Dataset } from "./runtimeReader";
+import { readRc6Dataset, type Rc6TabReader } from "./runtimeReader";
 
 type RuntimeRow = Record<string, string>;
 
@@ -14,9 +14,9 @@ function truthy(value: string | undefined): boolean {
   return ["yes", "true", "1", "active", "published", "live"].includes(String(value ?? "").trim().toLowerCase());
 }
 
-export async function getRc6NavigationItems(): Promise<Rc6NavigationItem[]> {
-  const result = await readRc6Dataset<RuntimeRow>("navigation");
-  if (result.kind !== "READY_WITH_ROWS") return [];
+export async function getRc6NavigationItems(reader: Rc6TabReader): Promise<Rc6NavigationItem[]> {
+  const result = await readRc6Dataset<RuntimeRow>("navigation", reader);
+  if (result.state !== "READY_WITH_ROWS") return [];
 
   return result.rows
     .filter((row) => truthy(row.Active) && truthy(row.Publish))
