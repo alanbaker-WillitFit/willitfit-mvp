@@ -3,6 +3,7 @@ import {
   type Rc6DatasetContract,
   type Rc6DatasetName,
 } from "./runtimeContract";
+import { validateRc6Headers } from "./schemaRegistry";
 
 export type Rc6RuntimeReadState =
   | "READY_WITH_ROWS"
@@ -46,6 +47,16 @@ export async function readRc6Dataset<T extends Record<string, string>>(
         dataset,
         state: "AUTHORITATIVE_EMPTY",
         rows: [],
+      };
+    }
+
+    const headerValidation = validateRc6Headers(name, Object.keys(rows[0] ?? {}));
+    if (!headerValidation.valid) {
+      return {
+        dataset,
+        state: "READ_OR_SCHEMA_FAILURE",
+        rows: [],
+        error: `Runtime dataset ${dataset.tabName} is missing required RC6 headers: ${headerValidation.missing.join(", ")}.`,
       };
     }
 
