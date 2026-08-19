@@ -45,6 +45,14 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Audit production dependencies
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Audit full dependency tree
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
       - name: Validate RC6 projection contract
         run: npm run publisher:rc6:dry-run
 
