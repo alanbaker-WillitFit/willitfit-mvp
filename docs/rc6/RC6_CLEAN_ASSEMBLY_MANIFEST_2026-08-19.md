@@ -17,10 +17,73 @@ Clean means absence has been proved, not merely that known legacy files were del
 - RC6 audit/build branch: `rc6-build-audit-20260819`
 - Mother authority: `Mother_RC6`
 - Build Runtime authority: `Runtime_RC6`
-- Build contract authority: `WillItFit RC6 — Build Contract Pack`
+- Build contract authority: `Runtime_RC6!00.3_Build_Contract` plus `00.4_Contract_Exceptions` and the `WillItFit RC6 — Build Contract Pack`
 - Recovery authority: `docs/rc6/RC6_RECOVERY_REGISTER_2026-08-19.md`
 
 No functional RC6 implementation begins until this manifest and the Recovery Register are treated as the build allowlist.
+
+## Verified current Runtime_RC6 build contract
+
+The live `00.3_Build_Contract` tab was re-read directly during this audit. It is the current dataset-level truth for Build RC6. Earlier audit-state rows elsewhere in Runtime_RC6 are historical evidence and must not override this contract.
+
+### READY datasets
+
+- `02_Airlines` — 114
+- `03_Airline Rules` — 425
+- `04.1_Special Baggage Results` — 21
+- `05_FAQs` — 5
+- `06_Tips` — 182
+- `07_Site Content` — 12
+- `08.2_Articles` — 15
+- `08.2.1_Article_Sections` — 49
+- `10_Lab` — 1
+- `10.1_Lab_Game_Catalogue` — 1 certified route
+- `runtime_product_groups` — 20
+
+### RETAINED_REQUIRES_BUILD_CONFIRMATION
+
+These datasets exist in Runtime_RC6 but are deliberately not accepted by inheritance. Build readers/contracts must be audited before use:
+
+- `01_Settings` — 11
+- `04_Special Baggage All` — 24
+- `07.1_Navigation` — 1
+- `08_SEO Pages` — 15
+- `09_Affiliate_Placements` — 0; legacy compatibility only, not RC6 commercial authority
+- `11_Countries_Base` — 133
+- `11.1_Country_Travel_Facts` — 132
+- `15_Redirects` — 0
+
+### SCHEMA_READY_EMPTY
+
+These are valid authoritative empty states and must be cacheable as empty, not treated as misses or reasons to fall back:
+
+- `08.1_Travel Notifications`
+- `08.3_Ask_Questions`
+- `08.3.1_Ask_Answers`
+- `08.4_Travel_Alerts`
+- `runtime_brands`
+- `runtime_products`
+- `runtime_product_compatibility`
+- `runtime_product_assessments_summary`
+- `runtime_retailers`
+- `runtime_offers`
+- `runtime_price_intelligence`
+- `runtime_affiliate_routes`
+- `runtime_recommendations`
+- `runtime_cards`
+- `runtime_card_placements`
+- `runtime_pages`
+- `runtime_page_sections`
+- `runtime_methodology`
+
+### Explicit RC6 exceptions
+
+- Special Baggage is 21 governed results; RC5 exact-14 is stale.
+- Ask Questions/Answers: schema only; private/test submissions must not be exposed.
+- Travel Notifications: empty; fail closed; historical TEST-RED is excluded.
+- Gate Rush: held; do not activate.
+- Legacy Affiliate Placements: empty; RC6 Product Intelligence contract supersedes RC5 smoke rows.
+- Product scoring thresholds/methods remain open governance; interfaces may exist but no thresholds may be invented.
 
 ## Assembly classes
 
@@ -219,28 +282,38 @@ The core checker must certify independently before commercial UI is added.
 
 ### Phase 3 — Governed content and discovery
 
-1. Settings where Build consumption is required.
-2. Site Content.
-3. FAQs.
-4. Tips.
-5. Articles/sections.
-6. Navigation.
-7. SEO Pages.
-8. Countries/Country Facts if present in the approved Runtime contract.
-9. Size Guides rebuilt against RC6 data readers.
-10. Lab certified route only.
-11. Ask public empty state and approved read-only knowledge behaviour.
+1. Settings — retained, 11 rows; Build reader contract must be confirmed before use.
+2. Special Baggage All — retained, 24 rows; source-reader contract must be confirmed before use.
+3. Site Content — READY, 12 rows.
+4. FAQs — READY, 5 rows.
+5. Tips — READY, 182 rows.
+6. Articles — READY, 15 rows.
+7. Article Sections — READY, 49 rows.
+8. Navigation — retained, 1 row; Build reader contract must be confirmed before use.
+9. SEO Pages — retained, 15 rows; Build reader/canonical contract must be confirmed before use.
+10. Countries — retained, 133 rows; Build reader contract must be confirmed before use.
+11. Country Facts — retained, 132 rows; Build reader contract must be confirmed before use.
+12. Redirects — retained empty; verify whether Build requires reader support.
+13. Size Guides rebuilt against RC6 data readers.
+14. Lab certified route only.
+15. Ask public empty state and approved read-only knowledge behaviour.
+16. Travel Alerts/Notifications remain authoritative empty until published.
 
 ### Phase 4 — Product Intelligence contract readiness
 
-1. Product Groups.
-2. Products empty/read contract.
-3. Compatibility contract.
-4. Retailers/offers empty/read contract.
-5. Price intelligence empty/read contract.
-6. Affiliate routes empty/read contract.
-7. Recommendations empty/read contract.
-8. Cards/pages/methodology where governed.
+1. Product Groups — READY, 20.
+2. Brands empty/read contract.
+3. Products empty/read contract.
+4. Compatibility empty/read contract.
+5. Product assessment-summary empty/read contract.
+6. Retailers empty/read contract.
+7. Offers empty/read contract.
+8. Price intelligence empty/read contract.
+9. Affiliate routes empty/read contract.
+10. Recommendations empty/read contract.
+11. Cards/card placements empty/read contract.
+12. Pages/page sections empty/read contract.
+13. Methodology empty/read contract.
 
 No public commercial product is invented to exercise the UI.
 
@@ -341,4 +414,4 @@ Certification is not deployment approval. Public promotion is a separate human d
 
 ## Next action
 
-Complete the remaining Recovery Register audit of checkpoint-derived approved assets/fixes and the inherited Runtime_RC6 datasets (Settings, Navigation, SEO, Countries/Country Facts, Special Baggage source paths). Then lock this manifest and begin Phase 1 only.
+Finish reader-level verification for the `RETAINED_REQUIRES_BUILD_CONFIRMATION` datasets: Settings, Special Baggage All, Navigation, SEO Pages, Countries, Country Facts and Redirects. Record exact RC5 reader presence/absence and classify each as REUSE LOGIC, REBUILD or NEW. Once those are resolved, this manifest can be locked and Phase 1 may begin.
