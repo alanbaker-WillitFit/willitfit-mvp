@@ -75,3 +75,68 @@ jobs:
 
       - name: Build locally
         run: npm run build
+
+  dependency-candidate:
+    name: Generate and verify dependency candidate
+    needs: certify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout RC6 branch
+        uses: actions/checkout@v4
+        with:
+          ref: rc6-build-audit-20260819
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install current locked dependencies
+        run: npm ci
+
+      - name: Apply explicit dependency candidate
+        run: |
+          npm install --save-exact next@15.5.23
+          npm install --save-dev --save-exact eslint-config-next@15.5.23 wrangler@4.124.0
+          npm uninstall --save-dev xlsx
+          npm pkg set engines.node=">=22"
+
+      - name: Record resolved candidate versions
+        run: |
+          node --version
+          npm --version
+          npm ls next eslint-config-next wrangler miniflare workerd sharp undici nanoid postcss brace-expansion js-yaml --all || true
+
+      - name: Audit production candidate
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Audit full candidate
+        run: npm audit --audit-level=high
+
+      - name: Validate projection contract on candidate
+        run: npm run publisher:rc6:dry-run
+
+      - name: Type-check candidate
+        run: npm run type-check
+
+      - name: Lint candidate
+        run: npm run lint
+
+      - name: Test candidate
+        run: npm test
+
+      - name: Build candidate
+        run: npm run build
+
+      - name: Upload dependency candidate files
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc6-dependency-candidate
+          path: |
+            package.json
+            package-lock.json
+          if-no-files-found: error
+          retention-days: 1
