@@ -6,6 +6,9 @@ on:
       - rc6-build-audit-20260819
     paths:
       - '**'
+  pull_request:
+    branches:
+      - rc6-certification-base-20260819
   workflow_dispatch:
 
 permissions:
