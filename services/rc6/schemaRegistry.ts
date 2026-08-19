@@ -10,6 +10,23 @@ export const RC6_SCHEMA_REGISTRY: Readonly<Partial<Record<Rc6DatasetName, Rc6Sch
     requiredHeaders: ["Review Status", "Control Field", "Value", "Source Rule"],
     optionalHeaders: ["Publish", "Active", "Footer Label", "Runtime Target"],
   },
+  airlines: {
+    requiredHeaders: [
+      "Airline ID",
+      "Airline Name",
+      "IATA Code",
+      "Search Terms",
+      "Country",
+      "Website URL",
+      "Baggage URL",
+      "Display Order",
+      "Active",
+      "Review Status",
+      "Last Reviewed",
+      "Publish",
+    ],
+    optionalHeaders: ["Logo Reference", "Notes"],
+  },
   navigation: {
     requiredHeaders: ["Link ID", "Label", "URL", "Display Order", "Open in New Tab", "Active", "Publish"],
     optionalHeaders: ["Notes"],
