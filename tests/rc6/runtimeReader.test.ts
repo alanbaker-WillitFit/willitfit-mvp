@@ -10,7 +10,7 @@ describe("RC6 canonical Runtime reader", () => {
     const calls: string[] = [];
     const result = await readRc6Dataset("airlines", async <T extends Record<string, string>>(tabName: string) => {
       calls.push(tabName);
-      return [{ "Airline ID": "TEST", "Airline Name": "Test Air" }] as T[];
+      return [{ "Airline ID": "TEST", "Airline Name": "Test Air" }] as unknown as T[];
     });
 
     expect(calls).toEqual(["02_Airlines"]);
@@ -32,6 +32,16 @@ describe("RC6 canonical Runtime reader", () => {
     expect(result.state).toBe("READ_OR_SCHEMA_FAILURE");
     expect(result.rows).toEqual([]);
     expect(isRc6AuthoritativeEmpty(result)).toBe(false);
+  });
+
+  it("fails closed when a governed retained dataset has the wrong headers", async () => {
+    const result = await readRc6Dataset("navigation", async <T extends Record<string, string>>() => [
+      { Label: "WillItFly", URL: "https://www.will-it-fly.net" },
+    ] as unknown as T[]);
+
+    expect(result.state).toBe("READ_OR_SCHEMA_FAILURE");
+    expect(result.error).toContain("missing required RC6 headers");
+    expect(canServeRc6Rows(result)).toBe(false);
   });
 
   it("fails closed when the adapter throws", async () => {
