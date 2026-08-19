@@ -49,9 +49,17 @@ jobs:
         continue-on-error: true
         run: npm audit --omit=dev --audit-level=high
 
+      - name: Preview production audit remediation
+        continue-on-error: true
+        run: npm audit fix --omit=dev --dry-run
+
       - name: Audit full dependency tree
         continue-on-error: true
         run: npm audit --audit-level=high
+
+      - name: Preview full-tree audit remediation
+        continue-on-error: true
+        run: npm audit fix --dry-run
 
       - name: Validate RC6 projection contract
         run: npm run publisher:rc6:dry-run
