@@ -11,7 +11,8 @@ type Row = Record<string, string>;
 function airlineRow(index: number, overrides: Partial<Row> = {}): Row {
   const ordinal = index + 1;
   const id = `A${String(ordinal).padStart(3, "0")}`;
-  const iata = String.fromCharCode(65 + (index % 26)) + String.fromCharCode(65 + (Math.floor(index / 26) % 26));
+  const generatedIata = String.fromCharCode(65 + (index % 26)) + String.fromCharCode(65 + (Math.floor(index / 26) % 26));
+  const iata = generatedIata === "BA" ? "ZY" : generatedIata;
   return {
     "Airline ID": id,
     "Airline Name": `Airline ${ordinal}`,
@@ -52,6 +53,12 @@ describe("RC6 airlines", () => {
   it("fails closed on duplicate airline identities", async () => {
     const rows = Array.from({ length: 114 }, (_, index) => airlineRow(index));
     rows[113] = airlineRow(113, { "Airline ID": "A001" });
+    expect(await getRc6Airlines(readerFor(rows))).toEqual([]);
+  });
+
+  it("fails closed on duplicate governed IATA codes", async () => {
+    const rows = Array.from({ length: 114 }, (_, index) => airlineRow(index));
+    rows[113] = airlineRow(113, { "IATA Code": rows[0]?.["IATA Code"] ?? "AA" });
     expect(await getRc6Airlines(readerFor(rows))).toEqual([]);
   });
 
