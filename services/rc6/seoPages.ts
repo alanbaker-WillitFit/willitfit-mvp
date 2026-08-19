@@ -1,4 +1,4 @@
-import { readRc6Dataset } from "./runtimeReader";
+import { readRc6Dataset, type Rc6TabReader } from "./runtimeReader";
 
 type RuntimeRow = Record<string, string>;
 
@@ -20,9 +20,9 @@ function approved(value: string | undefined): boolean {
   return ["approved", "published", "live"].includes(String(value ?? "").trim().toLowerCase());
 }
 
-export async function getRc6SeoPages(): Promise<Rc6SeoPage[]> {
-  const result = await readRc6Dataset<RuntimeRow>("seoPages");
-  if (result.kind !== "READY_WITH_ROWS") return [];
+export async function getRc6SeoPages(reader: Rc6TabReader): Promise<Rc6SeoPage[]> {
+  const result = await readRc6Dataset<RuntimeRow>("seoPages", reader);
+  if (result.state !== "READY_WITH_ROWS") return [];
 
   const pages = result.rows
     .filter((row) => truthy(row.Active) && truthy(row.Publish) && approved(row["Review Status"]))
