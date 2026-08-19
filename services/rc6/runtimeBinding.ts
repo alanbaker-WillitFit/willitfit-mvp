@@ -2,6 +2,8 @@ import { getSheetRowsFromSpreadsheet } from "@/services/googleSheets";
 import { getRc6CheckerCatalogue, type Rc6CheckerCatalogue } from "./checker";
 import type { Rc6TabReader } from "./runtimeReader";
 
+export const RC6_RUNTIME_SPREADSHEET_ENV = "RC6_RUNTIME_SPREADSHEET_ID" as const;
+
 export function createRc6RuntimeReader(spreadsheetId: string): Rc6TabReader {
   const resolvedSpreadsheetId = spreadsheetId.trim();
   if (!resolvedSpreadsheetId) {
@@ -12,8 +14,23 @@ export function createRc6RuntimeReader(spreadsheetId: string): Rc6TabReader {
     getSheetRowsFromSpreadsheet<T>(tabName, resolvedSpreadsheetId);
 }
 
+export function resolveRc6RuntimeSpreadsheetId(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): string | null {
+  const value = String(env[RC6_RUNTIME_SPREADSHEET_ENV] ?? "").trim();
+  return value || null;
+}
+
 export async function loadRc6CheckerCatalogueFromSpreadsheet(
   spreadsheetId: string,
 ): Promise<Rc6CheckerCatalogue | null> {
   return getRc6CheckerCatalogue(createRc6RuntimeReader(spreadsheetId));
+}
+
+export async function loadRc6DraftCheckerCatalogue(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): Promise<Rc6CheckerCatalogue | null> {
+  const spreadsheetId = resolveRc6RuntimeSpreadsheetId(env);
+  if (!spreadsheetId) return null;
+  return loadRc6CheckerCatalogueFromSpreadsheet(spreadsheetId);
 }
