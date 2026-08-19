@@ -271,13 +271,18 @@ function recommendationRequirementsMet(catalogue: Rc6CommercialCatalogue, recomm
 
   const minimumScoreText = normalized(recommendation.minimumProductScore);
   if (!minimumScoreText && !minimumConfidence) return true;
-  const minimumScore = minimumScoreText ? Number(minimumScoreText) : Number.NEGATIVE_INFINITY;
-  if (!Number.isFinite(minimumScore)) return false;
+
+  let minimumScore: number | null = null;
+  if (minimumScoreText) {
+    minimumScore = Number(minimumScoreText);
+    if (!Number.isFinite(minimumScore)) return false;
+  }
 
   return catalogue.productAssessments.some((assessment) => {
     if (normalized(assessment.productId) !== productId) return false;
     const score = Number(assessment.productScore);
-    if (!Number.isFinite(score) || score < minimumScore) return false;
+    if (!Number.isFinite(score)) return false;
+    if (minimumScore !== null && score < minimumScore) return false;
     return confidenceMeets(assessment.confidence, minimumConfidence);
   });
 }
