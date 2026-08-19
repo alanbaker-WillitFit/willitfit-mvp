@@ -103,7 +103,7 @@ jobs:
           npm install --save-dev --save-exact eslint-config-next@15.5.23 postcss@8.5.26 wrangler@4.124.0
           npm uninstall --save-dev xlsx
           npm pkg set engines.node=">=22"
-          npm pkg set scripts.lint="eslint . --ext .js,.jsx,.ts,.tsx"
+          npm pkg set scripts.lint="eslint . --ext .js,.jsx,.ts,.tsx --ignore-pattern next-env.d.ts"
           npm update brace-expansion nanoid js-yaml
 
       - name: Record resolved candidate versions
