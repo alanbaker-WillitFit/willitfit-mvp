@@ -87,12 +87,18 @@ export async function getRc6SpecialBaggageReferenceItems(reader: Rc6TabReader): 
     .filter((item) => item.itemId && item.itemName && item.resultCategory)
     .sort((a, b) => a.rank - b.rank || a.itemId.localeCompare(b.itemId));
 
+  if (items.length !== 24) return [];
+
   const ids = new Set<string>();
-  return items.filter((item) => {
-    if (ids.has(item.itemId)) return false;
+  const ranks = new Set<number>();
+  for (const item of items) {
+    if (ids.has(item.itemId) || ranks.has(item.rank)) return [];
     ids.add(item.itemId);
-    return true;
-  });
+    ranks.add(item.rank);
+  }
+
+  if (items.some((item, index) => item.rank !== index + 1)) return [];
+  return items;
 }
 
 export async function getRc6SpecialBaggageResults(reader: Rc6TabReader): Promise<Rc6SpecialBaggageResult[]> {
@@ -132,4 +138,13 @@ export async function getRc6SpecialBaggageResults(reader: Rc6TabReader): Promise
   if (mapped.some((entry, index) => entry.rank !== index + 1)) return [];
 
   return mapped;
+}
+
+export function specialBaggageRelationshipsValid(
+  results: readonly Rc6SpecialBaggageResult[],
+  referenceItems: readonly Rc6SpecialBaggageReferenceItem[],
+): boolean {
+  if (results.length !== 21 || referenceItems.length !== 24) return false;
+  const governedItemIds = new Set(referenceItems.map((item) => item.itemId));
+  return results.every((result) => result.linkedItemIds.every((itemId) => governedItemIds.has(itemId)));
 }
