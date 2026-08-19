@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   getRc6SpecialBaggageReferenceItems,
   getRc6SpecialBaggageResults,
+  specialBaggageRelationshipsValid,
 } from "@/services/rc6/specialBaggage";
 import type { Rc6TabReader } from "@/services/rc6/runtimeReader";
 
@@ -93,13 +94,47 @@ describe("RC6 Special Baggage", () => {
     expect(results).toEqual([]);
   });
 
-  it("keeps the 24-item source catalogue separate from public result publication", async () => {
+  it("requires the complete 24-item source catalogue while keeping it non-public", async () => {
     const rows = Array.from({ length: 24 }, (_, index) => referenceRow(index));
     const items = await getRc6SpecialBaggageReferenceItems(readerFor({ "04_Special Baggage All": rows }));
 
     expect(items).toHaveLength(24);
     expect(items.every((item) => item.published === false)).toBe(true);
     expect(items[0]?.airlineLevelValidationRequired).toBe(true);
+  });
+
+  it("fails closed when the 24-item source catalogue is incomplete", async () => {
+    const rows = Array.from({ length: 23 }, (_, index) => referenceRow(index));
+    const items = await getRc6SpecialBaggageReferenceItems(readerFor({ "04_Special Baggage All": rows }));
+
+    expect(items).toEqual([]);
+  });
+
+  it("proves every public result points to governed source items", async () => {
+    const resultRows = Array.from({ length: 21 }, (_, index) => resultRow(index));
+    const referenceRows = Array.from({ length: 24 }, (_, index) => referenceRow(index));
+    const reader = readerFor({
+      "04.1_Special Baggage Results": resultRows,
+      "04_Special Baggage All": referenceRows,
+    });
+
+    const results = await getRc6SpecialBaggageResults(reader);
+    const items = await getRc6SpecialBaggageReferenceItems(reader);
+    expect(specialBaggageRelationshipsValid(results, items)).toBe(true);
+  });
+
+  it("fails relationship validation for an orphan linked item", async () => {
+    const resultRows = Array.from({ length: 21 }, (_, index) => resultRow(index));
+    resultRows[20] = resultRow(20, { "Linked Item IDs": "SB999" });
+    const referenceRows = Array.from({ length: 24 }, (_, index) => referenceRow(index));
+    const reader = readerFor({
+      "04.1_Special Baggage Results": resultRows,
+      "04_Special Baggage All": referenceRows,
+    });
+
+    const results = await getRc6SpecialBaggageResults(reader);
+    const items = await getRc6SpecialBaggageReferenceItems(reader);
+    expect(specialBaggageRelationshipsValid(results, items)).toBe(false);
   });
 
   it("fails closed when the result schema is malformed", async () => {
