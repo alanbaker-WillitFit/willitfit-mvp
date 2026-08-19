@@ -105,14 +105,102 @@ Both are already runtime-driven and fail to an empty result when their tab is un
 | RC5 publisher | Runtime writing tool | NOT PART OF BUILD AUDIT | Build must not write Mother/Runtime |
 | RC5 certification workflow | Good test sequence but RC5 branch-specific | ADAPT/REBUILD | RC6 workflow + RC6 contract tests |
 
+## RC6 CACHE and bot/runtime-read workstream alignment
+
+CACHE and any bot/runtime-reader implementation are now part of this RC6 build workstream rather than a separate architectural track. This is specifically to prevent a second consumer from drifting away from the website's Runtime contract, schema, fail-closed rules or publication semantics.
+
+The authority chain remains:
+
+`Mother_RC6 → governed publication → Runtime_RC6 → CACHE → Build / approved Runtime consumers`
+
+The website and any approved bot/read consumer must never treat Mother as a direct read source. They must consume the same canonical Runtime_RC6 dataset definitions and the same authoritative-empty semantics.
+
+### CACHE design decision
+
+RC6 must not use one global Runtime TTL. Cache policy is dataset-aware and must preserve governance freshness rules rather than inventing Build-side freshness.
+
+Initial logical cache classes:
+
+- **CACHE CLASS A — CORE / STABLE:** airlines, product groups, products, brands, pages, methodology and similar slow-changing identity/reference datasets. Long-lived cache; refresh primarily on governed publication/version change with safety revalidation.
+- **CACHE CLASS B — DEPENDENCY DRIVEN:** airline rules, product compatibility and recommendations. Refresh/invalidate when their governed source dependencies change.
+- **CACHE CLASS C — COMMERCIAL DYNAMIC:** offers, price intelligence and affiliate routes. Shorter freshness windows; records must never be served beyond governed hard-stale rules.
+
+Specific commercial freshness examples from the Product Intelligence contract are treated as governance inputs, not Build policy: offers approximately daily with a 48-hour hard stale limit; price intelligence daily with a 72-hour hard stale limit; affiliate routes with a seven-day hard stale limit; product identity may be materially slower-changing; compatibility refreshes when product or airline-rule dependencies change.
+
+### Authoritative empty is cacheable truth
+
+A reachable RC6 Runtime dataset with zero approved rows is a valid state, not a cache miss. `SCHEMA_READY_EMPTY` commercial datasets must therefore be cached as authoritative empty results and must not trigger repeated Google reads or fallback to legacy datasets.
+
+This rule applies especially to the currently empty RC6 products/offers/recommendations/affiliate-route datasets.
+
+### RC5 and RC6 commercial paths remain isolated
+
+Current/live RC5 may continue to use its existing `09_Affiliate_Placements` path until replacement launch. RC6 must independently use the Product Intelligence Runtime family and must not make the legacy placement model a CACHE dependency.
+
+The two paths must not be silently bridged:
+
+- RC5/current: legacy placement path until replacement launch.
+- RC6/future: `runtime_product_groups`, `runtime_products`, retailers/offers/price-intelligence/affiliate-routes/recommendations and related governed datasets.
+
+### Logical snapshot direction
+
+Do not build one giant Runtime blob. Prepare CACHE around a small number of logical snapshots plus a manifest, for example:
+
+- `runtime:core`
+- `runtime:content`
+- `runtime:commercial`
+- `runtime:reference`
+- `runtime:manifest`
+
+The exact partition remains subject to the final Runtime_RC6 tab/relationship audit, but commercial invalidation must not force unrelated stable datasets to be reloaded.
+
+### Runtime cache manifest
+
+The RC6 cache layer should expose enough metadata to determine whether Google must be touched. Candidate manifest fields include:
+
+- Runtime version/publication version;
+- dataset key;
+- dataset version/checksum;
+- dataset state including authoritative empty;
+- freshness class;
+- source publication timestamp;
+- last successful refresh;
+- hard-stale threshold where applicable;
+- dependency/version references where invalidation is dependency-driven.
+
+CACHE must be able to determine that a dataset has not changed without forcing a full Runtime reread.
+
+### Layering target
+
+Target read path:
+
+`Runtime_RC6 → controlled refresh → manifest/logical snapshots → Cloudflare KV L2 → Worker memory L1 → Build / approved Runtime readers`
+
+No production migration is authorised by this audit. Existing production cache behaviour remains unchanged until RC6 implementation and certification gates explicitly approve switching.
+
+### Analytics boundary
+
+Future commercial analytics may record events such as page view, airline-page view, product-group view, product view, offer impression, affiliate CTA impression/click and recommendation impression. Analytics must not become a commercial decision engine and must not expose private programme IDs, commission rates, account identifiers or other Mother-only/private fields.
+
+CACHE efficiency should also be observable so page traffic can be separated into L1 hits, KV hits and controlled Runtime refreshes.
+
+### Bot/runtime-reader alignment rule
+
+Any RC6 bot or automated reader that serves or derives user-facing RC6 data must share the same canonical Runtime source registry, schema registry, publication-state interpretation, authoritative-empty handling and freshness metadata as the website. A parallel bot-specific contract is prohibited unless explicitly approved as a separate governed product contract.
+
+Bots/automation may prepare, analyse or observe data under their existing authority boundaries, but they must not silently widen publication authority, invent missing commercial data, bypass Runtime, or use CACHE as an excuse to serve data beyond governed freshness/hard-stale limits.
+
+**Status:** RC6-aware CACHE architecture approved for preparation; production CACHE migration not approved; commercial CACHE activation held until datasets are populated/certified; additional recurring-cost target remains £0.
+
 ## RC6 audit gates before functional implementation
 
 1. Verify RC5 remains at frozen SHA and RC6 branch remains isolated.
 2. Read Runtime_RC6 build-contract/exception tabs and confirm exact inherited datasets requiring Build-side verification.
 3. Verify Settings, Navigation, SEO Pages, Countries/Country Facts and any Special Baggage source/all table against Runtime_RC6.
-4. Produce the final file-level RC6 gap matrix.
-5. Lock the RC6 canonical runtime-source registry and RC6 schema registry.
-6. Only then begin functional code changes on the RC6 branch.
+4. Produce the final file-level RC6 gap matrix, including CACHE and bot/runtime-reader impacts.
+5. Lock the RC6 canonical runtime-source registry, RC6 schema registry and dataset-state semantics once for all approved Runtime consumers.
+6. Lock the RC6 cache manifest fields, logical snapshot partition and freshness/dependency classes against the governed contracts.
+7. Only then begin functional code changes on the RC6 branch.
 
 ## Explicit non-actions during this audit
 
@@ -120,6 +208,8 @@ Both are already runtime-driven and fail to an empty result when their tab is un
 - no Runtime_RC6 writes;
 - no `.env` Runtime target change;
 - no production deployment;
+- no production CACHE migration;
 - no RC5 functional changes;
 - no Product Score threshold invention;
-- no legacy affiliate smoke data publication.
+- no legacy affiliate smoke data publication;
+- no bot-specific bypass of Runtime_RC6 or independent schema authority.
