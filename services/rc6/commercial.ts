@@ -1,3 +1,4 @@
+import { getRc6CachePolicy, isBeyondHardStale } from "./cachePolicy";
 import { readRc6Dataset, type Rc6TabReader } from "./runtimeReader";
 import type { Rc6DatasetName } from "./runtimeContract";
 
@@ -70,6 +71,12 @@ const KEY_BY_DATASET: Readonly<Record<(typeof DATASET_NAMES)[number], string>> =
   methodology: "methodId",
 });
 
+const CONFIDENCE_RANK: Readonly<Record<string, number>> = Object.freeze({
+  LOW: 1,
+  MEDIUM: 2,
+  HIGH: 3,
+});
+
 function normalized(value: string | undefined): string {
   return (value ?? "").trim();
 }
@@ -93,6 +100,27 @@ function uniqueIds(rows: readonly Row[], key: string): boolean {
 
 function indexRows(rows: readonly Row[], key: string): ReadonlyMap<string, Row> {
   return new Map(rows.map((row) => [normalized(row[key]), row]));
+}
+
+function timestampAgeMs(value: string | undefined, now: Date): number | null {
+  const timestamp = Date.parse(normalized(value));
+  if (!Number.isFinite(timestamp)) return null;
+  return Math.max(0, now.getTime() - timestamp);
+}
+
+function freshDynamicRecord(name: "offers" | "priceIntelligence" | "affiliateRoutes", value: string | undefined, now: Date): boolean {
+  const ageMs = timestampAgeMs(value, now);
+  if (ageMs === null) return false;
+  return !isBeyondHardStale(name, ageMs);
+}
+
+function confidenceMeets(actual: string | undefined, required: string | undefined): boolean {
+  const requiredValue = upper(required);
+  if (!requiredValue) return true;
+  const requiredRank = CONFIDENCE_RANK[requiredValue];
+  const actualRank = CONFIDENCE_RANK[upper(actual)];
+  if (requiredRank === undefined || actualRank === undefined) return false;
+  return actualRank >= requiredRank;
 }
 
 async function loadRows(name: Rc6DatasetName, reader: Rc6TabReader): Promise<readonly Row[] | null> {
@@ -187,6 +215,7 @@ export function rc6EligibleOffersForProduct(
   catalogue: Rc6CommercialCatalogue,
   productId: string,
   marketCode = "GB",
+  now: Date = new Date(),
 ): Rc6EligibleOffer[] {
   const resolvedProductId = normalized(productId);
   const resolvedMarket = upper(marketCode);
@@ -194,6 +223,7 @@ export function rc6EligibleOffersForProduct(
   const routeByOfferId = new Map(
     catalogue.affiliateRoutes
       .filter((route) => upper(route.marketCode) === resolvedMarket)
+      .filter((route) => freshDynamicRecord("affiliateRoutes", route.lastVerifiedAt, now))
       .map((route) => [normalized(route.offerId), route]),
   );
 
@@ -201,6 +231,7 @@ export function rc6EligibleOffersForProduct(
     .filter((offer) => normalized(offer.productId) === resolvedProductId)
     .filter((offer) => upper(offer.marketCode) === resolvedMarket)
     .filter((offer) => upper(offer.stockStatus) === "IN_STOCK")
+    .filter((offer) => freshDynamicRecord("offers", offer.lastCheckedAt, now))
     .map((offer) => {
       const retailer = retailerById.get(normalized(offer.retailerId));
       const affiliateRoute = routeByOfferId.get(normalized(offer.offerId));
@@ -210,11 +241,64 @@ export function rc6EligibleOffersForProduct(
     .sort((left, right) => Number(left.offer.effectivePrice || Number.POSITIVE_INFINITY) - Number(right.offer.effectivePrice || Number.POSITIVE_INFINITY));
 }
 
+export function rc6CurrentPriceIntelligenceForProduct(
+  catalogue: Rc6CommercialCatalogue,
+  productId: string,
+  marketCode = "GB",
+  now: Date = new Date(),
+): Row | null {
+  const resolvedProductId = normalized(productId);
+  const resolvedMarket = upper(marketCode);
+  const eligibleOfferIds = new Set(
+    rc6EligibleOffersForProduct(catalogue, resolvedProductId, resolvedMarket, now).map((entry) => normalized(entry.offer.offerId)),
+  );
+
+  return catalogue.priceIntelligence.find((row) =>
+    normalized(row.productId) === resolvedProductId
+      && upper(row.marketCode) === resolvedMarket
+      && freshDynamicRecord("priceIntelligence", row.calculatedAt, now)
+      && eligibleOfferIds.has(normalized(row.currentBestOfferId)),
+  ) ?? null;
+}
+
+function recommendationRequirementsMet(
+  catalogue: Rc6CommercialCatalogue,
+  recommendation: Row,
+  marketCode: string,
+): boolean {
+  const productId = normalized(recommendation.productId);
+  const requiredCompatibility = upper(recommendation.requiredCompatibility);
+
+  if (requiredCompatibility && requiredCompatibility !== "NOT_APPLICABLE") {
+    const compatibilityPass = catalogue.productCompatibility.some((row) =>
+      normalized(row.productId) === productId
+        && upper(row.marketCode) === marketCode
+        && upper(row.fitStatus) === requiredCompatibility,
+    );
+    if (!compatibilityPass) return false;
+  }
+
+  const minimumScoreText = normalized(recommendation.minimumProductScore);
+  const minimumConfidence = upper(recommendation.minimumEvidenceConfidence);
+  if (!minimumScoreText && !minimumConfidence) return true;
+
+  const minimumScore = minimumScoreText ? Number(minimumScoreText) : Number.NEGATIVE_INFINITY;
+  if (!Number.isFinite(minimumScore)) return false;
+
+  return catalogue.productAssessments.some((assessment) => {
+    if (normalized(assessment.productId) !== productId) return false;
+    const score = Number(assessment.productScore);
+    if (!Number.isFinite(score) || score < minimumScore) return false;
+    return confidenceMeets(assessment.confidence, minimumConfidence);
+  });
+}
+
 export function rc6RecommendationsForContext(
   catalogue: Rc6CommercialCatalogue,
   contextType: string,
   contextId: string,
   marketCode = "GB",
+  now: Date = new Date(),
 ): Row[] {
   const resolvedType = upper(contextType);
   const resolvedId = normalized(contextId);
@@ -224,7 +308,8 @@ export function rc6RecommendationsForContext(
     .filter((row) => upper(row.marketCode) === resolvedMarket)
     .filter((row) => upper(row.contextType) === resolvedType)
     .filter((row) => normalized(row.contextId) === resolvedId)
-    .filter((row) => rc6EligibleOffersForProduct(catalogue, normalized(row.productId), resolvedMarket).length > 0);
+    .filter((row) => recommendationRequirementsMet(catalogue, row, resolvedMarket))
+    .filter((row) => rc6EligibleOffersForProduct(catalogue, normalized(row.productId), resolvedMarket, now).length > 0);
 }
 
 export function rc6CardsForContext(
@@ -232,6 +317,7 @@ export function rc6CardsForContext(
   contextType: string,
   contextId: string,
   marketCode = "GB",
+  now: Date = new Date(),
 ): Rc6CommercialCard[] {
   const resolvedType = upper(contextType);
   const resolvedId = normalized(contextId);
@@ -251,7 +337,7 @@ export function rc6CardsForContext(
     if (!card) continue;
     const product = upper(card.entityType) === "PRODUCT" ? productById.get(normalized(card.entityId)) ?? null : null;
     const eligibleOffers = product
-      ? rc6EligibleOffersForProduct(catalogue, normalized(product.productId), resolvedMarket)
+      ? rc6EligibleOffersForProduct(catalogue, normalized(product.productId), resolvedMarket, now)
       : [];
     if (product && eligibleOffers.length === 0) continue;
     output.push({ card, placement, product, eligibleOffers });
@@ -260,18 +346,18 @@ export function rc6CardsForContext(
   return output;
 }
 
-function cardsForContextType(catalogue: Rc6CommercialCatalogue, contextType: string, marketCode: string): Row[] {
+function cardsForContextType(catalogue: Rc6CommercialCatalogue, contextType: string, marketCode: string, now: Date): Row[] {
   const ids = new Set(
     catalogue.cardPlacements
       .filter((row) => upper(row.marketCode) === upper(marketCode))
       .filter((row) => upper(row.contextType) === upper(contextType))
       .map((row) => normalized(row.contextId)),
   );
-  const cards = Array.from(ids).flatMap((id) => rc6CardsForContext(catalogue, contextType, id, marketCode));
+  const cards = Array.from(ids).flatMap((id) => rc6CardsForContext(catalogue, contextType, id, marketCode, now));
   return Array.from(new Map(cards.map((entry) => [normalized(entry.card.cardId), entry.card])).values());
 }
 
-function pageSectionItems(catalogue: Rc6CommercialCatalogue, section: Row): Row[] {
+function pageSectionItems(catalogue: Rc6CommercialCatalogue, section: Row, now: Date): Row[] {
   const sourceType = upper(section.dataSourceType);
   const sourceId = normalized(section.dataSourceId);
   const marketCode = normalized(section.marketCode) || "GB";
@@ -287,21 +373,25 @@ function pageSectionItems(catalogue: Rc6CommercialCatalogue, section: Row): Row[
     return catalogue.productGroups.filter((row) => ids.has(normalized(row.productGroupId)));
   }
   if (sourceType === "RECOMMENDATION_CONTEXT") {
-    return rc6RecommendationsForContext(catalogue, "TRAVEL_ESSENTIALS", sourceId, marketCode);
+    return rc6RecommendationsForContext(catalogue, "TRAVEL_ESSENTIALS", sourceId, marketCode, now);
   }
   if (sourceType === "PRODUCT_OFFERS") {
-    return rc6EligibleOffersForProduct(catalogue, sourceId, marketCode).map((entry) => entry.offer);
+    return rc6EligibleOffersForProduct(catalogue, sourceId, marketCode, now).map((entry) => entry.offer);
   }
   if (sourceType === "METHOD") {
     return catalogue.methodology.filter((row) => normalized(row.methodId) === sourceId);
   }
   if (sourceType === "CARD_CONTEXT") {
-    return cardsForContextType(catalogue, sourceId, marketCode);
+    return cardsForContextType(catalogue, sourceId, marketCode, now);
   }
   return [];
 }
 
-export function rc6CommercialPageBySlug(catalogue: Rc6CommercialCatalogue, slug: string): Rc6CommercialPage | null {
+export function rc6CommercialPageBySlug(
+  catalogue: Rc6CommercialCatalogue,
+  slug: string,
+  now: Date = new Date(),
+): Rc6CommercialPage | null {
   const resolvedSlug = normalized(slug).replace(/^\/+|\/+$/g, "");
   const page = catalogue.pages.find((row) => normalized(row.slug).replace(/^\/+|\/+$/g, "") === resolvedSlug);
   if (!page) return null;
@@ -309,11 +399,19 @@ export function rc6CommercialPageBySlug(catalogue: Rc6CommercialCatalogue, slug:
   const sections = catalogue.pageSections
     .filter((row) => normalized(row.pageId) === normalized(page.pageId))
     .sort((a, b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0))
-    .map((section) => ({ section, items: pageSectionItems(catalogue, section) }));
+    .map((section) => ({ section, items: pageSectionItems(catalogue, section, now) }));
 
   if (sections.some(({ section, items }) => upper(section.requiredFlag) === "TRUE" && items.length === 0 && upper(section.sectionType) !== "HERO")) {
     return null;
   }
 
   return { page, sections };
+}
+
+export function rc6CommercialFreshnessPolicy(): Readonly<Record<"offers" | "priceIntelligence" | "affiliateRoutes", ReturnType<typeof getRc6CachePolicy>>> {
+  return Object.freeze({
+    offers: getRc6CachePolicy("offers"),
+    priceIntelligence: getRc6CachePolicy("priceIntelligence"),
+    affiliateRoutes: getRc6CachePolicy("affiliateRoutes"),
+  });
 }
