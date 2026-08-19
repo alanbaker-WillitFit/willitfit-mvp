@@ -7,7 +7,7 @@ import type { Rc6TabReader } from "@/services/rc6/runtimeReader";
 function readerFor(rowsByTab: Record<string, Record<string, string>[]>): Rc6TabReader {
   return async <T extends Record<string, string>>(tabName: string): Promise<T[] | null> => {
     const rows = rowsByTab[tabName];
-    return rows ? (rows as T[]) : null;
+    return rows ? (rows as unknown as T[]) : null;
   };
 }
 
@@ -15,8 +15,8 @@ describe("RC6 selective readers", () => {
   it("keeps WillItFly navigation disabled when the governed URL is missing", async () => {
     const settings = await getRc6Settings(readerFor({
       "01_Settings": [
-        { "Control Field": "willitfly_nav_enabled", Value: "Yes" },
-        { "Control Field": "willitfly_nav_url", Value: "" },
+        { "Review Status": "Approved", "Control Field": "willitfly_nav_enabled", Value: "Yes", "Source Rule": "Governed Runtime control" },
+        { "Review Status": "Approved", "Control Field": "willitfly_nav_url", Value: "", "Source Rule": "Governed Runtime control" },
       ],
     }));
 
