@@ -20,6 +20,9 @@ export interface Airline {
   slug: string;
   country: string;
   logoUrl: string;
+  iataCode?: string;
+  searchTerms?: string[];
+  searchPriority?: number | null;
   personalItem: Dimensions;
   cabinBag: Dimensions;
   checkedBag?: Dimensions;

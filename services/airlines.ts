@@ -10,6 +10,7 @@ export { AIRLINE_TABS, BAGGAGE_RULE_TABS } from "./runtimeSources";
 type RuntimeRow = Record<string, string>;
 type AirlineRow = RuntimeRow & {
   AirlineID: string; AirlineName: string; Slug: string; Country: string;
+  IATACode: string; SearchTerms: string; SearchPriority: string;
   OfficialBaggageURL: string; Status: string; LastChecked: string; Notes: string;
 };
 type BaggageRuleRow = RuntimeRow & {
@@ -25,6 +26,21 @@ function value(row: RuntimeRow, ...names: string[]): string {
   return "";
 }
 
+function parseSearchTerms(value: string): string[] {
+  return Array.from(new Set(
+    value
+      .split(/[,;|]/)
+      .map((term) => term.trim())
+      .filter(Boolean)
+  ));
+}
+
+function parseSearchPriority(value: string): number | null {
+  if (!value.trim()) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export function adaptAirlineRow(row: RuntimeRow): AirlineRow {
   return {
     ...row,
@@ -32,6 +48,9 @@ export function adaptAirlineRow(row: RuntimeRow): AirlineRow {
     AirlineName: value(row, "Airline Name", "AirlineName"),
     Slug: value(row, "Slug"),
     Country: value(row, "Country"),
+    IATACode: value(row, "IATA Code", "IATA", "IATACode"),
+    SearchTerms: value(row, "Search Terms", "SearchTerms", "Aliases"),
+    SearchPriority: value(row, "Search Priority", "SearchPriority"),
     OfficialBaggageURL: value(row, "Baggage URL", "Website URL", "OfficialBaggageURL"),
     Status: runtimePublished(row) ? "Live" : value(row, "Status", "Review Status"),
     LastChecked: value(row, "Last Reviewed", "Last Checked", "LastChecked"),
@@ -172,6 +191,9 @@ export function mapRuntimeAirline(airline: AirlineRow, baggageRows: BaggageRuleR
     slug: slugify(airline.Slug || airline.AirlineName),
     country: airline.Country?.trim() || "",
     logoUrl: "",
+    iataCode: airline.IATACode.trim(),
+    searchTerms: parseSearchTerms(airline.SearchTerms),
+    searchPriority: parseSearchPriority(airline.SearchPriority),
     personalItem,
     cabinBag,
     ...(hasCheckedBag ? { checkedBag } : {}),
