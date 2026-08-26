@@ -22,7 +22,8 @@
     "export-runtime": "node archive/workbook-automation/content-automation/export-runtime.mjs",
     "publisher:dry-run": "node scripts/rc6-publisher/run.mjs --mode=dry-run",
     "publisher:rc6:dry-run": "node scripts/rc6-publisher/run.mjs --mode=dry-run",
-    "publisher:rc5:dry-run": "node scripts/rc5-publisher/run.mjs --mode=dry-run"
+    "publisher:rc5:dry-run": "node scripts/rc5-publisher/run.mjs --mode=dry-run",
+    "publishing:snapshots": "node scripts/publishing/generate-snapshots.mjs"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.20.1",
