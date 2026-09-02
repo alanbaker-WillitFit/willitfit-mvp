@@ -68,15 +68,15 @@ export default async function AirportPage({ params }: PageProps) {
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-lg bg-slate-50 p-4">
                   <p className="text-sm text-navy-500">Delayed departures</p>
-                  <p className="mt-1 text-2xl font-bold text-navy-900">{live.delayedDepartures ?? 0}</p>
+                  <p className="mt-1 text-2xl font-bold text-navy-900">{live.delayedDepartures ?? "—"}</p>
                 </div>
                 <div className="rounded-lg bg-slate-50 p-4">
                   <p className="text-sm text-navy-500">Delayed arrivals</p>
-                  <p className="mt-1 text-2xl font-bold text-navy-900">{live.delayedArrivals ?? 0}</p>
+                  <p className="mt-1 text-2xl font-bold text-navy-900">{live.delayedArrivals ?? "—"}</p>
                 </div>
                 <div className="rounded-lg bg-slate-50 p-4">
                   <p className="text-sm text-navy-500">Cancellations</p>
-                  <p className="mt-1 text-2xl font-bold text-navy-900">{live.cancellations ?? 0}</p>
+                  <p className="mt-1 text-2xl font-bold text-navy-900">{live.cancellations ?? "—"}</p>
                 </div>
               </div>
             ) : (
