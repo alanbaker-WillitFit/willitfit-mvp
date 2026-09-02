@@ -1,0 +1,11 @@
+{
+  "contractVersion": "1.0.0",
+  "generatedAt": "2026-08-26T11:55:00Z",
+  "mappings": [
+    {"airlineId":"EZY","operationalCode":"EZY","codeType":"OPERATOR","sourceReference":"https://www.easyjet.com/en/help-centre/policy-terms-and-conditions/terms-and-conditions","lastCheckedAt":"2026-08-26","publicationState":"approved"},
+    {"airlineId":"EZY","operationalCode":"EJU","codeType":"OPERATOR","sourceReference":"https://www.easyjet.com/en/help-centre/policy-terms-and-conditions/terms-and-conditions","lastCheckedAt":"2026-08-26","publicationState":"approved"},
+    {"airlineId":"EZY","operationalCode":"EZS","codeType":"OPERATOR","sourceReference":"https://www.easyjet.com/en/help-centre/policy-terms-and-conditions/terms-and-conditions","lastCheckedAt":"2026-08-26","publicationState":"approved"},
+    {"airlineId":"TUI","operationalCode":"TOM","codeType":"OPERATOR","sourceReference":"https://www.tui.co.uk/destinations/faq/airport-flights-and-luggage/checking-in-for-your-flight/im-on-the-my-booking-page-when-i-click-on-check-in-nothing-happens-whats-going-wrong","lastCheckedAt":"2026-08-26","publicationState":"approved"},
+    {"airlineId":"RYR","operationalCode":"RK","codeType":"OPERATOR","sourceReference":"https://help.ryanair.com/hc/en-gb/categories/12503197676561-Terms-and-Conditions","lastCheckedAt":"2026-08-26","publicationState":"approved"}
+  ]
+}
