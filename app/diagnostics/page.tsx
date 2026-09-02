@@ -6,7 +6,7 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
 
 function diagnosticsEnabled(): boolean {
-  return process.env.NODE_ENV !== 'production' || process.env.ENABLE_DIAGNOSTICS === 'true';
+  return process.env.ENABLE_DIAGNOSTICS === 'true';
 }
 
 export default async function DiagnosticsPage() {
