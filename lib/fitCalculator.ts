@@ -234,6 +234,105 @@ export function checkFit(
   };
 }
 
+export type ReverseFitVerdict = FitVerdict | "check-required";
+
+export interface ReverseFareOutcome {
+  fareClass: string | null;
+  verdict: ReverseFitVerdict;
+  result: FitResult | null;
+  reason?: string;
+}
+
+export interface ReverseAirlineMatch {
+  airline: Airline;
+  bagType: BagType;
+  bestVerdict: ReverseFitVerdict;
+  outcomes: ReverseFareOutcome[];
+}
+
+function fareSupportsBagType(airline: Airline, fareIndex: number, bagType: BagType): boolean {
+  const fare = airline.fareClasses[fareIndex];
+  if (!fare) return false;
+  if (bagType === "checkedBag") {
+    return Boolean(fare.checkedBag || (fare.checkedWeightLimitKg !== null && fare.checkedWeightLimitKg !== undefined));
+  }
+  return hasValidDimensions(fare[bagType]);
+}
+
+function reverseOutcome(
+  userDimensions: Dimensions,
+  airline: Airline,
+  bagType: BagType,
+  fareClass: string | null,
+): ReverseFareOutcome | null {
+  try {
+    const resolved = resolveLimit(airline, bagType, fareClass);
+    if (resolved.sizingRule.method === "weight-only") {
+      return {
+        fareClass: resolved.fareClass ?? fareClass,
+        verdict: "check-required",
+        result: null,
+        reason: "This allowance is published by weight only, so dimensions alone cannot confirm a fit.",
+      };
+    }
+    const result = checkFit(userDimensions, airline, bagType, fareClass, null);
+    return { fareClass: result.fareClass ?? fareClass, verdict: result.verdict, result };
+  } catch {
+    return null;
+  }
+}
+
+export function findAirlineAllowancesForBag(
+  userDimensions: Dimensions,
+  airlines: Airline[],
+  bagType: BagType,
+): ReverseAirlineMatch[] {
+  if (!hasValidDimensions(userDimensions)) {
+    throw new Error("All three bag dimensions must be valid positive numbers.");
+  }
+
+  const verdictOrder: Record<ReverseFitVerdict, number> = {
+    fits: 0,
+    close: 1,
+    "check-required": 2,
+    "no-fit": 3,
+  };
+
+  const matches: ReverseAirlineMatch[] = [];
+
+  for (const airline of airlines) {
+    if (!airlineHasBagType(airline, bagType)) continue;
+
+    const fareOutcomes = airline.fareClasses
+      .map((fare, index) => fareSupportsBagType(airline, index, bagType)
+        ? reverseOutcome(userDimensions, airline, bagType, fare.fareClass)
+        : null)
+      .filter((outcome): outcome is ReverseFareOutcome => outcome !== null);
+
+    const outcomes = fareOutcomes.length > 0
+      ? fareOutcomes
+      : [reverseOutcome(userDimensions, airline, bagType, null)].filter(
+          (outcome): outcome is ReverseFareOutcome => outcome !== null,
+        );
+
+    if (outcomes.length === 0) continue;
+    outcomes.sort((left, right) => verdictOrder[left.verdict] - verdictOrder[right.verdict]);
+    matches.push({ airline, bagType, bestVerdict: outcomes[0]!.verdict, outcomes });
+  }
+
+  return matches.sort((left, right) => {
+    const verdictDifference = verdictOrder[left.bestVerdict] - verdictOrder[right.bestVerdict];
+    if (verdictDifference) return verdictDifference;
+    const priorityDifference = (left.airline.searchPriority ?? 10) - (right.airline.searchPriority ?? 10);
+    return priorityDifference || left.airline.airlineName.localeCompare(right.airline.airlineName);
+  });
+}
+
+/**
+ * Compatibility wrapper retained for callers that only need the conservative
+ * baseline FitResult list. Fare-aware reverse journeys should use
+ * findAirlineAllowancesForBag instead.
+ */
 export function findAirlinesForBag(
   userDimensions: Dimensions,
   airlines: Airline[],
@@ -250,7 +349,6 @@ export function findAirlinesForBag(
 
     try {
       const { sizingRule } = resolveLimit(airline, bagType, null);
-      // A weight-only checked-bag rule cannot answer a dimensional reverse-fit question.
       if (sizingRule.method === "weight-only") continue;
       results.push(checkFit(userDimensions, airline, bagType, null, userWeightKg));
     } catch {
