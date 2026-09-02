@@ -13,6 +13,11 @@ type RowsCacheEntry = {
   expiresAt: number;
 };
 
+type LastGoodRowsEntry = {
+  rows: SheetRow[];
+  validatedAt: string;
+};
+
 export type SheetDiagnostic = {
   tabName: string;
   state: "fresh" | "cached" | "failed" | "empty";
@@ -26,13 +31,16 @@ export type SheetDiagnostic = {
 
 const SCOPES = "https://www.googleapis.com/auth/spreadsheets.readonly";
 const DEFAULT_REVALIDATE_SECONDS = 3600;
-// A failed read (network blip, rate limit, bad token) is cached only briefly
-// so the next request retries soon instead of being stuck on fallback data
-// for the full revalidate window.
 const FAILED_READ_RETRY_SECONDS = 60;
 const REQUEST_TIMEOUT_MS = 8000;
+const DEFAULT_SPREADSHEET_ENV_NAMES = [
+  "GOOGLE_SHEETS_SPREADSHEET_ID",
+  "GOOGLE_SPREADSHEET_ID",
+  "GOOGLE_SHEET_ID",
+] as const;
 
 const rowsCache = new Map<string, RowsCacheEntry>();
+const lastGoodRows = new Map<string, LastGoodRowsEntry>();
 const sheetDiagnostics = new Map<string, SheetDiagnostic>();
 let tokenCache: TokenCache | null = null;
 let tokenRequest: Promise<string | null> | null = null;
@@ -45,7 +53,7 @@ function getRuntimeEnv(): Record<string, string | undefined> {
   }
 }
 
-function getEnvValue(names: string[]): string | null {
+function getEnvValue(names: readonly string[]): string | null {
   const runtimeEnv = getRuntimeEnv();
 
   for (const name of names) {
@@ -63,6 +71,10 @@ function getSheetRevalidateSeconds(): number {
   return Number.isFinite(seconds) && seconds > 0
     ? seconds
     : DEFAULT_REVALIDATE_SECONDS;
+}
+
+function sheetCacheKey(spreadsheetId: string, tabName: string): string {
+  return `${spreadsheetId}::${tabName}`;
 }
 
 function base64UrlEncode(input: string | ArrayBuffer): string {
@@ -226,19 +238,13 @@ function valuesToRows(values: string[][], headerRowIndex = 0): SheetRow[] {
   });
 }
 
-async function readSheetRows(tabName: string): Promise<SheetRow[] | null> {
+async function readSheetRowsFromSpreadsheet(
+  tabName: string,
+  spreadsheetId: string,
+): Promise<SheetRow[] | null> {
+  const cacheKey = sheetCacheKey(spreadsheetId, tabName);
+
   try {
-    const spreadsheetId = getEnvValue([
-      "GOOGLE_SHEETS_SPREADSHEET_ID",
-      "GOOGLE_SPREADSHEET_ID",
-      "GOOGLE_SHEET_ID",
-    ]);
-
-    if (!spreadsheetId) {
-      console.error("[googleSheets] Missing Google spreadsheet ID environment variable");
-      return null;
-    }
-
     const accessToken = await getAccessToken();
 
     if (!accessToken) {
@@ -271,11 +277,8 @@ async function readSheetRows(tabName: string): Promise<SheetRow[] | null> {
     };
 
     const values = data.values || [];
-    // A reachable, intentionally blank canonical tab is authoritative empty
-    // runtime content. It must not be mistaken for a connection/schema failure
-    // and must not cause a legacy alias or editorial fallback to be loaded.
     if (values.length === 0) {
-      sheetDiagnostics.set(tabName, {
+      sheetDiagnostics.set(cacheKey, {
         tabName,
         state: "empty",
         rowCount: 0,
@@ -295,7 +298,7 @@ async function readSheetRows(tabName: string): Promise<SheetRow[] | null> {
         ? "Required Sheet columns are missing"
         : "Duplicate Sheet columns were found";
 
-      sheetDiagnostics.set(tabName, {
+      sheetDiagnostics.set(cacheKey, {
         tabName,
         state: "failed",
         rowCount: 0,
@@ -310,7 +313,7 @@ async function readSheetRows(tabName: string): Promise<SheetRow[] | null> {
     }
 
     const rows = valuesToRows(values, headerRowIndex);
-    sheetDiagnostics.set(tabName, {
+    sheetDiagnostics.set(cacheKey, {
       tabName,
       state: rows.length > 0 ? "fresh" : "empty",
       rowCount: rows.length,
@@ -324,7 +327,7 @@ async function readSheetRows(tabName: string): Promise<SheetRow[] | null> {
     return rows;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    sheetDiagnostics.set(tabName, {
+    sheetDiagnostics.set(cacheKey, {
       tabName,
       state: "failed",
       rowCount: 0,
@@ -339,38 +342,80 @@ async function readSheetRows(tabName: string): Promise<SheetRow[] | null> {
   }
 }
 
-export async function getSheetRows<T extends Record<string, string>>(
-  tabName: string
+export async function getSheetRowsFromSpreadsheet<T extends Record<string, string>>(
+  tabName: string,
+  spreadsheetId: string,
 ): Promise<T[] | null> {
-  const now = Date.now();
-  const cached = rowsCache.get(tabName);
+  const resolvedSpreadsheetId = spreadsheetId.trim();
+  if (!resolvedSpreadsheetId) {
+    console.error("[googleSheets] Explicit spreadsheet ID is required");
+    return null;
+  }
 
-  if (!cached || cached.expiresAt <= now) {
+  const cacheKey = sheetCacheKey(resolvedSpreadsheetId, tabName);
+  const now = Date.now();
+  const cached = rowsCache.get(cacheKey);
+  const refreshing = !cached || cached.expiresAt <= now;
+
+  if (refreshing) {
     const revalidateMs = getSheetRevalidateSeconds() * 1000;
 
-    rowsCache.set(tabName, {
-      promise: readSheetRows(tabName),
+    rowsCache.set(cacheKey, {
+      promise: readSheetRowsFromSpreadsheet(tabName, resolvedSpreadsheetId),
       expiresAt: now + revalidateMs,
     });
   }
 
-  const entry = rowsCache.get(tabName);
+  const entry = rowsCache.get(cacheKey);
   const rows = await entry?.promise;
-  const diagnostic = sheetDiagnostics.get(tabName);
-  if (cached && cached.expiresAt > now && diagnostic && diagnostic.state === "fresh") {
-    sheetDiagnostics.set(tabName, { ...diagnostic, state: "cached" });
+  const diagnostic = sheetDiagnostics.get(cacheKey);
+
+  if (rows !== null && rows !== undefined) {
+    if (refreshing) {
+      lastGoodRows.set(cacheKey, {
+        rows,
+        validatedAt: diagnostic?.fetchedAt || new Date().toISOString(),
+      });
+    } else if (diagnostic && diagnostic.state === "fresh") {
+      sheetDiagnostics.set(cacheKey, { ...diagnostic, state: "cached" });
+    }
+
+    return rows as T[];
   }
 
-  // If this read failed, shorten the cached entry's lifetime so the next
-  // request retries soon rather than waiting out the full revalidate window
-  // on fallback data. Only touch the entry if it's still the one we just
-  // awaited (a concurrent request may have already refreshed it).
-  if (rows === null && entry && rowsCache.get(tabName) === entry) {
+  if (entry && rowsCache.get(cacheKey) === entry) {
     const retryMs = FAILED_READ_RETRY_SECONDS * 1000;
-    rowsCache.set(tabName, { ...entry, expiresAt: now + retryMs });
+    rowsCache.set(cacheKey, { ...entry, expiresAt: now + retryMs });
   }
 
-  return rows as T[] | null;
+  const lastGood = lastGoodRows.get(cacheKey);
+  if (lastGood) {
+    sheetDiagnostics.set(cacheKey, {
+      tabName,
+      state: "cached",
+      rowCount: lastGood.rows.length,
+      fetchedAt: lastGood.validatedAt,
+      error: diagnostic?.error || "Live Sheet refresh failed; serving last-known-good validated data",
+      schemaValid: diagnostic?.schemaValid ?? true,
+      missingHeaders: diagnostic?.missingHeaders || [],
+      duplicateHeaders: diagnostic?.duplicateHeaders || [],
+    });
+    return lastGood.rows as T[];
+  }
+
+  return null;
+}
+
+export async function getSheetRows<T extends Record<string, string>>(
+  tabName: string
+): Promise<T[] | null> {
+  const spreadsheetId = getEnvValue(DEFAULT_SPREADSHEET_ENV_NAMES);
+  if (!spreadsheetId) {
+    console.error("[googleSheets] Missing Google spreadsheet ID environment variable");
+    return null;
+  }
+
+  return getSheetRowsFromSpreadsheet<T>(tabName, spreadsheetId);
 }
 
 export function isLive(status: string | undefined): boolean {
@@ -393,13 +438,13 @@ export function slugify(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-
 export function getSheetDiagnostics(): SheetDiagnostic[] {
   return Array.from(sheetDiagnostics.values()).sort((a, b) => a.tabName.localeCompare(b.tabName));
 }
 
 export function clearSheetCaches(): void {
   rowsCache.clear();
+  lastGoodRows.clear();
   sheetDiagnostics.clear();
 }
 
@@ -408,11 +453,7 @@ export function getRuntimeSourceConfiguration(): {
   spreadsheetId: string | null;
   authenticationConfigured: boolean;
 } {
-  const spreadsheetId = getEnvValue([
-    "GOOGLE_SHEETS_SPREADSHEET_ID",
-    "GOOGLE_SPREADSHEET_ID",
-    "GOOGLE_SHEET_ID",
-  ]);
+  const spreadsheetId = getEnvValue(DEFAULT_SPREADSHEET_ENV_NAMES);
   return {
     configured: Boolean(spreadsheetId),
     spreadsheetId,

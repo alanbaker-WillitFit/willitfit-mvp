@@ -1,0 +1,24 @@
+{
+  "contractVersion": "1.0.0",
+  "scope": "UK18",
+  "airports": [
+    {"iataCode":"LHR","passengerRankUk":1,"annualPassengers":84462273,"slug":"heathrow"},
+    {"iataCode":"LGW","passengerRankUk":2,"annualPassengers":42769164,"slug":"gatwick"},
+    {"iataCode":"MAN","passengerRankUk":3,"annualPassengers":32061307,"slug":"manchester"},
+    {"iataCode":"STN","passengerRankUk":4,"annualPassengers":29758490,"slug":"stansted"},
+    {"iataCode":"LTN","passengerRankUk":5,"annualPassengers":17768944,"slug":"luton"},
+    {"iataCode":"EDI","passengerRankUk":6,"annualPassengers":16969731,"slug":"edinburgh"},
+    {"iataCode":"BHX","passengerRankUk":7,"annualPassengers":13660382,"slug":"birmingham"},
+    {"iataCode":"BRS","passengerRankUk":8,"annualPassengers":10832713,"slug":"bristol"},
+    {"iataCode":"GLA","passengerRankUk":9,"annualPassengers":8205280,"slug":"glasgow"},
+    {"iataCode":"BFS","passengerRankUk":10,"annualPassengers":6677021,"slug":"belfast-international"},
+    {"iataCode":"LPL","passengerRankUk":11,"annualPassengers":5611423,"slug":"liverpool"},
+    {"iataCode":"NCL","passengerRankUk":12,"annualPassengers":5480380,"slug":"newcastle"},
+    {"iataCode":"LBA","passengerRankUk":13,"annualPassengers":4447024,"slug":"leeds-bradford"},
+    {"iataCode":"EMA","passengerRankUk":14,"annualPassengers":3955756,"slug":"east-midlands"},
+    {"iataCode":"LCY","passengerRankUk":15,"annualPassengers":3737888,"slug":"london-city"},
+    {"iataCode":"BHD","passengerRankUk":16,"annualPassengers":2363716,"slug":"belfast-city"},
+    {"iataCode":"ABZ","passengerRankUk":17,"annualPassengers":2301943,"slug":"aberdeen"},
+    {"iataCode":"BOH","passengerRankUk":18,"annualPassengers":1380450,"slug":"bournemouth"}
+  ]
+}

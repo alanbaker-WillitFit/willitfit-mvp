@@ -21,7 +21,7 @@ function value(row: RuntimeRow, ...names: string[]): string {
 }
 
 export function runtimeBoolean(input: unknown): boolean {
-  return ["1", "active", "yes", "true", "live", "published"].includes(clean(input).toLowerCase());
+  return ["1", "active", "approved", "yes", "true", "live", "published"].includes(clean(input).toLowerCase());
 }
 
 export function runtimePublished(row: RuntimeRow): boolean {
@@ -29,6 +29,9 @@ export function runtimePublished(row: RuntimeRow): boolean {
   const publishValue = value(row, "Publish", "Runtime Publish Status", "Published", "Publish Status");
   const reviewValue = value(row, "Review Status", "ReviewStatus", "Workflow Status");
   const legacyStatusValue = value(row, "Status", "Content Status");
+  const hasGovernanceSignal = Boolean(activeValue || publishValue || reviewValue || legacyStatusValue);
+  if (!hasGovernanceSignal) return false;
+
   const active = activeValue ? runtimeBoolean(activeValue) : true;
   const publishApproved = publishValue ? runtimeBoolean(publishValue) : true;
   const reviewApproved = reviewValue
@@ -47,14 +50,15 @@ function derivedModule(row: RuntimeRow): string {
   const page = value(row, "Page").toLowerCase();
   if (type.includes("hint")) return "Hints";
   if (type.includes("notice")) return "Notices";
+  if (type.includes("article") || page === "articles" || page.startsWith("article")) return "Articles";
   if (page === "about") return "About";
   if (page.includes("travel tip") || page === "tips") return "Travel Tips";
   return value(row, "Page") || "General";
 }
 
-export function mapRuntimeContentRow(row: RuntimeRow, index: number): RuntimeContentRecord {
+export function mapRuntimeContentRow(row: RuntimeRow, _index: number): RuntimeContentRecord {
   return {
-    contentId: value(row, "ContentID", "Content ID", "Content_ID") || `runtime-content-${index + 1}`,
+    contentId: value(row, "ContentID", "Content ID", "Content_ID"),
     module: derivedModule(row),
     page: value(row, "Page"),
     section: value(row, "Section"),
@@ -62,6 +66,8 @@ export function mapRuntimeContentRow(row: RuntimeRow, index: number): RuntimeCon
     title: value(row, "Title"),
     body: value(row, "Content", "Body"),
     supportingText: value(row, "Supporting Text", "SupportingText"),
+    linkLabel: value(row, "Link Label", "LinkLabel"),
+    linkUrl: value(row, "Link URL", "LinkURL"),
     displayOrder: toNumber(value(row, "Priority", "Display Order", "DisplayOrder", "Order"), 999),
     active: value(row, "Active", "Lifecycle Status") ? runtimeBoolean(value(row, "Active", "Lifecycle Status")) : true,
     reviewStatus: value(row, "Review Status", "ReviewStatus", "Workflow Status"),
@@ -82,6 +88,29 @@ export async function readFirstAvailableRuntimeTab<T extends RuntimeRow>(
   return { rows: null, tabName: null };
 }
 
+function validPublished(records: RuntimeContentRecord[]): RuntimeContentRecord[] {
+  const missingIds = records.filter((record) => record.published && !record.contentId);
+  const incomplete = records.filter((record) =>
+    record.published && record.contentId && (!record.module || (!record.title && !record.body))
+  );
+
+  if (missingIds.length > 0) {
+    console.error("[runtimeContent] Rejected published content without ContentID", {
+      count: missingIds.length,
+    });
+  }
+  if (incomplete.length > 0) {
+    console.error(
+      "[runtimeContent] Rejected incomplete published content",
+      incomplete.map((record) => record.contentId)
+    );
+  }
+
+  return records.filter((record) =>
+    record.published && record.contentId && record.module && (record.title || record.body)
+  );
+}
+
 function uniquePublished(records: RuntimeContentRecord[]): RuntimeContentRecord[] {
   const counts = new Map<string, number>();
   records.forEach((record) => counts.set(record.contentId, (counts.get(record.contentId) ?? 0) + 1));
@@ -97,9 +126,8 @@ export async function getAllRuntimeContent(): Promise<{
   const { rows } = await readFirstAvailableRuntimeTab<RuntimeRow>(SITE_CONTENT_TABS);
   if (!rows) return { content: FALLBACK_RUNTIME_CONTENT, source: "fallback" };
 
-  const content = uniquePublished(rows.map(mapRuntimeContentRow).filter((record) =>
-    record.published && record.contentId && record.module && (record.title || record.body)
-  )).sort((a, b) => a.displayOrder - b.displayOrder || a.contentId.localeCompare(b.contentId));
+  const content = uniquePublished(validPublished(rows.map(mapRuntimeContentRow)))
+    .sort((a, b) => a.displayOrder - b.displayOrder || a.contentId.localeCompare(b.contentId));
 
   return { content, source: "sheet" };
 }

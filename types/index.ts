@@ -5,11 +5,33 @@
 export type SheetStatus = "Live" | "Draft" | "Archived";
 export type BagType = "cabinBag" | "personalItem" | "checkedBag";
 
+export interface Dimensions {
+  heightCm: number;
+  widthCm: number;
+  depthCm: number;
+}
+
+export type LinearLimitOperator = "lt" | "lte";
+
+export type BaggageSizingRule =
+  | {
+      method: "fixed-dimensions";
+      dimensions: Dimensions;
+    }
+  | {
+      method: "linear-total";
+      linearLimitCm: number;
+      operator: LinearLimitOperator;
+    }
+  | {
+      method: "weight-only";
+    };
+
 export interface FareClassAllowance {
   fareClass: string;
   cabinBag: Dimensions | null;
   personalItem: Dimensions | null;
-  checkedBag?: Dimensions | null;
+  checkedBag?: BaggageSizingRule | null;
   weightLimitKg: number | null;
   checkedWeightLimitKg?: number | null;
 }
@@ -22,23 +44,18 @@ export interface Airline {
   logoUrl: string;
   personalItem: Dimensions;
   cabinBag: Dimensions;
-  checkedBag?: Dimensions;
+  checkedBag?: BaggageSizingRule;
   weightLimitKg: number | null;
   checkedWeightLimitKg?: number | null;
   fareClasses: FareClassAllowance[];
   websiteUrl: string;
   lastUpdated: string;
   status: SheetStatus;
+  searchPriority?: number;
   notes?: string;
   hasCabinBag?: boolean;
   hasPersonalItem?: boolean;
   hasCheckedBag?: boolean;
-}
-
-export interface Dimensions {
-  heightCm: number;
-  widthCm: number;
-  depthCm: number;
 }
 
 export type SpecialBaggageCategoryId =
@@ -117,6 +134,7 @@ export type RuntimeContentModule =
 export interface RuntimeContentRecord {
   contentId: string; module: RuntimeContentModule; page: string; section: string;
   contentType: string; title: string; body: string; supportingText: string;
+  linkLabel?: string; linkUrl?: string;
   displayOrder: number; active: boolean; reviewStatus: string; published: boolean;
   notes: string; source: "sheet" | "fallback";
 }
@@ -130,7 +148,7 @@ export interface AffiliateSlot {
 
 export interface LabConfiguration {
   configId: string; gameId: string; gameName: string; gamePath: string; triggerType: string;
-  bagTypes: BagType[]; resultStates: FitVerdict[]; priority: number;
+  triggerValue: string; bagTypes: BagType[]; resultStates: FitVerdict[]; priority: number;
   implementationReference: string; invitationTitle: string; invitationBody: string; cta: string;
   active: boolean; reviewStatus: string; published: boolean; source: "sheet" | "fallback";
 }
@@ -145,7 +163,12 @@ export interface FitResult {
   airline: Airline;
   bagType: BagType;
   userDimensions: Dimensions;
-  limit: Dimensions;
+  sizingRule: BaggageSizingRule;
+  limit: Dimensions | null;
+  userLinearTotalCm: number | null;
+  linearLimitCm: number | null;
+  linearOperator: LinearLimitOperator | null;
+  linearMarginCm: number | null;
   weightLimitKg: number | null;
   userWeightKg: number | null;
   weightVerdict: WeightVerdict;
@@ -153,7 +176,7 @@ export interface FitResult {
   overBy: Partial<Dimensions>;
   spareCm: Partial<Dimensions>;
   withinCm: number | null;
-  orientationUsed: Dimensions;
+  orientationUsed: Dimensions | null;
 }
 
 // ── Data fetch envelope ──────────────────────────────────────────────────────

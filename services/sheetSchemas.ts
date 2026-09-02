@@ -13,6 +13,13 @@ export const REQUIRED_SHEET_HEADERS: Record<string, readonly string[]> = {
     "Tip ID", "Category", "Airline ID", "Fare", "Bag Type", "Title",
     "Tip / Hint", "Context Trigger", "Search Terms", "Priority", "Publish",
   ],
+  "08.4_Travel_Alerts": [
+    "Alert ID", "Linked Article ID", "Article Slug", "Headline",
+    "Display Date / Status", "Alert Level", "Alert Type", "Opacity 0-100",
+    "Display From", "Display Until", "Lifecycle Status", "Priority",
+    "Home Hero Eligible", "Source Publisher", "Official Source URL",
+    "Source Retrieved Date", "Content Status", "Review Status", "Active",
+  ],
 
   // Deferred/editorial contracts retained until their RC5 runtime modules are
   // separately designed and enabled.
@@ -34,12 +41,16 @@ export const REQUIRED_SHEET_HEADERS: Record<string, readonly string[]> = {
     "Content ID", "Page", "Section", "Content Type", "Title", "Content",
     "Display Order", "Active", "Review Status", "Publish",
   ],
-  "09_Affiliates": [
+  "09_Affiliate_Placements": [
     "Affiliate ID", "Category", "Product Name", "Destination URL",
     "Display Order", "Active", "Review Status", "Publish",
   ],
   "10_Lab": [
-    "Lab ID", "Game ID", "Game Name", "Game Path", "Trigger Type",
+    "Lab ID", "Trigger Type", "Trigger Value", "Destination",
+    "Invitation Message", "Priority", "Active", "Review Status", "Publish",
+  ],
+  "10.1_Lab_Game_Catalogue": [
+    "Game ID", "Game Name", "Game Path", "Invitation Destination",
     "Active", "Review Status", "Publish",
   ],
   "07_Poll_Questions": [

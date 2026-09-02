@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getRuntimeContent } from "@/services/runtimeContent";
+import { getAboutContent } from "@/services/about";
 
 export const revalidate = 3600;
 
@@ -9,14 +9,24 @@ export const metadata: Metadata = {
 };
 
 export default async function AboutPage() {
-  const { content, source } = await getRuntimeContent({ module: "About", page: "about" });
-  const heading = content[0]?.title || "Where our data comes from";
+  const about = await getAboutContent();
+
+  if (!about) {
+    return (
+      <section className="wf-container wf-container--narrow wf-section">
+        <h1 className="font-heading text-3xl font-semibold text-navy-700">Our data</h1>
+        <p className="mt-6 font-body text-navy-600">
+          This information is temporarily unavailable while its governed content is being reviewed.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className="wf-container wf-container--narrow wf-section">
-      <h1 className="font-heading text-3xl font-semibold text-navy-700">{heading}</h1>
+      <h1 className="font-heading text-3xl font-semibold text-navy-700">{about.heading}</h1>
       <div className="mt-6 space-y-6 font-body text-navy-600">
-        {content.map((section, index) => (
+        {about.sections.map((section, index) => (
           <section key={section.contentId} aria-labelledby={index > 0 ? `about-section-${index}` : undefined}>
             {index > 0 && (
               <h2 id={`about-section-${index}`} className="font-heading text-xl font-semibold text-navy-700">
@@ -28,9 +38,6 @@ export default async function AboutPage() {
           </section>
         ))}
       </div>
-      <p className="mt-8 font-body text-xs text-navy-300">
-        Content source: {source === "sheet" ? "governed runtime content" : "bundled fallback"}.
-      </p>
     </section>
   );
 }

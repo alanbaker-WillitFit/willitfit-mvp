@@ -3,12 +3,13 @@
 import Image from "next/image";
 import React, { useEffect, useRef, useState } from "react";
 import { Airline, AffiliateSlot, FitResult, LabConfiguration, SpecialBaggageResult } from "@/types";
-import { checkFit } from "@/lib/fitCalculator";
+import { checkFit, resolveLimit } from "@/lib/fitCalculator";
 import { checkerPreset } from "@/lib/checkerPreset";
 import { useDimensionForm } from "@/hooks/useDimensionForm";
 import { cn } from "@/lib/utils";
 import AirlineSelector from "./AirlineSelector";
 import FitResultCard from "./FitResultCard";
+import SpecialBaggageResultCard from "./SpecialBaggageResultCard";
 import TravelEssentials from "./TravelEssentials";
 import { airlineHasBagType } from "@/lib/dimensions";
 import type { RuntimeContentRecord } from "@/types";
@@ -35,6 +36,30 @@ function decimalInput(value: string): string {
   return decimalParts.length ? `${whole}.${decimalParts.join("")}` : whole;
 }
 
+export function selectedWeightLimit(airline: Airline | null, bagType: typeof BAG_TYPES[number]["type"], fareClass: string | null): number | null {
+  if (!airline) return null;
+
+  const fare = fareClass
+    ? airline.fareClasses.find((item) => item.fareClass.toLowerCase() === fareClass.toLowerCase())
+    : null;
+
+  const fareSupportsBagType = fare
+    ? bagType === "checkedBag"
+      ? Boolean(fare.checkedBag)
+      : Boolean(fare[bagType])
+    : false;
+
+  if (fare && fareSupportsBagType) {
+    return bagType === "checkedBag"
+      ? fare.checkedWeightLimitKg ?? null
+      : fare.weightLimitKg;
+  }
+
+  return bagType === "checkedBag"
+    ? airline.checkedWeightLimitKg ?? null
+    : airline.weightLimitKg;
+}
+
 export default function DimensionForm({
   airlines,
   initialAirline = null,
@@ -59,18 +84,31 @@ export default function DimensionForm({
   const [weightTouched, setWeightTouched] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [selectedSpecial, setSelectedSpecial] = useState<string | null>(null);
+  const [publishedSpecialResult, setPublishedSpecialResult] = useState<SpecialBaggageResult | null>(null);
   const [result, setResult] = useState<FitResult | null>(null);
   const [resultKey, setResultKey] = useState(0);
   const resultRef = useRef<HTMLDivElement>(null);
   const fieldRefs = useRef<Record<typeof FIELDS[number]["key"], HTMLInputElement | null>>({ heightCm: null, widthCm: null, depthCm: null });
 
-  const weightLimitKg = bagType === "checkedBag" ? airline?.checkedWeightLimitKg ?? null : airline?.weightLimitKg ?? null;
+  const sizingRule = airline && airlineHasBagType(airline, bagType)
+    ? resolveLimit(airline, bagType, fareClass).sizingRule
+    : null;
+  const linearRule = sizingRule?.method === "linear-total" ? sizingRule : null;
+  const weightOnlyRule = sizingRule?.method === "weight-only";
+  const weightLimitKg = selectedWeightLimit(airline, bagType, fareClass);
   const weightSupported = weightLimitKg !== null;
   const showWeightStep = bagType === "checkedBag" || weightSupported;
+  const weightRequired = bagType === "checkedBag" && weightSupported;
   const weightValue = weightRaw === "" ? null : Number(weightRaw);
-  const weightError = weightRaw !== "" && (!Number.isFinite(weightValue) || weightValue! <= 0 || weightValue! > 999)
-    ? "Enter a valid weight in kilograms."
+  const weightError = weightRequired && weightRaw === ""
+    ? "Enter your checked-bag weight in kilograms."
+    : weightRaw !== "" && (!Number.isFinite(weightValue) || weightValue! <= 0 || weightValue! > 999)
+      ? "Enter a valid weight in kilograms."
+      : null;
+  const selectedSpecialResult = selectedSpecial
+    ? specialBaggageResults.find((item) => item.resultId === selectedSpecial) ?? null
     : null;
+  const hasPublishedResult = Boolean(result || publishedSpecialResult);
 
   useEffect(() => {
     if (!initialAirline || airlineHasBagType(initialAirline, bagType)) return;
@@ -80,22 +118,39 @@ export default function DimensionForm({
   }, [bagType, initialAirline, loadDimensions, setBagType]);
 
   useEffect(() => {
-    if (!result) return;
+    if (!hasPublishedResult) return;
     const frame = requestAnimationFrame(() => resultRef.current?.focus());
     return () => cancelAnimationFrame(frame);
-  }, [result, resultKey]);
+  }, [hasPublishedResult, resultKey]);
 
-  function invalidate() { setResult(null); }
+  function invalidate() {
+    setResult(null);
+    setPublishedSpecialResult(null);
+  }
+
   function applySelection(selectedAirline: Airline | null, selectedBagType: typeof bagType, selectedFare: string | null) {
     setResult(null);
+    setPublishedSpecialResult(null);
     setWeightRaw("");
     setWeightTouched(false);
+    setSelectedSpecial(null);
     if (selectedAirline && airlineHasBagType(selectedAirline, selectedBagType)) {
       loadDimensions(checkerPreset(selectedAirline, selectedBagType, selectedFare));
+    } else {
+      loadDimensions(null);
     }
   }
+
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
+
+    if (airline && selectedSpecialResult) {
+      setResult(null);
+      setPublishedSpecialResult(selectedSpecialResult);
+      setResultKey(key => key + 1);
+      return;
+    }
+
     markAllTouched();
     setWeightTouched(true);
     if (!isValid || weightError) {
@@ -104,24 +159,32 @@ export default function DimensionForm({
       return;
     }
     if (!airline || !airlineHasBagType(airline, bagType)) return;
+    setPublishedSpecialResult(null);
     setResult(checkFit(dimensions as Required<typeof dimensions>, airline, bagType, fareClass, weightSupported ? weightValue : null));
     setResultKey(key => key + 1);
   }
 
   function onReset() {
     reset();
+    setAirline(initialAirline);
     setFareClass(null);
     setWeightRaw("");
     setWeightTouched(false);
     setAdvancedOpen(false);
     setSelectedSpecial(null);
+    setPublishedSpecialResult(null);
     setResult(null);
   }
 
-  const state = result?.verdict === "fits" ? "is-success" : result?.verdict === "close" ? "is-warning" : result ? "is-error" : "";
-  const selectedSpecialResult = selectedSpecial
-    ? specialBaggageResults.find((item) => item.resultId === selectedSpecial) ?? null
-    : null;
+  const state = publishedSpecialResult
+    ? "is-warning"
+    : result?.verdict === "fits"
+      ? "is-success"
+      : result?.verdict === "close"
+        ? "is-warning"
+        : result
+          ? "is-error"
+          : "";
 
   return (
     <div className="wf-primary-journey">
@@ -152,12 +215,36 @@ export default function DimensionForm({
             <fieldset className="wf-checker-step wf-checker-step--bag">
               <legend><b>2</b> Choose bag type</legend>
               <div className="wf-bag-types">
-                {BAG_TYPES.map(item => (
-                  <button key={item.type} type="button" disabled={Boolean(airline && !airlineHasBagType(airline, item.type))} aria-pressed={bagType === item.type} className={cn("wf-bag-type", bagType === item.type && "is-selected")} onClick={() => { setBagType(item.type); setFareClass(null); applySelection(airline, item.type, null); }}>
-                    <Image className="wf-bag-type__icon" src={item.icon} alt="" width={44} height={44} priority /> {item.title}
-                  </button>
-                ))}
+                {BAG_TYPES.map(item => {
+                  const unavailable = !airline || !airlineHasBagType(airline, item.type);
+                  return (
+                    <button
+                      key={item.type}
+                      type="button"
+                      disabled={unavailable}
+                      aria-pressed={bagType === item.type}
+                      className={cn("wf-bag-type", bagType === item.type && "is-selected")}
+                      onClick={() => {
+                        if (unavailable) return;
+                        setBagType(item.type);
+                        setFareClass(null);
+                        applySelection(airline, item.type, null);
+                      }}
+                    >
+                      <Image
+                        className={cn("wf-bag-type__icon", item.type === "checkedBag" && "scale-125")}
+                        src={item.icon}
+                        alt=""
+                        width={44}
+                        height={44}
+                        priority
+                      />
+                      {item.title}
+                    </button>
+                  );
+                })}
               </div>
+              {!airline && <p className="mt-2 text-xs font-medium text-navy-400">Select an airline to see its available bag types.</p>}
             </fieldset>
 
             {airline && !airlineHasBagType(airline, bagType) && (() => {
@@ -170,9 +257,23 @@ export default function DimensionForm({
                 <label htmlFor="fareClass">Fare</label>
                 <select id="fareClass" value={fareClass ?? ""} onChange={event => { const nextFare = event.target.value || null; setFareClass(nextFare); applySelection(airline, bagType, nextFare); }}>
                   <option value="">Minimum allowance</option>
-                  {airline.fareClasses.filter(item => item[bagType]).map(item => <option key={item.fareClass}>{item.fareClass}</option>)}
+                  {airline.fareClasses.filter(item => item[bagType] || (bagType === "checkedBag" && item.checkedWeightLimitKg !== null)).map(item => <option key={item.fareClass}>{item.fareClass}</option>)}
                 </select>
               </div>
+            )}
+
+            {linearRule && (
+              <aside className="wf-card wf-card--compact p-4" role="status" aria-live="polite">
+                <strong>Total-size rule</strong>
+                <p>This airline uses a total-size limit rather than fixed dimensions. Enter your bag&apos;s length, width and depth. Together they must total {linearRule.operator === "lt" ? "less than" : "no more than"} {linearRule.linearLimitCm} cm.</p>
+              </aside>
+            )}
+
+            {weightOnlyRule && (
+              <aside className="wf-card wf-card--compact p-4" role="status" aria-live="polite">
+                <strong>Weight-only rule</strong>
+                <p>This airline publishes a maximum checked-bag weight but no universal dimensions. Size restrictions may vary by aircraft, route or booking. Check your booking before travel.</p>
+              </aside>
             )}
 
             <fieldset className="wf-checker-step wf-checker-step--dimensions">
@@ -192,17 +293,21 @@ export default function DimensionForm({
             </fieldset>
 
             {showWeightStep && (
-              <div className="wf-checker-step wf-checker-step--weight">
+              <fieldset className="wf-checker-step wf-checker-step--weight wf-checker-step--dimensions">
+                <legend><b>4</b> Enter bag weight</legend>
                 {weightSupported ? (
-                  <>
-                    <label htmlFor="weightKg"><b>4</b> Weight <span><input id="weightKg" value={weightRaw} inputMode="decimal" maxLength={5} autoComplete="off" onChange={event => { setWeightRaw(decimalInput(event.target.value)); invalidate(); }} onBlur={() => setWeightTouched(true)} /><i>kg</i></span></label>
-                    {weightTouched && weightError ? <p className="wf-form-error" role="alert">{weightError}</p> : null}
-                    <small>Published limit: {weightLimitKg} kg</small>
-                  </>
+                  <div className="wf-dimensions">
+                    <label htmlFor="weightKg">Weight
+                      <span><input id="weightKg" value={weightRaw} inputMode="decimal" maxLength={5} autoComplete="off" aria-required={weightRequired} aria-invalid={Boolean(weightTouched && weightError)} aria-describedby={weightTouched && weightError ? "weightKg-error" : "weightKg-limit"} onChange={event => { setWeightRaw(decimalInput(event.target.value)); invalidate(); }} onBlur={() => setWeightTouched(true)} /><i>kg</i></span>
+                      <small>W</small>
+                      {weightTouched && weightError ? <em id="weightKg-error" role="alert">{weightError}</em> : null}
+                    </label>
+                    <p id="weightKg-limit" className="self-end pb-3 text-xs font-semibold text-navy-500">Published limit: {weightLimitKg} kg</p>
+                  </div>
                 ) : (
-                  <p role="status"><b>4</b> Weight limit not published. Check the airline&apos;s current checked-baggage policy before travel.</p>
+                  <p role="status">Weight limit not published. Check the airline&apos;s current checked-baggage policy before travel.</p>
                 )}
-              </div>
+              </fieldset>
             )}
 
             <section className="wf-checker-step wf-checker-step--advanced" aria-labelledby="advanced-baggage-heading">
@@ -211,44 +316,60 @@ export default function DimensionForm({
               </button>
               {advancedOpen && (
                 <div id="advanced-baggage-options">
-                  {specialBaggageResults.length === 14 ? (
-                    <div className="wf-bag-types" role="list" aria-label="Special and oversized baggage categories">
+                  {!airline ? (
+                    <p className="mt-3 text-sm font-medium text-navy-500" role="status">Select an airline to view special baggage guidance.</p>
+                  ) : specialBaggageResults.length === 14 ? (
+                    <div className="wf-bag-types" role="group" aria-label="Special and oversized baggage categories">
                       {specialBaggageResults.map(item => (
-                        <button key={item.resultId} type="button" role="listitem" aria-pressed={selectedSpecial === item.resultId} className={cn("wf-bag-type", selectedSpecial === item.resultId && "is-selected")} onClick={() => setSelectedSpecial(item.resultId)}>
+                        <button
+                          key={item.resultId}
+                          type="button"
+                          aria-pressed={selectedSpecial === item.resultId}
+                          className={cn("wf-bag-type", selectedSpecial === item.resultId && "is-selected")}
+                          onClick={() => {
+                            setSelectedSpecial(item.resultId);
+                            setResult(null);
+                            setPublishedSpecialResult(null);
+                          }}
+                        >
+                          {selectedSpecial === item.resultId && <span aria-hidden="true">✓ </span>}
                           {item.title}
                         </button>
                       ))}
                     </div>
-                  ) : <p className="wf-form-error" role="status">Special baggage guidance is temporarily unavailable.</p>}
-                </div>
-              )}
-              {selectedSpecialResult && (
-                <aside className="wf-card wf-card--compact mt-4 p-4" aria-live="polite">
-                  <strong>{selectedSpecialResult.title}</strong>
-                  <p>{selectedSpecialResult.summary}</p>
-                  {selectedSpecialResult.preparationGuidance && <p><strong>Prepare:</strong> {selectedSpecialResult.preparationGuidance}</p>}
-                  {selectedSpecialResult.feeGuidance && <p><strong>Fees:</strong> {selectedSpecialResult.feeGuidance}</p>}
-                  {selectedSpecialResult.mobilityOrMedical && <p><strong>Accessibility:</strong> Contact the airline before travel to confirm assistance and carriage arrangements.</p>}
-                  {selectedSpecialResult.policyLinkSource.startsWith("https://") && (
-                    <p><a href={selectedSpecialResult.policyLinkSource} target="_blank" rel="noopener noreferrer">{selectedSpecialResult.policyLinkLabel || "Read the airline policy"}</a></p>
+                  ) : (
+                    <p className="mt-3 text-sm font-semibold text-amber-700" role="status">Special baggage guidance is temporarily unavailable.</p>
                   )}
-                </aside>
+                  {airline && selectedSpecialResult && (
+                    <p className="mt-3 text-sm font-medium text-navy-500" role="status">
+                      {selectedSpecialResult.title} selected. Press Check my bag for the airline guidance.
+                    </p>
+                  )}
+                </div>
               )}
             </section>
           </div>
 
           <button type="submit" className="wf-check-button">Check my bag <span aria-hidden="true">→</span></button>
           {submitted && !airline && <p className="wf-form-error" role="alert">Select an airline before checking your bag.</p>}
-          {!result && hints.length > 0 && (
+          {!hasPublishedResult && hints.length > 0 && (
             <aside className="wf-card wf-card--compact mt-4 p-4" aria-label="Before you check">
               {hints.map((hint) => <p key={hint.contentId}><strong>{hint.title}:</strong> {hint.body}</p>)}
             </aside>
           )}
         </form>
 
-        {result && <div ref={resultRef} tabIndex={-1} className="wf-result-panel"><FitResultCard key={resultKey} result={result} labConfigs={labConfigs} /></div>}
+        {hasPublishedResult && (
+          <div ref={resultRef} tabIndex={-1} className="wf-result-panel">
+            {publishedSpecialResult && airline ? (
+              <SpecialBaggageResultCard key={resultKey} airline={airline} result={publishedSpecialResult} />
+            ) : result ? (
+              <FitResultCard key={resultKey} result={result} labConfigs={labConfigs} />
+            ) : null}
+          </div>
+        )}
       </section>
-      {result && <div className="wf-travel-essentials-mobile"><TravelEssentials slots={affiliateSlots} /></div>}
+      {hasPublishedResult && <div className="wf-travel-essentials-mobile"><TravelEssentials slots={affiliateSlots} /></div>}
     </div>
   );
 }

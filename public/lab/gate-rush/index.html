@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Gate Rush — WillItFit</title>
+<style>
+:root{--ink:#0D1B3D;--cream:#fffdf4;--green:#22C55E}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#102039;color:var(--ink);font-family:Arial,sans-serif;overflow:hidden}
+.shell{width:min(100vw,520px);height:100dvh;max-height:900px;background:var(--cream);display:grid;grid-template-rows:auto 1fr auto;box-shadow:0 0 45px #06101f}
+header{padding:10px 14px;background:#fff;display:grid;grid-template-columns:1fr auto;gap:8px;border-bottom:4px solid var(--ink)}
+.brand{display:flex;align-items:center;gap:10px}.wordmark{font-weight:1000;font-size:20px}.wordmark b{color:var(--green)}
+.game-name{font:1000 10px Arial;letter-spacing:1.2px;padding:5px 7px;background:var(--ink);color:white}
+.stats{display:flex;gap:7px;font-weight:900;font-size:13px}
+.pill{padding:6px 9px;background:#eaf7f8;border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink)}
+.progress{grid-column:1/-1;height:8px;background:#d9e6e8;border:2px solid var(--ink)}#progress{height:100%;width:0;background:var(--green)}
+#wrap{position:relative;min-height:0;background:#bfd8d6;overflow:hidden;touch-action:none}
+canvas{width:100%;height:100%;display:block;image-rendering:pixelated}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;padding:24px;background:#102039df;color:white;text-align:center;z-index:3}
+.card{width:min(390px,100%);padding:22px;background:var(--cream);color:var(--ink);border:5px solid var(--ink);box-shadow:8px 8px 0 var(--green)}
+h1{font-size:38px;line-height:.9;margin:0 0 12px;text-transform:uppercase}
+p{line-height:1.4;margin:8px 0 16px}.small{font-size:13px}
+.eyebrow{color:var(--green);font-size:11px;font-weight:1000;letter-spacing:1.5px;margin-bottom:10px}
+.brand-line{font-weight:900}.brand-line b{color:var(--green)}
+button{border:3px solid var(--ink);background:var(--green);color:white;font:900 17px Arial;padding:12px 18px;box-shadow:4px 4px 0 var(--ink);cursor:pointer}
+button:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+footer{padding:7px 12px max(9px,env(safe-area-inset-bottom));background:white;border-top:4px solid var(--ink);display:flex;align-items:center;justify-content:center}
+.touch-controls{display:grid;grid-template-columns:58px 58px 58px;grid-template-rows:48px 48px;gap:6px}
+.touch-control{min-width:58px;min-height:48px;padding:0;font-size:25px;line-height:1;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.touch-up{grid-column:2;grid-row:1}.touch-left{grid-column:1;grid-row:2}.touch-down{grid-column:2;grid-row:2}.touch-right{grid-column:3;grid-row:2}
+.back-link{position:fixed;top:max(10px,env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left));z-index:5;padding:8px 10px;background:#fff;color:var(--ink);border:2px solid var(--ink);font-weight:900;text-decoration:none;box-shadow:3px 3px 0 var(--green)}
+.back-link:focus-visible,button:focus-visible{outline:4px solid #fff;outline-offset:3px}
+.toast{position:absolute;left:50%;top:16px;transform:translateX(-50%);padding:8px 13px;background:white;border:3px solid var(--ink);font-weight:900;z-index:2;white-space:nowrap;opacity:0}.toast.show{opacity:1}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important}.toast{transition:none}}
+</style>
+</head>
+<body>
+<a class="back-link" href="/" aria-label="Return to WillItFit">← WillItFit</a>
+<main class="shell">
+<header>
+<div class="brand"><span class="wordmark">Will<b>It</b>Fit</span><span class="game-name">GATE RUSH</span></div>
+<div class="stats"><div class="pill">⏱ <span id="time">180</span>s</div><div class="pill">❤ <span id="lives">3</span></div><div class="pill">★ <span id="score">0</span></div></div>
+<div class="progress"><div id="progress"></div></div>
+</header>
+<section id="wrap">
+<canvas id="game"></canvas><div class="toast" id="toast"></div>
+<div class="overlay" id="overlay"><div class="card"><div class="eyebrow">WILLITFIT PRESENTS</div><h1>Gate<br>Rush</h1><p><b>Beat the crowds. Make the gate. Complete the trip.</b></p><p class="small">Cross 10 airport levels. Dodge passengers, carts and trolleys against the clock.</p><button id="start">START JOURNEY</button><p class="small brand-line">Know Before You <b>Go.</b></p><p class="small">Arrow keys / WASD / swipe / touch arrows</p></div></div>
+</section>
+<footer>
+<div class="touch-controls" aria-label="Touch movement controls">
+<button class="touch-control touch-up" data-dc="0" data-dr="-1">↑</button>
+<button class="touch-control touch-left" data-dc="-1" data-dr="0">←</button>
+<button class="touch-control touch-down" data-dc="0" data-dr="1">↓</button>
+<button class="touch-control touch-right" data-dc="1" data-dr="0">→</button>
+</div>
+</footer>
+</main>
+<script>
+const C=document.querySelector('#game'),X=C.getContext('2d'),wrap=document.querySelector('#wrap');
+const ui={time:document.querySelector('#time'),lives:document.querySelector('#lives'),score:document.querySelector('#score'),progress:document.querySelector('#progress'),overlay:document.querySelector('#overlay'),toast:document.querySelector('#toast')};
+const COLS=9,ROWS=12;
+const levels=[
+{name:'TERMINAL ENTRANCE',icon:'▣',verb:'GET TO'},
+{name:'CHECK-IN',icon:'✓',verb:'GET TO'},
+{name:'SECURITY',icon:'⌕',verb:'GET THROUGH'},
+{name:'PASSPORT CONTROL',icon:'▤',verb:'GET THROUGH'},
+{name:'DEPARTURE LOUNGE',icon:'✈',verb:'REACH'},
+{name:'BOARDING GATE',icon:'➜',verb:'MAKE THE'},
+{name:'AIRCRAFT ARRIVAL',icon:'✈',verb:'REACH'},
+{name:'BAGGAGE RECLAIM',icon:'▰',verb:'REACH'},
+{name:'CUSTOMS & TAXI',icon:'◇',verb:'CLEAR'},
+{name:'HOTEL FINISH',icon:'⌂',verb:'GET TO THE'}
+];
+const pattern=[2,5,8,3,7,4,9,6,2,8,5,3,9,4,7,6];
+const types=['PERSON','TROLLEY','BUGGY','PERSON'];
+const widths=[1.05,1.35,1.05,1.6];
+const intervals=[.42,.5,.46,.55,.48,.52];
+let W,H,CW,RH,player,obstacles,running=false,last=0,remaining=180,livesN=3,scoreN=0,spawnClock=0,obstacleCount=0,invincible=0,levelN=0,transitioning=false;
+const laneSpeeds=[0,0,105,-120,135,-95,125,-140,110,-130,100,0];
+function size(){const d=devicePixelRatio||1;W=wrap.clientWidth;H=wrap.clientHeight;C.width=W*d;C.height=H*d;X.setTransform(d,0,0,d,0,0);CW=W/COLS;RH=H/ROWS}
+addEventListener('resize',size);size();
+function resetLevel(){player={c:4,r:11};obstacles=[];spawnClock=0;invincible=.5;transitioning=false}
+function reset(){remaining=180;livesN=3;scoreN=0;obstacleCount=0;levelN=0;resetLevel();ui.time.textContent=180;ui.lives.textContent=3;ui.score.textContent=0;ui.progress.style.width='0%'}
+function startGame(){reset();ui.overlay.style.display='none';running=true;last=performance.now();requestAnimationFrame(loop)}
+document.querySelector('#start').onclick=startGame;
+function showToast(s){ui.toast.textContent=s;ui.toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(()=>ui.toast.classList.remove('show'),850)}
+function move(dc,dr){if(!running||transitioning)return;const nc=Math.max(0,Math.min(COLS-1,player.c+dc)),nr=Math.max(1,Math.min(11,player.r+dr));if(nc===player.c&&nr===player.r)return;player.c=nc;player.r=nr;if(dr<0){scoreN+=10;ui.score.textContent=scoreN}ui.progress.style.width=(((levelN+(11-nr)/10)/levels.length)*100)+'%';if(nr===1)completeLevel()}
+function completeLevel(){transitioning=true;scoreN+=250;ui.score.textContent=scoreN;ui.progress.style.width=((levelN+1)/levels.length*100)+'%';showToast('LEVEL '+(levelN+1)+' COMPLETE ✓');if(levelN===levels.length-1){setTimeout(win,650);return}setTimeout(()=>{levelN++;resetLevel();showToast('LEVEL '+(levelN+1)+': '+levels[levelN].name)},700)}
+addEventListener('keydown',e=>{if(e.key==='Escape'){location.href='/';return}const m={arrowleft:[-1,0],a:[-1,0],arrowright:[1,0],d:[1,0],arrowup:[0,-1],w:[0,-1],arrowdown:[0,1],s:[0,1]}[e.key.toLowerCase()];if(m){e.preventDefault();move(...m)}});
+document.querySelectorAll('.touch-control').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();move(Number(b.dataset.dc),Number(b.dataset.dr))}));
+let touch=null;wrap.addEventListener('pointerdown',e=>touch=[e.clientX,e.clientY]);wrap.addEventListener('pointerup',e=>{if(!touch)return;const dx=e.clientX-touch[0],dy=e.clientY-touch[1];if(Math.max(Math.abs(dx),Math.abs(dy))>18)Math.abs(dx)>Math.abs(dy)?move(Math.sign(dx),0):move(0,Math.sign(dy));touch=null});
+function spawn(){const i=obstacleCount++;const r=pattern[i%pattern.length],dir=Math.sign(laneSpeeds[r]),type=types[i%types.length],mult=widths[i%widths.length];obstacles.push({r,x:dir>0?-CW*2.5:W+CW*2.5,w:CW*mult,type})}
+function collision(o){const px=player.c*CW+CW*.2,py=player.r*RH+RH*.15,pw=CW*.6,ph=RH*.7;return o.x<px+pw&&o.x+o.w>px&&o.r*RH<py+ph&&(o.r+1)*RH>py}
+function hit(){if(invincible>0||transitioning)return;livesN--;ui.lives.textContent=livesN;remaining=Math.max(0,remaining-5);player.r=Math.min(11,player.r+2);invincible=1.25;showToast('BUMP! −5 SECONDS');if(livesN<=0)end(false,'Too many hold-ups!')}
+function loop(now){if(!running)return;const dt=Math.min(.035,(now-last)/1000);last=now;remaining-=dt;spawnClock-=dt;invincible-=dt;if(!transitioning&&spawnClock<=0){spawn();spawnClock=intervals[obstacleCount%intervals.length]}for(const o of obstacles){o.x+=laneSpeeds[o.r]*dt;if(collision(o))hit()}obstacles=obstacles.filter(o=>o.x<W+CW*3&&o.x>-CW*3);ui.time.textContent=Math.max(0,Math.ceil(remaining));if(remaining<=0)return end(false,'Your journey ran out of time.');draw();requestAnimationFrame(loop)}
+function rect(x,y,w,h,c,s){X.fillStyle=c;X.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h));if(s){X.strokeStyle='#0D1B3D';X.lineWidth=2;X.strokeRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))}}
+function draw(){X.clearRect(0,0,W,H);for(let r=0;r<ROWS;r++){const safe=r<2||r===11;rect(0,r*RH,W,RH,safe?(r<2?'#fff1bf':'#e9f5ea'):(r%2?'#c6d5d5':'#b9cccc'));if(!safe){X.strokeStyle='#e5eeee';X.setLineDash([10,10]);X.beginPath();X.moveTo(0,(r+.5)*RH);X.lineTo(W,(r+.5)*RH);X.stroke();X.setLineDash([])}}const lev=levels[levelN];rect(W*.08,RH*.2,W*.84,RH*1.35,'#fffdf4',true);rect(W*.08,RH*.2,W*.018,RH*1.35,'#22C55E');X.fillStyle='#0D1B3D';X.textAlign='center';X.textBaseline='middle';X.font='800 '+Math.max(10,RH*.2)+'px Arial';X.fillText('LEVEL '+(levelN+1)+' OF 10  •  '+lev.verb,W/2,RH*.58);X.font='1000 '+Math.max(15,RH*.34)+'px Arial';X.fillText(lev.icon+'  '+lev.name,W/2,RH*1.12);for(const o of obstacles)drawObstacle(o);drawPlayer()}
+function drawObstacle(o){const y=o.r*RH+RH*.16,h=RH*.68,color=o.type==='TROLLEY'?'#ffd166':o.type==='BUGGY'?'#ef476f':'#7288a0';rect(o.x,y,o.w,h,color,true);X.fillStyle='#0D1B3D';X.font=Math.max(14,RH*.48)+'px Arial';X.textAlign='center';X.fillText(o.type==='TROLLEY'?'🛒':o.type==='BUGGY'?'🚐':'🧳',o.x+o.w/2,y+h*.53)}
+function drawPlayer(){const x=player.c*CW,y=player.r*RH,blink=invincible>0&&Math.floor(invincible*10)%2;if(blink)return;X.fillStyle='#0D1B3D';X.beginPath();X.arc(x+CW*.5,y+RH*.3,Math.min(CW,RH)*.14,0,Math.PI*2);X.fill();rect(x+CW*.34,y+RH*.43,CW*.32,RH*.38,'#22C55E',true);rect(x+CW*.69,y+RH*.58,CW*.22,RH*.28,'#ffd166',true)}
+function win(){scoreN+=Math.ceil(remaining)*20;ui.score.textContent=scoreN;end(true,'You reached the hotel with '+Math.ceil(remaining)+' seconds to spare!')}
+function end(w,msg){running=false;ui.overlay.style.display='grid';ui.overlay.innerHTML='<div class="card"><div class="eyebrow">WILLITFIT GATE RUSH</div><h1>'+(w?'Made it!':'Final call')+'</h1><p><b>'+msg+'</b></p><p>Score: '+scoreN+'</p><button id="again">'+(w?'PLAY AGAIN':'TRY AGAIN')+'</button><p class="small brand-line">Know Before You <b>Go.</b></p></div>';document.querySelector('#again').onclick=startGame}
+reset();draw();
+</script>
+</body>
+</html>

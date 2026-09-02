@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "@/styles/rc5-ku-refinements.css";
+import "@/styles/rc5-final-launch-prep.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import PageAtmosphereShell from "@/components/PageAtmosphereShell";
 import { siteUrl } from "@/lib/utils";
 import { organizationSchema } from "@/lib/schema";
 import { getTipCategories } from "@/services/tips";
+import { getNavigationItems } from "@/services/navigation";
 import { safeJsonLd } from "@/lib/jsonLd";
 
 export const metadata: Metadata = {
@@ -32,7 +35,10 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const tipCategories = await getTipCategories();
+  const [tipCategories, navigationItems] = await Promise.all([
+    getTipCategories(),
+    getNavigationItems(),
+  ]);
 
   return (
     <html lang="en">
@@ -43,8 +49,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: safeJsonLd(organizationSchema()) }}
         />
-        <Header tipCategories={tipCategories} />
-        <main id="main-content">{children}</main>
+        <Header tipCategories={tipCategories} navigationItems={navigationItems} />
+        <PageAtmosphereShell>
+          <main id="main-content">{children}</main>
+        </PageAtmosphereShell>
         <Footer />
       </body>
     </html>

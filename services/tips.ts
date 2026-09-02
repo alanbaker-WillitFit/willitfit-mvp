@@ -18,7 +18,6 @@ type TipRow = Record<string, string> & {
   Publish?: string;
 };
 
-
 function clean(value: string | undefined): string { return (value ?? "").trim(); }
 
 export function parseTipStatus(status: string | undefined): SheetStatus {
@@ -26,6 +25,18 @@ export function parseTipStatus(status: string | undefined): SheetStatus {
   if (["active", "live", "approved", "published"].includes(s)) return "Live";
   if (["archived", "inactive", "retired"].includes(s)) return "Archived";
   return "Draft";
+}
+
+export function normaliseTipPriority(input: unknown): number {
+  const numeric = Number(String(input ?? "").trim());
+  return Number.isInteger(numeric) && numeric >= 1 && numeric <= 10 ? numeric : 10;
+}
+
+export function sortTipsByPriority(tips: TravelTip[]): TravelTip[] {
+  return [...tips].sort((left, right) => {
+    const priorityDifference = normaliseTipPriority(left.priority) - normaliseTipPriority(right.priority);
+    return priorityDifference || left.title.localeCompare(right.title);
+  });
 }
 
 function makeTitle(content: string, airline: string, category: string): string {
@@ -36,14 +47,14 @@ function makeTitle(content: string, airline: string, category: string): string {
   return content.slice(0, 68).trim();
 }
 
-export function mapTipRow(row: TipRow, index: number): TravelTip {
+export function mapTipRow(row: TipRow, _index?: number): TravelTip {
   const content = clean(row["Tip / Hint"]) || clean(row.Content) || clean(row.Tip);
   const focusAirline = clean(row["Airline ID"]) || clean(row.FocusAirline) || clean(row["Focus Airline"]) || clean(row.Airline);
   const category = clean(row.Category) || "Travel Tips";
   const title = clean(row.Title) || makeTitle(content, focusAirline, category);
-  const slug = slugify(clean(row.Slug) || `${focusAirline || "travel"}-${title || index}`);
+  const slug = slugify(clean(row.Slug) || `${focusAirline || "travel"}-${title}`);
   return {
-    tipId: clean(row.TipID) || clean(row["Tip ID"]) || `tip-${index + 1}`,
+    tipId: clean(row.TipID) || clean(row["Tip ID"]),
     title, slug, content, category,
     seoKeyword: clean(row["Search Terms"]) || clean(row.SEOKeyword) || clean(row["SEO Primary Keyword"]),
     cta: clean(row.CTA) || "Check your bag size",
@@ -52,7 +63,7 @@ export function mapTipRow(row: TipRow, index: number): TravelTip {
     journeyStage: clean(row["Context Trigger"]) || clean(row["Journey Stage"]),
     resultContext: clean(row["Result Context"]),
     affiliateCategory: clean(row["Affiliate Category"]),
-    priority: toNumber(row.Priority || row["Display Order"], 3),
+    priority: normaliseTipPriority(row.Priority || row["Display Order"]),
   };
 }
 
@@ -69,9 +80,20 @@ async function readTipRows(): Promise<TipRow[] | null> {
 
 export async function getTravelTips(): Promise<{ tips: TravelTip[]; source: "sheet" | "fallback" }> {
   const rows = await readTipRows();
-  if (!rows) return { tips: FALLBACK_TIPS, source: "fallback" };
+  if (!rows) return { tips: sortTipsByPriority(FALLBACK_TIPS), source: "fallback" };
 
-  const live = rows.filter(runtimePublished).map(mapTipRow).filter((tip) => tip.slug && tip.title && tip.content && tip.status === "Live");
+  const published = rows.filter(runtimePublished).map(mapTipRow);
+  const missingIds = published.filter((tip) => !tip.tipId);
+  const incomplete = published.filter((tip) => tip.tipId && (!tip.slug || !tip.title || !tip.content));
+
+  if (missingIds.length > 0) {
+    console.error("[tips] Rejected published tips without Tip ID", { count: missingIds.length });
+  }
+  if (incomplete.length > 0) {
+    console.error("[tips] Rejected incomplete published tips", incomplete.map((tip) => tip.tipId));
+  }
+
+  const live = published.filter((tip) => tip.tipId && tip.slug && tip.title && tip.content && tip.status === "Live");
   const duplicateIds = duplicateValues(live.map((tip) => tip.tipId));
   const duplicateSlugs = duplicateValues(live.map((tip) => tip.slug));
   if (duplicateIds.size || duplicateSlugs.size) {
@@ -80,9 +102,9 @@ export async function getTravelTips(): Promise<{ tips: TravelTip[]; source: "she
     });
   }
 
-  const tips = live
-    .filter((tip) => !duplicateIds.has(tip.tipId) && !duplicateSlugs.has(tip.slug))
-    .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+  const tips = sortTipsByPriority(
+    live.filter((tip) => !duplicateIds.has(tip.tipId) && !duplicateSlugs.has(tip.slug))
+  );
   return { tips, source: "sheet" };
 }
 

@@ -1,0 +1,76 @@
+{
+  "contractId": "willitfit-rc6-runtime-projection",
+  "version": "1.0.0",
+  "failClosed": true,
+  "sourceAuthority": "Mother_RC6",
+  "targetAuthority": "Runtime_RC6",
+  "datasets": {
+    "02_Airlines": {
+      "expectedRows": 114,
+      "primaryKey": "Airline ID",
+      "columns": [
+        "Airline ID",
+        "Airline Name",
+        "IATA Code",
+        "Search Terms",
+        "Country",
+        "Website URL",
+        "Baggage URL",
+        "Logo Reference",
+        "Display Order",
+        "Active",
+        "Review Status",
+        "Last Reviewed",
+        "Publish",
+        "Notes"
+      ]
+    },
+    "03_Airline Rules": {
+      "expectedRows": 425,
+      "primaryKey": "Rule ID",
+      "columns": [
+        "Rule ID",
+        "Airline ID",
+        "Fare",
+        "Bag Type",
+        "Length cm",
+        "Width cm",
+        "Depth cm",
+        "Weight kg",
+        "Linear Size cm",
+        "Wheels Included",
+        "Handles Included",
+        "Fits Under Seat",
+        "Soft Bag Guidance",
+        "Rule Wording",
+        "Source Reference",
+        "Last Checked",
+        "Review Status",
+        "Publish",
+        "Notes",
+        "Sizing Method",
+        "Limit Operator"
+      ],
+      "requiredSemanticColumns": [
+        "Sizing Method",
+        "Limit Operator"
+      ],
+      "allowedSizingMethods": [
+        "fixed dimensions",
+        "linear total",
+        "weight only"
+      ],
+      "allowedLimitOperators": [
+        "lt",
+        "lte"
+      ],
+      "strictLtRuleIds": [
+        "EZY-CHK-20260801-001",
+        "EZY-CHK-20260801-002",
+        "EZY-CHK-20260801-003",
+        "MAS-CHK-20260801-001",
+        "MAS-CHK-20260801-002"
+      ]
+    }
+  }
+}
