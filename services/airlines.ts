@@ -16,7 +16,7 @@ export { AIRLINE_TABS, BAGGAGE_RULE_TABS } from "./runtimeSources";
 
 type RuntimeRow = Record<string, string>;
 type AirlineRow = RuntimeRow & {
-  AirlineID: string; AirlineName: string; Slug: string; Country: string;
+  AirlineID: string; AirlineName: string; Slug: string; Country: string; IATACode?: string; SearchTerms?: string;
   OfficialBaggageURL: string; Status: string; LastChecked: string; Notes: string;
   SearchPriority: string;
 };
@@ -53,6 +53,8 @@ export function adaptAirlineRow(row: RuntimeRow): AirlineRow {
     AirlineName: value(row, "Airline Name", "AirlineName"),
     Slug: value(row, "Slug"),
     Country: value(row, "Country"),
+    IATACode: value(row, "IATA Code", "IATA", "IATACode").toUpperCase(),
+    SearchTerms: value(row, "Search Terms", "SearchTerms"),
     OfficialBaggageURL: value(row, "Baggage URL", "Website URL", "OfficialBaggageURL"),
     Status: runtimePublished(row) ? "Live" : value(row, "Status", "Review Status"),
     LastChecked: value(row, "Last Reviewed", "Last Checked", "LastChecked"),
@@ -279,12 +281,16 @@ export function mapRuntimeAirline(airline: AirlineRow, baggageRows: BaggageRuleR
   const checkedWeightLimitKg = minWeight(checkedRules);
   const hasFareCheckedBag = fareClasses.some((fare) => fare.checkedBag !== null && fare.checkedBag !== undefined);
   const hasCheckedBag = checkedBag !== null || hasFareCheckedBag;
+  const airlineIata = String(airline.IATACode || value(airline, "IATA Code", "IATA", "IATACode") || "").trim().toUpperCase();
+  const suppliedSearchTerms = String(airline.SearchTerms || value(airline, "Search Terms", "SearchTerms") || "");
 
   return {
     airlineId,
     airlineName: airline.AirlineName.trim(),
     slug: slugify(airline.Slug || airline.AirlineName),
     country: airline.Country?.trim() || "",
+    iataCode: airlineIata || undefined,
+    searchTerms: Array.from(new Set([airline.AirlineName, airlineIata, ...suppliedSearchTerms.split(/[,;|]/)].map((term) => term.trim()).filter(Boolean))),
     logoUrl: "",
     personalItem,
     cabinBag,
