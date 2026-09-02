@@ -28,6 +28,7 @@ export default async function AirportDelaysPage({ params }: PageProps) {
   const events = freshness === "UNAVAILABLE" ? [] : (current?.events ?? []);
   const departures = events.filter((event) => event.direction === "departure");
   const arrivals = events.filter((event) => event.direction === "arrival");
+  const otherEvents = events.filter((event) => event.direction !== "departure" && event.direction !== "arrival");
 
   return (
     <main>
@@ -72,15 +73,15 @@ export default async function AirportDelaysPage({ params }: PageProps) {
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               <div className="rounded-lg bg-slate-50 p-4">
                 <p className="text-sm text-navy-500">Delayed departures</p>
-                <p className="mt-1 text-2xl font-bold text-navy-900">{current.delayedDepartures ?? 0}</p>
+                <p className="mt-1 text-2xl font-bold text-navy-900">{current.delayedDepartures ?? "—"}</p>
               </div>
               <div className="rounded-lg bg-slate-50 p-4">
                 <p className="text-sm text-navy-500">Delayed arrivals</p>
-                <p className="mt-1 text-2xl font-bold text-navy-900">{current.delayedArrivals ?? 0}</p>
+                <p className="mt-1 text-2xl font-bold text-navy-900">{current.delayedArrivals ?? "—"}</p>
               </div>
               <div className="rounded-lg bg-slate-50 p-4">
                 <p className="text-sm text-navy-500">Cancellations</p>
-                <p className="mt-1 text-2xl font-bold text-navy-900">{current.cancellations ?? 0}</p>
+                <p className="mt-1 text-2xl font-bold text-navy-900">{current.cancellations ?? "—"}</p>
               </div>
             </div>
           ) : (
@@ -89,10 +90,17 @@ export default async function AirportDelaysPage({ params }: PageProps) {
         </div>
 
         {freshness !== "UNAVAILABLE" ? (
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <FlightList title="Departures" events={departures} />
-            <FlightList title="Arrivals" events={arrivals} />
-          </div>
+          <>
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <FlightList title="Departures" events={departures} />
+              <FlightList title="Arrivals" events={arrivals} />
+            </div>
+            {otherEvents.length ? (
+              <div className="mt-6">
+                <FlightList title="Other current disruption events" events={otherEvents} />
+              </div>
+            ) : null}
+          </>
         ) : null}
 
         <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
