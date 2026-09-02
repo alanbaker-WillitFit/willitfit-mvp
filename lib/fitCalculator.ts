@@ -7,7 +7,7 @@ import {
   FitVerdict,
   WeightVerdict,
 } from "@/types";
-import { hasValidDimensions } from "@/lib/dimensions";
+import { airlineHasBagType, hasValidDimensions } from "@/lib/dimensions";
 
 const CLOSE_FIT_THRESHOLD_CM = 2;
 
@@ -232,6 +232,39 @@ export function checkFit(
     withinCm: fixedResult?.withinCm ?? null,
     orientationUsed: fixedResult?.orientationUsed ?? null,
   };
+}
+
+export function findAirlinesForBag(
+  userDimensions: Dimensions,
+  airlines: Airline[],
+  bagType: BagType,
+  userWeightKg: number | null = null
+): FitResult[] {
+  if (!hasValidDimensions(userDimensions)) {
+    throw new Error("All three bag dimensions must be valid positive numbers.");
+  }
+
+  const results: FitResult[] = [];
+  for (const airline of airlines) {
+    if (!airlineHasBagType(airline, bagType)) continue;
+
+    try {
+      const { sizingRule } = resolveLimit(airline, bagType, null);
+      // A weight-only checked-bag rule cannot answer a dimensional reverse-fit question.
+      if (sizingRule.method === "weight-only") continue;
+      results.push(checkFit(userDimensions, airline, bagType, null, userWeightKg));
+    } catch {
+      // Fail closed: an incomplete or conflicting rule must never become a positive match.
+    }
+  }
+
+  const verdictOrder: Record<FitVerdict, number> = { fits: 0, close: 1, "no-fit": 2 };
+  return results.sort((left, right) => {
+    const verdictDifference = verdictOrder[left.verdict] - verdictOrder[right.verdict];
+    if (verdictDifference) return verdictDifference;
+    const priorityDifference = (left.airline.searchPriority ?? 10) - (right.airline.searchPriority ?? 10);
+    return priorityDifference || left.airline.airlineName.localeCompare(right.airline.airlineName);
+  });
 }
 
 function round1(n: number): number {
