@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkFit, resolveLimit } from "../lib/fitCalculator";
+import { checkFit, findAirlinesForBag, resolveLimit } from "../lib/fitCalculator";
 import type { Airline } from "../types";
 
 const checkedBagDimensions = {
@@ -170,6 +170,59 @@ describe("checkFit", () => {
 
     expect(result.weightVerdict).toBe("no-fit");
     expect(result.verdict).toBe("no-fit");
+  });
+
+  it("finds and ranks airlines for a bag without requiring an airline selection", () => {
+    const roomy: Airline = {
+      ...airline,
+      airlineId: "roomy",
+      airlineName: "Roomy Air",
+      slug: "roomy-air",
+      searchPriority: 2,
+      cabinBag: { heightCm: 60, widthCm: 45, depthCm: 25 },
+    };
+    const close: Airline = {
+      ...airline,
+      airlineId: "close",
+      airlineName: "Close Air",
+      slug: "close-air",
+      searchPriority: 1,
+      cabinBag: { heightCm: 54, widthCm: 40, depthCm: 20 },
+    };
+    const tooSmall: Airline = {
+      ...airline,
+      airlineId: "small",
+      airlineName: "Small Air",
+      slug: "small-air",
+      cabinBag: { heightCm: 45, widthCm: 30, depthCm: 15 },
+    };
+
+    const results = findAirlinesForBag(
+      { heightCm: 55, widthCm: 40, depthCm: 20 },
+      [tooSmall, close, roomy],
+      "cabinBag"
+    );
+
+    expect(results.map((result) => [result.airline.airlineId, result.verdict])).toEqual([
+      ["roomy", "fits"],
+      ["close", "close"],
+      ["small", "no-fit"],
+    ]);
+  });
+
+  it("does not report a weight-only checked-bag rule as a dimensional reverse match", () => {
+    const weightOnlyAirline: Airline = {
+      ...airline,
+      airlineId: "weight-only",
+      airlineName: "Weight Only Air",
+      slug: "weight-only-air",
+      checkedBag: undefined,
+      hasCheckedBag: true,
+      checkedWeightLimitKg: 23,
+      fareClasses: [],
+    };
+
+    expect(findAirlinesForBag(checkedBagDimensions, [weightOnlyAirline], "checkedBag")).toEqual([]);
   });
 
   it("throws clearly when neither checked dimensions nor weight are available", () => {
