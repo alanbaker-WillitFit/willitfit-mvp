@@ -94,13 +94,18 @@ async function loadAirportBySlug(slug: string): Promise<AirportIdentityV1 | null
   return airports.find((airport) => airport.slug === slug) ?? null;
 }
 
-async function loadAirportReference(airportId: string): Promise<AirportReferenceV1 | null> {
+async function loadAirportReferences(): Promise<AirportReferenceV1[]> {
   const snapshot = await readJson<SnapshotEnvelope<AirportReferenceV1>>(
     "/data/v1/willitfit-airport-reference.v1.json",
     3600,
   );
-  if (!snapshot || snapshot.contractVersion !== "1.0.0" || !Array.isArray(snapshot.rows)) return null;
-  return snapshot.rows.find((row) => row.airportId === airportId) ?? null;
+  if (!snapshot || snapshot.contractVersion !== "1.0.0" || !Array.isArray(snapshot.rows)) return [];
+  return snapshot.rows;
+}
+
+async function loadAirportReference(airportId: string): Promise<AirportReferenceV1 | null> {
+  const rows = await loadAirportReferences();
+  return rows.find((row) => row.airportId === airportId) ?? null;
 }
 
 async function loadAviation(): Promise<AviationCurrentV1 | null> {
@@ -117,6 +122,7 @@ async function loadCommercial(): Promise<CommercialSnapshotV1 | null> {
 
 export const getPublishingAirports = cache(loadAirports);
 export const getPublishingAirportBySlug = cache(loadAirportBySlug);
+export const getAirportReferences = cache(loadAirportReferences);
 export const getAirportReference = cache(loadAirportReference);
 export const getAviationCurrent = cache(loadAviation);
 export const getCommercialSnapshot = cache(loadCommercial);
