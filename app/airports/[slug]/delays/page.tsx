@@ -2,6 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAviationCurrent, getPublishingAirportBySlug } from "@/services/publishingData";
+import { getCachedAirlines } from "@/services/airlines";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import { breadcrumbSchema } from "@/lib/schema";
+import { safeJsonLd } from "@/lib/jsonLd";
+import { siteUrl } from "@/lib/utils";
+import PublishingCommercialSlot from "@/components/PublishingCommercialSlot";
 
 export const revalidate = 60;
 
@@ -10,9 +16,12 @@ type PageProps = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const airport = await getPublishingAirportBySlug((await params).slug);
   if (!airport) return { title: "Airport delays | WillItFit" };
+  const canonical = siteUrl(`/airports/${airport.slug}/delays`);
   return {
     title: `${airport.displayName} delays and cancellations | WillItFit`,
     description: `Current delays, cancellations, arrivals and departures for ${airport.displayName} Airport.`,
+    alternates: { canonical },
+    openGraph: { title: `${airport.displayName} delays and cancellations | WillItFit`, url: canonical, siteName: "WillItFit", type: "website" },
   };
 }
 
@@ -20,7 +29,7 @@ export default async function AirportDelaysPage({ params }: PageProps) {
   const airport = await getPublishingAirportBySlug((await params).slug);
   if (!airport) notFound();
 
-  const aviation = await getAviationCurrent();
+  const [aviation, { airlines }] = await Promise.all([getAviationCurrent(), getCachedAirlines()]);
   const current = airport.iataCode ? aviation?.airports[airport.iataCode] : undefined;
   const freshness = aviation?.freshness ?? "UNAVAILABLE";
   const generatedAt = aviation?.generatedAt;
@@ -29,11 +38,19 @@ export default async function AirportDelaysPage({ params }: PageProps) {
   const departures = events.filter((event) => event.direction === "departure");
   const arrivals = events.filter((event) => event.direction === "arrival");
   const otherEvents = events.filter((event) => event.direction !== "departure" && event.direction !== "arrival");
+  const airlineById = new Map(airlines.map((item) => [item.airlineId, item]));
 
   return (
     <main>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema([
+        { name: "Home", path: "/" },
+        { name: "Airports", path: "/airports" },
+        { name: `${airport.displayName} Airport`, path: `/airports/${airport.slug}` },
+        { name: "Delays and cancellations", path: `/airports/${airport.slug}/delays` },
+      ])) }} />
       <section className="border-b border-slate-200 bg-slate-50">
         <div className="wf-container py-10 sm:py-14">
+          <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Airports", href: "/airports" }, { label: airport.displayName, href: `/airports/${airport.slug}` }, { label: "Delays" }]} />
           <Link href={`/airports/${airport.slug}`} className="text-sm font-semibold text-blue-700 hover:underline">
             ← {airport.displayName} Airport
           </Link>
@@ -92,16 +109,18 @@ export default async function AirportDelaysPage({ params }: PageProps) {
         {freshness !== "UNAVAILABLE" ? (
           <>
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
-              <FlightList title="Departures" events={departures} />
-              <FlightList title="Arrivals" events={arrivals} />
+              <FlightList title="Departures" events={departures} airlineById={airlineById} />
+              <FlightList title="Arrivals" events={arrivals} airlineById={airlineById} />
             </div>
             {otherEvents.length ? (
               <div className="mt-6">
-                <FlightList title="Other current disruption events" events={otherEvents} />
+                <FlightList title="Other current disruption events" events={otherEvents} airlineById={airlineById} />
               </div>
             ) : null}
           </>
         ) : null}
+
+        <div className="mt-6"><PublishingCommercialSlot pageType="airport_delays" entityId={airport.airportId} slotId="COMMERCIAL_CONTEXTUAL" /></div>
 
         <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
           <h2 className="font-heading text-lg font-semibold text-navy-900">How WillIt handles live data</h2>
@@ -116,8 +135,9 @@ export default async function AirportDelaysPage({ params }: PageProps) {
   );
 }
 
-function FlightList({ title, events }: { title: string; events: Array<{
+function FlightList({ title, events, airlineById }: { title: string; events: Array<{
   eventId: string;
+  airlineId?: string;
   flightNumber?: string;
   origin?: string;
   destination?: string;
@@ -126,7 +146,7 @@ function FlightList({ title, events }: { title: string; events: Array<{
   status: string;
   causeSummary?: string;
   causeConfidence?: "HIGH" | "MEDIUM" | "LOW" | "UNVERIFIED";
-}> }) {
+}>; airlineById: Map<string, { airlineId: string; airlineName: string; slug: string }> }) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="font-heading text-2xl font-semibold text-navy-900">{title}</h2>
@@ -139,6 +159,7 @@ function FlightList({ title, events }: { title: string; events: Array<{
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold text-navy-900">{event.flightNumber || "Flight"}</p>
+                  {event.airlineId && airlineById.get(event.airlineId) ? <p className="mt-1 text-sm"><Link href={`/${airlineById.get(event.airlineId)!.slug}`} className="font-semibold text-blue-700 hover:underline">{airlineById.get(event.airlineId)!.airlineName} baggage guide</Link></p> : null}
                   <p className="mt-1 text-sm text-navy-600">
                     {event.origin && event.destination ? `${event.origin} → ${event.destination}` : event.origin || event.destination || ""}
                   </p>

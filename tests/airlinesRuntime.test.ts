@@ -11,6 +11,8 @@ import type { Airline } from "../types";
 const airlineRow = adaptAirlineRow({
   "Airline ID": "AIR001",
   "Airline Name": "Example Air",
+  "IATA Code": "EA",
+  "Search Terms": "Example Airways, ExampleAir",
   Slug: "example-air",
   Country: "GB",
   "Baggage URL": "https://example.com/baggage",
@@ -91,6 +93,9 @@ describe("RC5 airline runtime mapping", () => {
     });
     expect(airline.checkedWeightLimitKg).toBe(23);
     expect(airline.searchPriority).toBe(3);
+    expect(airline.iataCode).toBe("EA");
+    expect(airline.searchTerms).toEqual(expect.arrayContaining(["Example Air", "EA", "Example Airways", "ExampleAir"]));
+
     expect(airline.fareClasses[0]).toMatchObject({
       fareClass: "Standard",
       checkedBag: {

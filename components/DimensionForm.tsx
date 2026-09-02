@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 import { Airline, AffiliateSlot, FitResult, LabConfiguration, SpecialBaggageResult } from "@/types";
-import { checkFit, findAirlinesForBag, resolveLimit } from "@/lib/fitCalculator";
+import { checkFit, findAirlineAllowancesForBag, resolveLimit, type ReverseAirlineMatch, type ReverseFareOutcome } from "@/lib/fitCalculator";
 import { checkerPreset } from "@/lib/checkerPreset";
 import { useDimensionForm } from "@/hooks/useDimensionForm";
 import { cn } from "@/lib/utils";
@@ -87,7 +88,7 @@ export default function DimensionForm({
   const [selectedSpecial, setSelectedSpecial] = useState<string | null>(null);
   const [publishedSpecialResult, setPublishedSpecialResult] = useState<SpecialBaggageResult | null>(null);
   const [result, setResult] = useState<FitResult | null>(null);
-  const [reverseResults, setReverseResults] = useState<FitResult[]>([]);
+  const [reverseResults, setReverseResults] = useState<ReverseAirlineMatch[]>([]);
   const [reverseSubmitted, setReverseSubmitted] = useState(false);
   const [resultKey, setResultKey] = useState(0);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -100,7 +101,7 @@ export default function DimensionForm({
   const weightOnlyRule = sizingRule?.method === "weight-only";
   const weightLimitKg = selectedWeightLimit(airline, bagType, fareClass);
   const weightSupported = weightLimitKg !== null;
-  const showWeightStep = bagType === "checkedBag" || weightSupported;
+  const showWeightStep = journeyMode === "airline" && (bagType === "checkedBag" || weightSupported);
   const weightRequired = bagType === "checkedBag" && weightSupported;
   const weightValue = weightRaw === "" ? null : Number(weightRaw);
   const weightError = weightRequired && weightRaw === ""
@@ -166,7 +167,7 @@ export default function DimensionForm({
       return;
     }
     if (journeyMode === "bag") {
-      const matches = findAirlinesForBag(dimensions as Required<typeof dimensions>, airlines, bagType);
+      const matches = findAirlineAllowancesForBag(dimensions as Required<typeof dimensions>, airlines, bagType);
       setAirline(null);
       setFareClass(null);
       setPublishedSpecialResult(null);
@@ -309,7 +310,7 @@ export default function DimensionForm({
                 })}
               </div>
               {journeyMode === "airline" && !airline ? <p className="mt-2 text-xs font-medium text-navy-400">Select an airline to see its available bag types.</p> : null}
-              {journeyMode === "bag" ? <p className="mt-2 text-xs font-medium text-navy-500">All bag types are available for reverse matching. Results use each airline&apos;s published minimum allowance.</p> : null}
+              {journeyMode === "bag" ? <p className="mt-2 text-xs font-medium text-navy-500">All bag types are available for reverse matching. Results check published fare/option allowances where available and identify cases that still require booking-specific confirmation.</p> : null}
             </fieldset>
 
             {journeyMode === "airline" && airline && !airlineHasBagType(airline, bagType) && (() => {
@@ -441,42 +442,57 @@ export default function DimensionForm({
   );
 }
 
-function ReverseFitResults({ results, bagType }: { results: FitResult[]; bagType: typeof BAG_TYPES[number]["type"] }) {
-  const fits = results.filter((item) => item.verdict === "fits");
-  const close = results.filter((item) => item.verdict === "close");
-  const noFit = results.filter((item) => item.verdict === "no-fit");
+function ReverseFitResults({ results, bagType }: { results: ReverseAirlineMatch[]; bagType: typeof BAG_TYPES[number]["type"] }) {
+  const fits = results.filter((item) => item.bestVerdict === "fits");
+  const close = results.filter((item) => item.bestVerdict === "close");
+  const checkRequired = results.filter((item) => item.bestVerdict === "check-required");
+  const noFit = results.filter((item) => item.bestVerdict === "no-fit");
   const bagLabel = BAG_TYPES.find((item) => item.type === bagType)?.title ?? "Bag";
 
-  function allowance(result: FitResult): string {
-    if (result.limit) {
-      return `${result.limit.heightCm} × ${result.limit.widthCm} × ${result.limit.depthCm} cm`;
-    }
-    if (result.linearLimitCm !== null) {
-      return `${result.linearOperator === "lt" ? "under" : "up to"} ${result.linearLimitCm} cm total`;
-    }
+  function allowance(outcome: ReverseFareOutcome): string {
+    const result = outcome.result;
+    if (!result) return outcome.reason ?? "Booking-specific check required";
+    if (result.limit) return `${result.limit.heightCm} × ${result.limit.widthCm} × ${result.limit.depthCm} cm`;
+    if (result.linearLimitCm !== null) return `${result.linearOperator === "lt" ? "under" : "up to"} ${result.linearLimitCm} cm total`;
     return "Published size rule";
+  }
+
+  function matchingFares(item: ReverseAirlineMatch, verdict: ReverseFareOutcome["verdict"]): ReverseFareOutcome[] {
+    return item.outcomes.filter((outcome) => outcome.verdict === verdict);
+  }
+
+  function fareLabel(outcome: ReverseFareOutcome): string {
+    return outcome.fareClass || "Published baseline";
   }
 
   return (
     <section className="wf-card p-5 sm:p-6" aria-live="polite">
       <p className="text-sm font-bold uppercase tracking-wide text-green-700">Reverse WillItFit</p>
-      <h2 className="mt-1 font-heading text-2xl font-bold text-navy-900">{fits.length} airlines fit your {bagLabel.toLowerCase()}</h2>
-      <p className="mt-2 text-sm leading-6 text-navy-600">Compared against each airline&apos;s minimum published allowance. A larger fare or bundle may allow more.</p>
+      <h2 className="mt-1 font-heading text-2xl font-bold text-navy-900">{fits.length} airlines have a published option that fits your {bagLabel.toLowerCase()}</h2>
+      <p className="mt-2 text-sm leading-6 text-navy-600">Your dimensions are checked against published fare or option allowances where WillItFit holds them. The airline&apos;s official policy and review date remain visible for verification.</p>
 
       {fits.length ? (
         <div className="mt-5 space-y-3">
-          {fits.map((item) => (
-            <a key={item.airline.airlineId} href={`/airlines/${item.airline.slug}`} className="block rounded-xl border border-green-200 bg-green-50 p-4 no-underline">
-              <div className="flex items-center justify-between gap-3">
-                <strong className="text-base text-navy-900">{item.airline.airlineName}</strong>
-                <span className="text-sm font-bold text-green-700">Fits ✓</span>
-              </div>
-              <p className="mt-1 text-sm text-navy-600">Allowance: {allowance(item)}</p>
-            </a>
-          ))}
+          {fits.map((item) => {
+            const fitFares = matchingFares(item, "fits");
+            return (
+              <article key={item.airline.airlineId} className="rounded-xl border border-green-200 bg-green-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <a href={`/${item.airline.slug}`} className="font-bold text-navy-900 underline-offset-4 hover:underline">{item.airline.airlineName}</a>
+                  <span className="text-sm font-bold text-green-700">Fits ✓</span>
+                </div>
+                <div className="mt-2 space-y-2">
+                  {fitFares.map((outcome, index) => (
+                    <p key={`${outcome.fareClass ?? "baseline"}-${index}`} className="text-sm text-navy-600"><strong>{fareLabel(outcome)}:</strong> {allowance(outcome)}</p>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-navy-500">Reviewed: {item.airline.lastUpdated || "date unavailable"}{item.airline.websiteUrl ? <> · <a href={item.airline.websiteUrl} target="_blank" rel="noopener noreferrer" className="underline">Official policy</a></> : null}</p>
+              </article>
+            );
+          })}
         </div>
       ) : (
-        <p className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-navy-700">No published minimum allowance currently fits these dimensions.</p>
+        <p className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-navy-700">No published allowance currently confirms a fit for these dimensions.</p>
       )}
 
       {close.length ? (
@@ -484,16 +500,32 @@ function ReverseFitResults({ results, bagType }: { results: FitResult[]; bagType
           <h3 className="font-heading text-lg font-bold text-navy-900">Close to the limit ({close.length})</h3>
           <div className="mt-3 space-y-2">
             {close.map((item) => (
-              <a key={item.airline.airlineId} href={`/airlines/${item.airline.slug}`} className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 no-underline">
-                <span className="font-semibold text-navy-900">{item.airline.airlineName}</span>
-                <span className="text-sm font-bold text-amber-700">Close</span>
-              </a>
+              <article key={item.airline.airlineId} className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <div className="flex items-center justify-between gap-3"><a href={`/${item.airline.slug}`} className="font-semibold text-navy-900 underline-offset-4 hover:underline">{item.airline.airlineName}</a><span className="text-sm font-bold text-amber-700">Close</span></div>
+                {matchingFares(item, "close").map((outcome, index) => <p key={`${outcome.fareClass ?? "baseline"}-${index}`} className="mt-1 text-xs text-navy-600">{fareLabel(outcome)} · {allowance(outcome)}</p>)}
+              </article>
             ))}
           </div>
         </div>
       ) : null}
 
-      <p className="mt-5 text-xs leading-5 text-navy-500">Too large for {noFit.length} compared allowances. Airlines with weight-only checked-bag rules are not counted as dimensional matches.</p>
+      {checkRequired.length ? (
+        <div className="mt-6">
+          <h3 className="font-heading text-lg font-bold text-navy-900">Check required ({checkRequired.length})</h3>
+          <p className="mt-1 text-sm text-navy-600">These airlines publish an allowance that dimensions alone cannot safely decide, for example a weight-only checked-bag rule.</p>
+          <div className="mt-3 space-y-2">
+            {checkRequired.map((item) => (
+              <article key={item.airline.airlineId} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <div className="flex items-center justify-between gap-3"><a href={`/${item.airline.slug}`} className="font-semibold text-navy-900 underline-offset-4 hover:underline">{item.airline.airlineName}</a><span className="text-sm font-bold text-navy-600">Check required</span></div>
+                {matchingFares(item, "check-required").map((outcome, index) => <p key={`${outcome.fareClass ?? "baseline"}-${index}`} className="mt-1 text-xs text-navy-600">{fareLabel(outcome)} · {allowance(outcome)}</p>)}
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <p className="mt-5 text-xs leading-5 text-navy-500">Too large for every compared published option at {noFit.length} airlines. A later fare or policy change can alter an allowance, so use the linked official policy before travel.</p>
+      <p className="mt-4"><Link href="/fit/compare/airlines" className="font-semibold text-blue-700 underline">Compare two airlines side by side →</Link></p>
     </section>
   );
 }

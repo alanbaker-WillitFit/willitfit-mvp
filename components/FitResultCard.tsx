@@ -142,7 +142,17 @@ export default function FitResultCard({ result, labConfigs = [] }: { result: Fit
             {marginCopy && <div><dt>Margin</dt><dd>{marginCopy}</dd></div>}
           </>
         ) : result.limit ? (
-          <div><dt>Airline allowance</dt><dd>{result.limit.heightCm} × {result.limit.widthCm} × {result.limit.depthCm} cm</dd></div>
+          <>
+            <div><dt>Airline allowance</dt><dd>{result.limit.heightCm} × {result.limit.widthCm} × {result.limit.depthCm} cm</dd></div>
+            {result.orientationUsed ? ([
+              ["Height", result.orientationUsed.heightCm, result.limit.heightCm],
+              ["Width", result.orientationUsed.widthCm, result.limit.widthCm],
+              ["Depth", result.orientationUsed.depthCm, result.limit.depthCm],
+            ] as const).map(([label, entered, allowance]) => {
+              const difference = Math.round((allowance - entered) * 10) / 10;
+              return <div key={label}><dt>{label} margin</dt><dd>{entered} cm vs {allowance} cm · {difference >= 0 ? `${difference} cm spare` : `${Math.abs(difference)} cm over`}</dd></div>;
+            }) : null}
+          </>
         ) : null}
         {result.weightLimitKg !== null && <div><dt>Maximum published weight</dt><dd>{result.weightLimitKg} kg</dd></div>}
         {result.userWeightKg !== null && <div><dt>Your entered weight</dt><dd>{result.userWeightKg} kg</dd></div>}

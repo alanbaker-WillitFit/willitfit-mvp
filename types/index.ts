@@ -41,6 +41,8 @@ export interface Airline {
   airlineName: string;
   slug: string;
   country: string;
+  iataCode?: string;
+  searchTerms?: string[];
   logoUrl: string;
   personalItem: Dimensions;
   cabinBag: Dimensions;

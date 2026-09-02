@@ -134,6 +134,7 @@ export type AviationFreshnessState = "LIVE" | "DELAYED" | "UNAVAILABLE";
 export interface AviationEventV1 {
   eventId: string;
   airportCode: string;
+  airlineId?: string;
   airlineCode?: string;
   flightNumber?: string;
   direction?: "departure" | "arrival";

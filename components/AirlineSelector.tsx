@@ -20,11 +20,15 @@ export default function AirlineSelector({ airlines, value, onChange }: AirlineSe
 
     const q = query.toLowerCase();
 
-    return airlines.filter(
-      (a) =>
-        a.airlineName.toLowerCase().includes(q) ||
-        a.country.toLowerCase().includes(q)
-    );
+    return airlines.filter((a) => {
+      const searchable = [
+        a.airlineName,
+        a.country,
+        a.iataCode ?? "",
+        ...(a.searchTerms ?? []),
+      ].map((term) => term.toLowerCase());
+      return searchable.some((term) => term.includes(q));
+    });
   }, [airlines, query]);
 
   function selectAirline(airline: Airline) {
@@ -100,7 +104,7 @@ export default function AirlineSelector({ airlines, value, onChange }: AirlineSe
               onClick={() => selectAirline(airline)}
             >
                 <span>{airline.airlineName}</span>
-                <span className="text-xs text-navy-300">{airline.country}</span>
+                <span className="text-xs text-navy-300">{[airline.iataCode, airline.country].filter(Boolean).join(" · ")}</span>
             </li>
           ))}
         </ul>
