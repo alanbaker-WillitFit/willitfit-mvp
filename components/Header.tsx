@@ -45,7 +45,7 @@ function GovernedLink({ item, onNavigate }: { item: GovernedNavigationItem; onNa
   );
 }
 
-export default function Header({ tipCategories: _tipCategories, navigationItems }: HeaderProps) {
+export default function Header({ navigationItems }: HeaderProps) {
   const [open, setOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
 
