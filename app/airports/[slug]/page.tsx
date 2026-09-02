@@ -9,10 +9,10 @@ import {
 
 export const revalidate = 60;
 
-type PageProps = { params: { slug: string } };
+type PageProps = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const airport = await getPublishingAirportBySlug(params.slug);
+  const airport = await getPublishingAirportBySlug((await params).slug);
   if (!airport) return { title: "Airport not found | WillItFit" };
 
   return {
@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function AirportPage({ params }: PageProps) {
-  const airport = await getPublishingAirportBySlug(params.slug);
+  const airport = await getPublishingAirportBySlug((await params).slug);
   if (!airport) notFound();
 
   const [reference, aviation] = await Promise.all([
