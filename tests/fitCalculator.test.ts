@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkFit, findAirlinesForBag, resolveLimit } from "../lib/fitCalculator";
+import { checkFit, findAirlineAllowancesForBag, findAirlinesForBag, resolveLimit } from "../lib/fitCalculator";
 import type { Airline } from "../types";
 
 const checkedBagDimensions = {
@@ -208,6 +208,38 @@ describe("checkFit", () => {
       ["close", "close"],
       ["small", "no-fit"],
     ]);
+  });
+
+  it("returns fare-aware reverse matches and preserves the fare that fits", () => {
+    const fareAirline: Airline = {
+      ...airline,
+      cabinBag: { heightCm: 45, widthCm: 35, depthCm: 18 },
+      fareClasses: [
+        { fareClass: "Basic", cabinBag: { heightCm: 45, widthCm: 35, depthCm: 18 }, personalItem: null, weightLimitKg: null },
+        { fareClass: "Plus", cabinBag: { heightCm: 56, widthCm: 45, depthCm: 25 }, personalItem: null, weightLimitKg: 10 },
+      ],
+    };
+
+    const matches = findAirlineAllowancesForBag({ heightCm: 55, widthCm: 40, depthCm: 20 }, [fareAirline], "cabinBag");
+    expect(matches).toHaveLength(1);
+    expect(matches[0]?.bestVerdict).toBe("fits");
+    expect(matches[0]?.outcomes.map((outcome) => [outcome.fareClass, outcome.verdict])).toEqual([
+      ["Plus", "fits"],
+      ["Basic", "no-fit"],
+    ]);
+  });
+
+  it("returns Check Required for a weight-only reverse checked-bag allowance", () => {
+    const weightOnlyAirline: Airline = {
+      ...airline,
+      checkedBag: { method: "weight-only" },
+      checkedWeightLimitKg: 23,
+      fareClasses: [],
+      hasCheckedBag: true,
+    };
+    const matches = findAirlineAllowancesForBag(checkedBagDimensions, [weightOnlyAirline], "checkedBag");
+    expect(matches[0]?.bestVerdict).toBe("check-required");
+    expect(matches[0]?.outcomes[0]?.result).toBeNull();
   });
 
   it("does not report a weight-only checked-bag rule as a dimensional reverse match", () => {
