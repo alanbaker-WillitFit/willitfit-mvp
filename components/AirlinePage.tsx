@@ -13,6 +13,8 @@ import { getRuntimeContent } from "@/services/runtimeContent";
 import { getAffiliateSlots } from "@/services/runtimeAffiliates";
 import { getLabConfigurations } from "@/services/labConfig";
 import { getAirlinePageDetails } from "@/services/airlinePageDetails";
+import { getAviationCurrent, getPublishingAirports } from "@/services/publishingData";
+import PublishingCommercialSlot from "@/components/PublishingCommercialSlot";
 
 interface AirlinePageProps {
   airline: Airline;
@@ -40,11 +42,13 @@ export default async function AirlinePage({
   tips,
   source,
 }: AirlinePageProps) {
-  const [{ content: notices }, { slots: affiliateSlots }, labConfigs, pageDetails] = await Promise.all([
+  const [{ content: notices }, { slots: affiliateSlots }, labConfigs, pageDetails, aviation, publishingAirports] = await Promise.all([
     getRuntimeContent({ module: "Notices", page: "checker" }),
     getAffiliateSlots(),
     getLabConfigurations(),
     getAirlinePageDetails(current.airlineId),
+    getAviationCurrent(),
+    getPublishingAirports(),
   ]);
   const faq = airlineFaq(current);
   const hasCabin = airlineHasBagType(current, "cabinBag");
@@ -53,6 +57,13 @@ export default async function AirlinePage({
   const availableFareClasses = current.fareClasses.filter(
     (fare) => fare.cabinBag || fare.personalItem || fare.checkedBag || fare.checkedWeightLimitKg !== null
   );
+  const airportByIata = new Map(publishingAirports.filter((item) => item.iataCode).map((item) => [item.iataCode!, item]));
+  const liveFreshness = aviation?.freshness ?? "UNAVAILABLE";
+  const airlineEvents = liveFreshness === "UNAVAILABLE" ? [] : Object.values(aviation?.airports ?? {})
+    .flatMap((bucket) => bucket.events)
+    .filter((event) => event.airlineId === current.airlineId);
+  const delayedEvents = airlineEvents.filter((event) => /delay/i.test(event.status));
+  const cancelledEvents = airlineEvents.filter((event) => /cancel/i.test(event.status));
 
   return (
     <section className="wf-container wf-container--narrow wf-section">
@@ -188,6 +199,37 @@ export default async function AirlinePage({
           <p className="mt-3 font-body text-xs text-navy-400">Your selected fare or add-on may change what is included. Use the checker option that matches your booking.</p>
         </div>
       )}
+
+      <section className="wf-card mt-10 p-6" aria-labelledby="airline-live-heading">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-green-700">Live travel status</p>
+            <h2 id="airline-live-heading" className="mt-1 font-heading text-xl font-semibold text-navy-700">{current.airlineName} current disruption</h2>
+          </div>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-navy-700">{liveFreshness}</span>
+        </div>
+        {liveFreshness === "UNAVAILABLE" ? (
+          <p className="mt-4 text-sm leading-6 text-navy-500">Current validated airline disruption data is temporarily unavailable. WillIt does not turn stale or missing data into a “no delays” claim.</p>
+        ) : airlineEvents.length > 0 ? (
+          <>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-lg bg-slate-50 p-4"><p className="text-sm text-navy-500">Current events</p><p className="mt-1 text-2xl font-bold text-navy-900">{airlineEvents.length}</p></div>
+              <div className="rounded-lg bg-slate-50 p-4"><p className="text-sm text-navy-500">Delayed</p><p className="mt-1 text-2xl font-bold text-navy-900">{delayedEvents.length}</p></div>
+              <div className="rounded-lg bg-slate-50 p-4"><p className="text-sm text-navy-500">Cancelled</p><p className="mt-1 text-2xl font-bold text-navy-900">{cancelledEvents.length}</p></div>
+            </div>
+            <div className="mt-4 space-y-2">
+              {airlineEvents.slice(0, 8).map((event) => {
+                const airport = airportByIata.get(event.airportCode);
+                return <article key={`${event.airportCode}-${event.eventId}`} className="rounded-lg border border-slate-100 p-3 text-sm text-navy-600"><strong className="text-navy-900">{event.flightNumber || current.airlineName}</strong> · {event.status}{airport ? <> · <Link href={`/airports/${airport.slug}/delays`} className="font-semibold text-blue-700 hover:underline">{airport.displayName}</Link></> : ` · ${event.airportCode}`}{event.causeSummary && event.causeConfidence !== "UNVERIFIED" ? <span> · {event.causeSummary}</span> : null}</article>;
+              })}
+            </div>
+          </>
+        ) : (
+          <p className="mt-4 text-sm leading-6 text-navy-500">No current validated disruption events for this airline are present in the publication snapshot. This is not a guarantee of normal operations.</p>
+        )}
+      </section>
+
+      <div className="mt-6"><PublishingCommercialSlot pageType="airline" entityId={current.airlineId} slotId="AIRLINE_AFTER_DELAYS" /></div>
 
       <div className="mt-10">
         <h2 className="font-heading text-xl font-semibold text-navy-700">Check your bag against {current.airlineName}</h2>
