@@ -23,7 +23,8 @@
     "publisher:dry-run": "node scripts/rc6-publisher/run.mjs --mode=dry-run",
     "publisher:rc6:dry-run": "node scripts/rc6-publisher/run.mjs --mode=dry-run",
     "publisher:rc5:dry-run": "node scripts/rc5-publisher/run.mjs --mode=dry-run",
-    "publishing:snapshots": "node scripts/publishing/generate-snapshots-v2.mjs"
+    "publishing:semantic-cert": "node scripts/publishing/certify-rule-semantics.mjs",
+    "publishing:snapshots": "npm run publishing:semantic-cert && node scripts/publishing/generate-snapshots-v2.mjs"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.20.1",
