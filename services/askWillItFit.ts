@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { getSheetRows, toNumber } from "./googleSheets";
-import { appendSheetRow } from "./googleSheetsWrite";
+import { submitPublicIntake } from "./publicIntake";
 import { runtimeBoolean, runtimePublished } from "./runtimeContent";
 
 export const ASK_QUESTION_TAB = "08.3_Ask_Questions";
@@ -87,26 +87,19 @@ export async function submitQuestion(question: string, type: AskSubmissionType =
   const category = resolveSubmissionCategory(type);
   const questionId = uniqueNumericId("ASK-Q");
   const submittedAt = new Date().toISOString();
-  await appendSheetRow(ASK_QUESTION_TAB, [
-    questionId,
-    value,
-    "",
-    category,
-    "",
-    "",
+  await submitPublicIntake({
+    kind: "question",
+    id: questionId,
     submittedAt,
-    "New",
-    "Private",
-    999,
-    "No",
-    "No",
-    0,
-    "No",
-    "Passed automated check",
-    "Website submission",
-    `Runtime private intake. Submission type: ${category}. Original wording retained for Cockpit/Pi review and governed Mother reconciliation.`,
-    "",
-  ]);
+    values: {
+      question: value,
+      category,
+      reviewStatus: "New",
+      publicStatus: "Private",
+      piiCheck: "Passed automated check",
+      source: "Website submission",
+    },
+  });
   return questionId;
 }
 
@@ -115,22 +108,19 @@ export async function submitAnswer(questionId: string, answer: string): Promise<
   if (!/^ASK-Q-\d{8}-\d{6}$/.test(parentId)) throw new Error("The selected question is invalid.");
   const value = validateText(answer, 20, 1500);
   const answerId = uniqueNumericId("ASK-A");
-  await appendSheetRow(ASK_ANSWER_TAB, [
-    answerId,
-    parentId,
-    value,
-    "Community",
-    new Date().toISOString(),
-    "",
-    "New",
-    "No",
-    999,
-    "No",
-    "No",
-    "Passed automated check",
-    "Website submission",
-    "Runtime private intake. No live publication; Cockpit/Pi review and governed Mother reconciliation required.",
-    "",
-  ]);
+  const submittedAt = new Date().toISOString();
+  await submitPublicIntake({
+    kind: "answer",
+    id: answerId,
+    submittedAt,
+    values: {
+      questionId: parentId,
+      answer: value,
+      answerSource: "Community",
+      reviewStatus: "New",
+      piiCheck: "Passed automated check",
+      source: "Website submission",
+    },
+  });
   return answerId;
 }
