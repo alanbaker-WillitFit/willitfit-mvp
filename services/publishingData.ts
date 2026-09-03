@@ -31,14 +31,18 @@ type SnapshotEnvelope<T> = {
 
 const SNAPSHOT_BASE = process.env.WILLIT_SNAPSHOT_BASE_URL || process.env.NEXT_PUBLIC_SITE_URL || "";
 
-function snapshotUrl(slot: SnapshotSlot, path: string): string | null {
+function baseUrl(path: string): string | null {
   if (!SNAPSHOT_BASE) return null;
   try {
-    const normalized = path.replace(/^\/data\//, "").replace(/^\//, "");
-    return new URL(`/data/${slot}/${normalized}`, SNAPSHOT_BASE.endsWith("/") ? SNAPSHOT_BASE : `${SNAPSHOT_BASE}/`).toString();
+    return new URL(path, SNAPSHOT_BASE.endsWith("/") ? SNAPSHOT_BASE : `${SNAPSHOT_BASE}/`).toString();
   } catch {
     return null;
   }
+}
+
+function snapshotUrl(slot: SnapshotSlot, path: string): string | null {
+  const normalized = path.replace(/^\/data\//, "").replace(/^\//, "");
+  return baseUrl(`/data/${slot}/${normalized}`);
 }
 
 async function readSlotJson<T>(slot: SnapshotSlot, path: string, revalidateSeconds: number): Promise<T | null> {
@@ -70,6 +74,22 @@ async function readJsonWithFallback<T>(
     console.warn(`[publishing] CURRENT invalid/unavailable; using PREVIOUS build snapshot: ${path}`);
   }
   return result.value;
+}
+
+async function readLiveJson<T>(path: string, revalidateSeconds: number): Promise<T | null> {
+  const url = baseUrl(path);
+  if (!url) return null;
+  try {
+    const response = await fetch(url, {
+      next: { revalidate: revalidateSeconds },
+      headers: { accept: "application/json" },
+    });
+    if (!response.ok) return null;
+    return (await response.json()) as T;
+  } catch (error) {
+    console.error(`[publishing] live snapshot unavailable: ${path}`, error);
+    return null;
+  }
 }
 
 function freshnessFromGeneratedAt(generatedAt: string, nowMs = Date.now()): AviationFreshnessState {
@@ -127,12 +147,8 @@ async function loadAirportReference(airportId: string): Promise<AirportReference
 }
 
 async function loadAviation(): Promise<AviationCurrentV1 | null> {
-  const snapshot = await readJsonWithFallback<AviationCurrentV1>(
-    "/data/live/aviation-current.v1.json",
-    60,
-    (value) => value.contractVersion === "1.0.0",
-  );
-  if (!snapshot) return null;
+  const snapshot = await readLiveJson<AviationCurrentV1>("/data/live/aviation-current.v1.json", 60);
+  if (!snapshot || snapshot.contractVersion !== "1.0.0") return null;
   return enforceAviationFreshness(snapshot);
 }
 
