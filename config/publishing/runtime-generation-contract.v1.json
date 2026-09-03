@@ -1,0 +1,18 @@
+{
+  "contractVersion": "1.0.0",
+  "minimums": {
+    "airlines": 114,
+    "airlineRules": 425,
+    "airports": 1500,
+    "publishingAirports": 18
+  },
+  "requiredRuleSemantics": [
+    "Entitlement Status",
+    "Applicability Conditions",
+    "Weight Basis",
+    "Fare Description",
+    "Weight Status",
+    "Weight Guidance"
+  ],
+  "notes": "Historical cohort sizes are minimum release floors, not source-code cardinality constants. Growth above these values is permitted; reductions require an explicit contract change and certification."
+}
