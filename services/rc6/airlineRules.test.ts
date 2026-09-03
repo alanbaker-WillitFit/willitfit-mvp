@@ -12,10 +12,16 @@ const row = {
   "Depth cm": "23",
   "Weight kg": "8",
   "Linear Size cm": "118",
+  "Wheels Included": "Yes",
+  "Handles Included": "Yes",
+  "Fits Under Seat": "No",
+  "Soft Bag Guidance": "",
+  "Rule Wording": "1 cabin bag",
   "Source Reference": "https://example.com/baggage",
   "Last Checked": "2026-09-03",
   "Review Status": "Approved",
   Publish: "Yes",
+  Notes: "",
   "Sizing Method": "fixed dimensions",
   "Limit Operator": "lte",
   "Entitlement Status": "Conditional",
@@ -40,13 +46,11 @@ describe("RC6 airline rule semantics", () => {
   });
 
   it("does not reject legitimate growth above the historic 425-row cohort", async () => {
-    const reader: Rc6TabReader = async () => ({
-      state: "READY_WITH_ROWS",
-      rows: Array.from({ length: 426 }, (_, index) => ({
-        ...row,
-        "Rule ID": `TEST-CAB-${String(index + 1).padStart(3, "0")}`,
-      })),
-    });
+    const rows = Array.from({ length: 426 }, (_, index) => ({
+      ...row,
+      "Rule ID": `TEST-CAB-${String(index + 1).padStart(3, "0")}`,
+    }));
+    const reader: Rc6TabReader = async () => rows as never;
     const rules = await getRc6AirlineRules(reader);
     expect(rules).toHaveLength(426);
   });
