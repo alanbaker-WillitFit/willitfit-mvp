@@ -43,14 +43,10 @@ function published(row: RuntimeRow): boolean {
 
 function bagType(value: string): Rc6BagType | null {
   switch (value.trim().toLowerCase()) {
-    case "personal":
-      return "personalItem";
-    case "cabin":
-      return "cabinBag";
-    case "checked":
-      return "checkedBag";
-    default:
-      return null;
+    case "personal": return "personalItem";
+    case "cabin": return "cabinBag";
+    case "checked": return "checkedBag";
+    default: return null;
   }
 }
 
@@ -61,7 +57,6 @@ function linearOperator(value: string): Rc6LinearOperator | null {
 
 export function mapRc6AirlineRuleRow(row: RuntimeRow): Rc6AirlineRule | null {
   if (!published(row)) return null;
-
   const ruleId = text(row, "Rule ID");
   const airlineId = text(row, "Airline ID").toUpperCase();
   const fare = text(row, "Fare");
@@ -71,22 +66,14 @@ export function mapRc6AirlineRuleRow(row: RuntimeRow): Rc6AirlineRule | null {
   const method = text(row, "Sizing Method").toLowerCase();
   const operator = linearOperator(text(row, "Limit Operator"));
   const weightLimitKg = positiveNumber(row, "Weight kg");
-
-  if (!ruleId || !airlineId || !fare || !resolvedBagType || !/^https:\/\//i.test(sourceReference) || !lastChecked) {
-    return null;
-  }
-
+  if (!ruleId || !airlineId || !fare || !resolvedBagType || !/^https:\/\//i.test(sourceReference) || !lastChecked) return null;
   let sizingRule: Rc6SizingRule;
-
   if (method === "fixed dimensions") {
     const lengthCm = positiveNumber(row, "Length cm");
     const widthCm = positiveNumber(row, "Width cm");
     const depthCm = positiveNumber(row, "Depth cm");
     if (lengthCm === null || widthCm === null || depthCm === null || operator !== "lte") return null;
-    sizingRule = {
-      method: "fixed-dimensions",
-      dimensions: { heightCm: lengthCm, widthCm, depthCm },
-    };
+    sizingRule = { method: "fixed-dimensions", dimensions: { heightCm: lengthCm, widthCm, depthCm } };
   } else if (method === "linear total") {
     const linearLimitCm = positiveNumber(row, "Linear Size cm");
     if (linearLimitCm === null || operator === null) return null;
@@ -94,55 +81,40 @@ export function mapRc6AirlineRuleRow(row: RuntimeRow): Rc6AirlineRule | null {
   } else if (method === "weight only") {
     if (weightLimitKg === null || text(row, "Limit Operator")) return null;
     sizingRule = { method: "weight-only" };
-  } else {
-    return null;
-  }
-
+  } else return null;
   return {
-    ruleId,
-    airlineId,
-    fare,
-    bagType: resolvedBagType,
-    sizingRule,
-    weightLimitKg,
+    ruleId, airlineId, fare, bagType: resolvedBagType, sizingRule, weightLimitKg,
     entitlementStatus: optionalText(row, "Entitlement Status"),
     applicabilityConditions: optionalText(row, "Applicability Conditions"),
     weightBasis: optionalText(row, "Weight Basis"),
     fareDescription: optionalText(row, "Fare Description"),
     weightStatus: optionalText(row, "Weight Status"),
     weightGuidance: optionalText(row, "Weight Guidance"),
-    sourceReference,
-    lastChecked,
+    sourceReference, lastChecked,
   };
 }
+
+export const RC6_MIN_AIRLINE_RULES = 425 as const;
 
 export async function getRc6AirlineRules(reader: Rc6TabReader): Promise<Rc6AirlineRule[]> {
   const result = await readRc6Dataset<RuntimeRow>("airlineRules", reader);
   if (result.state !== "READY_WITH_ROWS") return [];
-
   const mapped: Rc6AirlineRule[] = [];
   for (const row of result.rows) {
     const rule = mapRc6AirlineRuleRow(row);
-    // A malformed published row invalidates the generation, but legitimate growth no longer
-    // requires changing source code to match an exact historical cardinality.
     if (!rule) return [];
     mapped.push(rule);
   }
-
+  if (mapped.length < RC6_MIN_AIRLINE_RULES) return [];
   const ids = new Set<string>();
   for (const rule of mapped) {
     if (ids.has(rule.ruleId)) return [];
     ids.add(rule.ruleId);
   }
-
   return mapped;
 }
 
-export function rc6RulesForAirline(
-  rules: readonly Rc6AirlineRule[],
-  airlineId: string,
-  bagTypeFilter?: Rc6BagType,
-): Rc6AirlineRule[] {
+export function rc6RulesForAirline(rules: readonly Rc6AirlineRule[], airlineId: string, bagTypeFilter?: Rc6BagType): Rc6AirlineRule[] {
   const target = airlineId.trim().toUpperCase();
   return rules.filter((rule) => rule.airlineId === target && (!bagTypeFilter || rule.bagType === bagTypeFilter));
 }

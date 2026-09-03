@@ -37,55 +37,29 @@ function ruleRow(overrides: Partial<RuntimeRow> = {}): RuntimeRow {
 describe("RC6 airline rule mapper", () => {
   it("maps a fixed-dimension rule only from governed sizing fields", () => {
     const result = mapRc6AirlineRuleRow(ruleRow());
-
-    expect(result?.sizingRule).toEqual({
-      method: "fixed-dimensions",
-      dimensions: { heightCm: 55, widthCm: 40, depthCm: 20 },
-    });
+    expect(result?.sizingRule).toEqual({ method: "fixed-dimensions", dimensions: { heightCm: 55, widthCm: 40, depthCm: 20 } });
     expect(result?.weightLimitKg).toBe(10);
   });
 
   it("maps easyJet strict linear-total semantics as lt", () => {
     const result = mapRc6AirlineRuleRow(ruleRow({
-      "Rule ID": "EZY-CHK-20260801-001",
-      "Airline ID": "EZY",
-      Fare: "Purchased 15kg Hold Bag",
-      "Bag Type": "Checked",
-      "Length cm": "",
-      "Width cm": "",
-      "Depth cm": "",
-      "Weight kg": "15",
-      "Linear Size cm": "275",
-      "Sizing Method": "linear total",
-      "Limit Operator": "lt",
+      "Rule ID": "EZY-CHK-20260801-001", "Airline ID": "EZY", Fare: "Purchased 15kg Hold Bag", "Bag Type": "Checked",
+      "Length cm": "", "Width cm": "", "Depth cm": "", "Weight kg": "15", "Linear Size cm": "275", "Sizing Method": "linear total", "Limit Operator": "lt",
     }));
-
     expect(result?.sizingRule).toEqual({ method: "linear-total", linearLimitCm: 275, operator: "lt" });
   });
 
   it("maps inclusive linear-total semantics as lte", () => {
     const result = mapRc6AirlineRuleRow(ruleRow({
-      "Rule ID": "KLM-CHK-20260801-001",
-      "Airline ID": "KLM",
-      "Bag Type": "Checked",
-      "Length cm": "",
-      "Width cm": "",
-      "Depth cm": "",
-      "Weight kg": "23",
-      "Linear Size cm": "158",
-      "Sizing Method": "linear total",
-      "Limit Operator": "lte",
+      "Rule ID": "KLM-CHK-20260801-001", "Airline ID": "KLM", "Bag Type": "Checked",
+      "Length cm": "", "Width cm": "", "Depth cm": "", "Weight kg": "23", "Linear Size cm": "158", "Sizing Method": "linear total", "Limit Operator": "lte",
     }));
-
     expect(result?.sizingRule).toEqual({ method: "linear-total", linearLimitCm: 158, operator: "lte" });
   });
 
   it("does not infer a sizing method or operator from prose", () => {
     expect(mapRc6AirlineRuleRow(ruleRow({
-      "Sizing Method": "",
-      "Limit Operator": "",
-      "Rule Wording": "Maximum combined dimensions must be under 275 cm",
-      "Linear Size cm": "275",
+      "Sizing Method": "", "Limit Operator": "", "Rule Wording": "Maximum combined dimensions must be under 275 cm", "Linear Size cm": "275",
     }))).toBeNull();
   });
 
@@ -100,22 +74,25 @@ describe("RC6 airline rule mapper", () => {
   it("requires the complete 425-rule governed catalogue", async () => {
     const rows = Array.from({ length: 425 }, (_, index) => ruleRow({ "Rule ID": `TEST-CAB-${String(index + 1).padStart(3, "0")}` }));
     const result = await getRc6AirlineRules(async <T extends Record<string, string>>() => rows as unknown as T[]);
-
     expect(result).toHaveLength(425);
   });
 
   it("fails closed when the governed catalogue is incomplete", async () => {
     const rows = Array.from({ length: 424 }, (_, index) => ruleRow({ "Rule ID": `TEST-CAB-${String(index + 1).padStart(3, "0")}` }));
     const result = await getRc6AirlineRules(async <T extends Record<string, string>>() => rows as unknown as T[]);
-
     expect(result).toEqual([]);
+  });
+
+  it("permits governed catalogue growth above the certified minimum", async () => {
+    const rows = Array.from({ length: 426 }, (_, index) => ruleRow({ "Rule ID": `TEST-CAB-${String(index + 1).padStart(3, "0")}` }));
+    const result = await getRc6AirlineRules(async <T extends Record<string, string>>() => rows as unknown as T[]);
+    expect(result).toHaveLength(426);
   });
 
   it("fails closed on duplicate governed rule IDs", async () => {
     const rows = Array.from({ length: 425 }, (_, index) => ruleRow({ "Rule ID": `TEST-CAB-${String(index + 1).padStart(3, "0")}` }));
     rows[424] = ruleRow({ "Rule ID": "TEST-CAB-001" });
     const result = await getRc6AirlineRules(async <T extends Record<string, string>>() => rows as unknown as T[]);
-
     expect(result).toEqual([]);
   });
 
@@ -123,7 +100,6 @@ describe("RC6 airline rule mapper", () => {
     const cabin = mapRc6AirlineRuleRow(ruleRow({ "Rule ID": "BA-CAB", "Airline ID": "BAW" }))!;
     const checked = mapRc6AirlineRuleRow(ruleRow({ "Rule ID": "BA-CHK", "Airline ID": "BAW", "Bag Type": "Checked" }))!;
     const other = mapRc6AirlineRuleRow(ruleRow({ "Rule ID": "EZY-CAB", "Airline ID": "EZY" }))!;
-
     expect(rc6RulesForAirline([cabin, checked, other], "baw", "checkedBag")).toEqual([checked]);
   });
 });

@@ -14,7 +14,8 @@ const ATMOSPHERE_ROUTES = [
   "/products",
 ] as const;
 
-function usesAirportAtmosphere(pathname: string): boolean {
+function usesAirportAtmosphere(pathname: string | null): boolean {
+  if (!pathname) return false;
   return ATMOSPHERE_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
