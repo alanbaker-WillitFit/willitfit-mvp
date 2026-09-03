@@ -12,12 +12,22 @@ export type Rc6AirlineRule = Readonly<{
   bagType: Rc6BagType;
   sizingRule: Rc6SizingRule;
   weightLimitKg: number | null;
+  entitlementStatus?: string;
+  applicabilityConditions?: string;
+  weightBasis?: string;
+  fareDescription?: string;
+  weightStatus?: string;
+  weightGuidance?: string;
   sourceReference: string;
   lastChecked: string;
 }>;
 
 function text(row: RuntimeRow, field: string): string {
   return String(row[field] ?? "").trim();
+}
+
+function optionalText(row: RuntimeRow, field: string): string | undefined {
+  return text(row, field) || undefined;
 }
 
 function positiveNumber(row: RuntimeRow, field: string): number | null {
@@ -95,6 +105,12 @@ export function mapRc6AirlineRuleRow(row: RuntimeRow): Rc6AirlineRule | null {
     bagType: resolvedBagType,
     sizingRule,
     weightLimitKg,
+    entitlementStatus: optionalText(row, "Entitlement Status"),
+    applicabilityConditions: optionalText(row, "Applicability Conditions"),
+    weightBasis: optionalText(row, "Weight Basis"),
+    fareDescription: optionalText(row, "Fare Description"),
+    weightStatus: optionalText(row, "Weight Status"),
+    weightGuidance: optionalText(row, "Weight Guidance"),
     sourceReference,
     lastChecked,
   };
@@ -107,11 +123,11 @@ export async function getRc6AirlineRules(reader: Rc6TabReader): Promise<Rc6Airli
   const mapped: Rc6AirlineRule[] = [];
   for (const row of result.rows) {
     const rule = mapRc6AirlineRuleRow(row);
+    // A malformed published row invalidates the generation, but legitimate growth no longer
+    // requires changing source code to match an exact historical cardinality.
     if (!rule) return [];
     mapped.push(rule);
   }
-
-  if (mapped.length !== 425) return [];
 
   const ids = new Set<string>();
   for (const rule of mapped) {
