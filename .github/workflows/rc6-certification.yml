@@ -64,6 +64,9 @@ jobs:
       - name: Validate RC6 projection contract
         run: npm run publisher:rc6:dry-run
 
+      - name: Certify zero public Google Sheets dependency
+        run: npm run publishing:zero-sheets-cert
+
       - name: Type-check
         run: npm run type-check
 
@@ -119,6 +122,9 @@ jobs:
 
       - name: Validate projection contract on candidate
         run: npm run publisher:rc6:dry-run
+
+      - name: Certify zero public Google Sheets dependency on candidate
+        run: npm run publishing:zero-sheets-cert
 
       - name: Type-check candidate
         run: npm run type-check
