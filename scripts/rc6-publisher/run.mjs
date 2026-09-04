@@ -106,6 +106,21 @@ for (const [tabName, datasetContract] of Object.entries(contract.datasets ?? {})
         const value = Number(projectedRow['Linear Size cm']);
         if (!Number.isFinite(value) || value <= 0) errors.push(`${prefix}.Linear Size cm must be a positive number for linear-total rules.`);
       }
+      for (const field of datasetContract.requiredSemanticColumns ?? []) {
+        if (!text(projectedRow[field])) errors.push(`${prefix}.${field} is required.`);
+      }
+      const entitlement = text(projectedRow['Entitlement Status']);
+      if (!(datasetContract.allowedEntitlementStatuses ?? []).includes(entitlement)) {
+        errors.push(`${prefix}.Entitlement Status is invalid or missing.`);
+      }
+      const weightBasis = text(projectedRow['Weight Basis']);
+      if (!(datasetContract.allowedWeightBases ?? []).includes(weightBasis)) {
+        errors.push(`${prefix}.Weight Basis is invalid or missing.`);
+      }
+      const weightStatus = text(projectedRow['Weight Status']);
+      if (!(datasetContract.allowedWeightStatuses ?? []).includes(weightStatus)) {
+        errors.push(`${prefix}.Weight Status is invalid or missing.`);
+      }
     }
 
     projected.push(projectedRow);
