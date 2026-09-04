@@ -21,10 +21,12 @@ export const RC6_SCHEMA_REGISTRY: Readonly<Partial<Record<Rc6DatasetName, Rc6Sch
     requiredHeaders: [
       "Rule ID", "Airline ID", "Fare", "Bag Type", "Length cm", "Width cm", "Depth cm", "Weight kg",
       "Linear Size cm", "Source Reference", "Last Checked", "Review Status", "Publish", "Sizing Method",
-      "Limit Operator",
+      "Limit Operator", "Entitlement Status", "Applicability Conditions", "Weight Basis", "Fare Description", "Weight Status",
+      "Weight Guidance",
     ],
     optionalHeaders: [
       "Wheels Included", "Handles Included", "Fits Under Seat", "Soft Bag Guidance", "Rule Wording", "Notes",
+      "WillItFit RC4", "WillItFit RC5", "WillItFly RC1",
     ],
   },
   navigation: {
