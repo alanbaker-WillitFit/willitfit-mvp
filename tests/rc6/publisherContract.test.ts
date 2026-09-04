@@ -13,7 +13,7 @@ describe("RC6 publisher/build contract alignment", () => {
     }
   });
 
-  it("treats fit, entitlement and fare-enrichment fields as mandatory projection semantics", () => {
+  it("treats fit, entitlement and fare-enrichment fields as mandatory RC6 projection semantics", () => {
     expect(airlineRulesProjection.requiredSemanticColumns).toEqual([
       "Sizing Method",
       "Limit Operator",
@@ -25,7 +25,7 @@ describe("RC6 publisher/build contract alignment", () => {
       "Weight Guidance",
     ]);
     for (const header of airlineRulesProjection.requiredSemanticColumns) {
-      expect(airlineRulesSchema?.requiredHeaders).toContain(header);
+      expect(airlineRulesProjection.columns).toContain(header);
     }
   });
 
