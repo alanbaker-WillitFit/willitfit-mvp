@@ -21,11 +21,11 @@ export const RC6_SCHEMA_REGISTRY: Readonly<Partial<Record<Rc6DatasetName, Rc6Sch
     requiredHeaders: [
       "Rule ID", "Airline ID", "Fare", "Bag Type", "Length cm", "Width cm", "Depth cm", "Weight kg",
       "Linear Size cm", "Source Reference", "Last Checked", "Review Status", "Publish", "Sizing Method",
-      "Limit Operator", "Entitlement Status", "Applicability Conditions", "Weight Basis", "Fare Description", "Weight Status",
-      "Weight Guidance",
+      "Limit Operator",
     ],
     optionalHeaders: [
       "Wheels Included", "Handles Included", "Fits Under Seat", "Soft Bag Guidance", "Rule Wording", "Notes",
+      "Entitlement Status", "Applicability Conditions", "Weight Basis", "Fare Description", "Weight Status", "Weight Guidance",
       "WillItFit RC4", "WillItFit RC5", "WillItFly RC1",
     ],
   },
@@ -151,7 +151,7 @@ export const RC6_SCHEMA_REGISTRY: Readonly<Partial<Record<Rc6DatasetName, Rc6Sch
   },
   pageSections: {
     requiredHeaders: [
-      "pageSectionId", "pageId", "marketCode", "sectionType", "heading", "intro", "dataSourceType", "dataSourceId",
+      "pageSectionId", "pageId", "marketCode", "contextType", "contextId", "sectionType", "heading", "intro", "dataSourceType", "dataSourceId",
       "displayOrder", "maxItems", "requiredFlag", "status",
     ],
   },
