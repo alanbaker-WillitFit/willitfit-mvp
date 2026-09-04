@@ -28,6 +28,7 @@ for (const field of required) {
   const governedPopulated = governedRows.filter((row) => text(row[field])).length;
   const publishedPopulated = publishedRows.filter((row) => text(row[field])).length;
   coverage[field] = {
+    releaseRequirement: "REQUIRED",
     columnPresent,
     governedPopulated,
     governedTotal: governedRows.length,
@@ -36,17 +37,20 @@ for (const field of required) {
     publishedMissing: publishedRows.length - publishedPopulated,
   };
   if (!columnPresent) errors.push(`Required semantic column missing: ${field}`);
+  if (publishedPopulated !== publishedRows.length) {
+    errors.push(`Required semantic incomplete: ${field} ${publishedPopulated}/${publishedRows.length}`);
+  }
 }
 
 const report = {
   generatedAt: new Date().toISOString(),
   contractVersion: contract.contractVersion,
-  status: errors.length ? "FAIL" : "PASS_WITH_COVERAGE",
+  status: errors.length ? "FAIL" : "PASS",
   governedRules: governedRows.length,
   publishedRules: publishedRows.length,
   coverage,
   errors,
-  note: "Column presence is a release invariant. Coverage counts are evidence: blank factual semantics are never invented by certification.",
+  note: "All six RC6 fare semantics are mandatory and completeness is release-gating. Runtime remains the governed publication projection for this slow-moving core dataset; immutable snapshots are generated from the certified publication state and are the only public serving source.",
 };
 await mkdir(dirname(outputFile), { recursive: true });
 await writeFile(outputFile, `${JSON.stringify(report, null, 2)}\n`);

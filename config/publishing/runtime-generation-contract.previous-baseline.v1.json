@@ -1,0 +1,22 @@
+{
+  "contractVersion": "0.9.0-historical-baseline",
+  "minimums": {
+    "airlines": 114,
+    "airlineRules": 425,
+    "airports": 0,
+    "publishingAirports": 0
+  },
+  "notes": "Historical certified baseline reconstructed from the immutable 2026-08-23 WD freeze. It predates the 1,500-airport publication projection, so airport fallback is intentionally empty/fail-closed while airline/rule fallback remains certified. No data was fabricated to satisfy newer minima.",
+  "ruleSemanticPolicy": {
+    "requiredEveryPublishedRule": ["Entitlement Status","Applicability Conditions","Weight Basis"],
+    "optionalEnrichment": ["Fare Description","Weight Status","Weight Guidance"],
+    "rationale": {
+      "Entitlement Status": "Required to state whether the allowance is included, conditional or purchased.",
+      "Applicability Conditions": "Required to bind the rule to its governed fare/class/condition.",
+      "Weight Basis": "Required to distinguish per-bag, combined-total and not-applicable weight semantics.",
+      "Fare Description": "Optional editorial enrichment; governed Fare remains the factual identifier and UI has a neutral fallback.",
+      "Weight Status": "Optional editorial enrichment; absence does not override the governed numeric weight field.",
+      "Weight Guidance": "Optional editorial enrichment; UI derives numeric guidance from governed weight data and otherwise fails conservatively to check booking."
+    }
+  }
+}

@@ -14,5 +14,5 @@
     "Weight Status",
     "Weight Guidance"
   ],
-  "notes": "Historical cohort sizes are minimum release floors, not source-code cardinality constants. Growth above these values is permitted; reductions require an explicit contract change and certification."
+  "notes": "Historical cohort sizes are minimum release floors, not source-code cardinality constants. Growth above these values is permitted; reductions require an explicit contract change and certification. Runtime remains the selective governed publication projection for slow-moving core data before immutable CURRENT/PREVIOUS build packaging. All six RC6 fare semantics are mandatory for every published rule."
 }

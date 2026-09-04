@@ -1,293 +1,43 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
+import { buildPublicRuntimeTabs } from "./public-runtime-tabs.mjs";
 
-const args = new Map(process.argv.slice(2).map((arg) => {
-  const [key, ...rest] = arg.replace(/^--/, "").split("=");
-  return [key, rest.length ? rest.join("=") : "true"];
-}));
+const args = new Map(process.argv.slice(2).map((arg) => { const [key,...rest]=arg.replace(/^--/,"").split("="); return [key,rest.length?rest.join("="):"true"]; }));
+const inputDir=resolve(args.get("input-dir")??"artifacts/runtime-freeze/Runtime_RC6");
+const motherDir=resolve(args.get("mother-dir")??"artifacts/runtime-freeze/Mother_RC6");
+const outputDir=resolve(args.get("output-dir")??"public/data/v1");
+const privateOutputDir=resolve(args.get("private-output-dir")??"artifacts/certification/rc6");
+const scopeFile=resolve(args.get("scope-file")??"config/publishing/uk18.v1.json");
+const contractFile=resolve(args.get("contract-file")??"config/publishing/runtime-generation-contract.v1.json");
+const enrichmentFile=args.get("airport-enrichment-file")?resolve(args.get("airport-enrichment-file")):null;
+const text=(value)=>String(value??"").trim(); const bool=(value)=>["1","true","yes","y","active","live","published"].includes(text(value).toLowerCase()); const num=(value)=>{const n=Number(value);return Number.isFinite(n)?n:undefined};
+const slugify=(value)=>text(value).toLowerCase().replace(/&/g," and ").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
 
-const inputDir = resolve(args.get("input-dir") ?? "artifacts/runtime-freeze/Runtime_RC6");
-const motherDir = resolve(args.get("mother-dir") ?? "artifacts/runtime-freeze/Mother_RC6");
-const outputDir = resolve(args.get("output-dir") ?? "public/data/v1");
-const scopeFile = resolve(args.get("scope-file") ?? "config/publishing/uk18.v1.json");
-const contractFile = resolve(args.get("contract-file") ?? "config/publishing/runtime-generation-contract.v1.json");
-const enrichmentFile = args.get("airport-enrichment-file") ? resolve(args.get("airport-enrichment-file")) : null;
-const generatedAt = new Date().toISOString();
+async function deterministicGeneratedAt(dir){if(args.get("generated-at")){const d=new Date(args.get("generated-at"));if(Number.isNaN(d.getTime()))throw new Error("Invalid --generated-at");return d.toISOString()}try{const values=JSON.parse(await readFile(join(dir,"00_Runtime_Control.json"),"utf8"));if(Array.isArray(values)&&Array.isArray(values[0])){const [headers,...rows]=values,ki=headers.findIndex(v=>text(v).toLowerCase()==="control field"),vi=headers.findIndex(v=>text(v).toLowerCase()==="value");const row=rows.find(r=>text(r?.[ki]).toLowerCase()==="candidate_created_at"),candidate=text(row?.[vi]);if(candidate&&Number.isFinite(Date.parse(candidate)))return new Date(candidate).toISOString()}}catch{}throw new Error("Deterministic generation timestamp unavailable. Supply --generated-at or Runtime candidate_created_at")}
+const generatedAt=await deterministicGeneratedAt(inputDir);
+async function table(dir,name){const raw=JSON.parse(await readFile(join(dir,name),"utf8"));if(!Array.isArray(raw)||!Array.isArray(raw[0]))throw new Error(`${name} must be header-first 2D JSON`);const [headers,...rows]=raw;return rows.filter(r=>Array.isArray(r)&&r.some(v=>text(v))).map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??""])))}
+async function writeJson(name,value){const path=join(outputDir,name);await mkdir(dirname(path),{recursive:true});const body=`${JSON.stringify(value,null,2)}\n`;await writeFile(path,body);return{path,sha256:createHash("sha256").update(body).digest("hex")}}
+async function writePrivateJson(name,value){const path=join(privateOutputDir,name);await mkdir(dirname(path),{recursive:true});const body=`${JSON.stringify(value,null,2)}\n`;await writeFile(path,body);return{path,sha256:createHash("sha256").update(body).digest("hex")}}
+async function hashFile(path){return createHash("sha256").update(await readFile(path)).digest("hex")}
+async function csvRows(path){if(!path)return[];const source=await readFile(path,"utf8"),lines=source.replace(/^\uFEFF/,"").split(/\r?\n/).filter(Boolean);if(!lines.length)return[];const parse=(line)=>{const out=[];let current="",quoted=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'){if(quoted&&line[i+1]==='"'){current+='"';i++}else quoted=!quoted}else if(c===","&&!quoted){out.push(current);current=""}else current+=c}out.push(current);return out};const headers=parse(lines[0]);return lines.slice(1).map(line=>{const values=parse(line);return Object.fromEntries(headers.map((h,i)=>[h,values[i]??""]))})}
 
-const slugify = (value) => String(value ?? "").trim().toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-const bool = (value) => ["1", "true", "yes", "y", "active", "live", "published"].includes(String(value ?? "").trim().toLowerCase());
-const num = (value) => { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : undefined; };
-const text = (value) => String(value ?? "").trim();
-
-async function table(dir, name) {
-  const raw = JSON.parse(await readFile(join(dir, name), "utf8"));
-  if (!Array.isArray(raw) || !Array.isArray(raw[0])) throw new Error(`${name} must be header-first 2D JSON`);
-  const [headers, ...rows] = raw;
-  return rows
-    .filter((row) => Array.isArray(row) && row.some((value) => text(value)))
-    .map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] ?? ""])));
-}
-
-async function writeJson(name, value) {
-  const path = join(outputDir, name);
-  await mkdir(dirname(path), { recursive: true });
-  const body = `${JSON.stringify(value, null, 2)}\n`;
-  await writeFile(path, body);
-  return { path, sha256: createHash("sha256").update(body).digest("hex") };
-}
-
-async function csvRows(path) {
-  if (!path) return [];
-  const source = await readFile(path, "utf8");
-  const lines = source.replace(/^\uFEFF/, "").split(/\r?\n/).filter(Boolean);
-  if (!lines.length) return [];
-  const parse = (line) => {
-    const out = [];
-    let current = "";
-    let quoted = false;
-    for (let index = 0; index < line.length; index += 1) {
-      const char = line[index];
-      if (char === '"') {
-        if (quoted && line[index + 1] === '"') { current += '"'; index += 1; }
-        else quoted = !quoted;
-      } else if (char === "," && !quoted) { out.push(current); current = ""; }
-      else current += char;
-    }
-    out.push(current);
-    return out;
-  };
-  const headers = parse(lines[0]);
-  return lines.slice(1).map((line) => {
-    const values = parse(line);
-    return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
-  });
-}
-
-const [airlinesRaw, rulesRaw, motherRulesRaw, airportsRaw, pagesRaw, sectionsRaw, enrichment, scope, contract] = await Promise.all([
-  table(inputDir, "02_Airlines.json"),
-  table(inputDir, "03_Airline_Rules.json"),
-  table(motherDir, "03_Airline_Rules.json"),
-  table(inputDir, "runtime_airports.json"),
-  table(inputDir, "runtime_pages.json"),
-  table(inputDir, "runtime_page_sections.json"),
-  csvRows(enrichmentFile),
-  JSON.parse(await readFile(scopeFile, "utf8")),
-  JSON.parse(await readFile(contractFile, "utf8")),
-]);
-
-const errors = [];
-const motherRuleById = new Map(motherRulesRaw.filter((row) => text(row["Rule ID"])).map((row) => [text(row["Rule ID"]), row]));
-const scopeMap = new Map((scope.airports ?? []).map((item) => [item.iataCode, item]));
-const linksByIata = new Map();
-for (const row of enrichment) {
-  const iata = text(row.iata || row.airport_key).toUpperCase();
-  const url = text(row.url);
-  if (!iata || !url) continue;
-  const values = linksByIata.get(iata) ?? [];
-  values.push({ label: text(row.label) || "Official flights", url });
-  linksByIata.set(iata, values);
-}
-
-const airlines = airlinesRaw
-  .filter((row) => text(row["Airline ID"]) && text(row["Airline Name"]))
-  .map((row, index) => ({
-    airlineId: text(row["Airline ID"]),
-    airlineName: text(row["Airline Name"]),
-    iataCode: text(row["IATA Code"]) || undefined,
-    country: text(row.Country) || undefined,
-    slug: slugify(row.Slug || row["Airline Name"]),
-    baggageUrl: text(row["Baggage URL"]) || undefined,
-    displayOrder: num(row["Display Order"]) ?? index + 1,
-    publish: bool(row.Publish) || bool(row.Active),
-    lastReviewed: text(row["Last Reviewed"]) || undefined,
-  }))
-  .filter((row) => row.slug);
-
-const rules = rulesRaw
-  .filter((row) => text(row["Rule ID"]) && text(row["Airline ID"]))
-  .map((row) => {
-    const ruleId = text(row["Rule ID"]);
-    const mother = motherRuleById.get(ruleId);
-    if (!mother) errors.push(`Rule ${ruleId}: missing authoritative Mother row`);
-    return {
-      ruleId,
-      airlineId: text(row["Airline ID"]),
-      fare: text(row.Fare) || undefined,
-      bagType: text(row["Bag Type"]),
-      lengthCm: num(row["Length cm"]),
-      widthCm: num(row["Width cm"]),
-      depthCm: num(row["Depth cm"]),
-      weightKg: num(row["Weight kg"]),
-      linearSizeCm: num(row["Linear Size cm"]),
-      ruleWording: text(row["Rule Wording"]) || undefined,
-      sourceReference: text(row["Source Reference"]) || undefined,
-      lastChecked: text(row["Last Checked"]) || undefined,
-      sizingMethod: text(row["Sizing Method"]).toLowerCase(),
-      limitOperator: text(row["Limit Operator"]).toLowerCase() || undefined,
-      publish: bool(row.Publish),
-      entitlementStatus: text(mother?.["Entitlement Status"]) || undefined,
-      applicabilityConditions: text(mother?.["Applicability Conditions"]) || undefined,
-      weightBasis: text(mother?.["Weight Basis"]) || undefined,
-      fareDescription: text(mother?.["Fare Description"]) || undefined,
-      weightStatus: text(mother?.["Weight Status"]) || undefined,
-      weightGuidance: text(mother?.["Weight Guidance"]) || undefined,
-    };
-  });
-
-const airports = airportsRaw
-  .filter((row) => text(row.Airport_ID) && text(row.Display_Name || row.Canonical_Name))
-  .map((row, index) => {
-    const iata = text(row.IATA_Code).toUpperCase();
-    const governed = scopeMap.get(iata);
-    return {
-      airportId: text(row.Airport_ID),
-      displayName: text(row.Display_Name || row.Canonical_Name),
-      canonicalName: text(row.Canonical_Name) || undefined,
-      slug: governed?.slug || (iata ? iata.toLowerCase() : `${slugify(row.Display_Name || row.Canonical_Name)}-${slugify(row.Airport_ID).slice(-8)}`),
-      iataCode: iata || undefined,
-      icaoCode: text(row.ICAO_Code) || undefined,
-      municipality: text(row.Municipality) || undefined,
-      countryCode: text(row.ISO2) || undefined,
-      latitude: num(row.Latitude),
-      longitude: num(row.Longitude),
-      scheduledService: bool(row.Scheduled_Service),
-      publish: Boolean(governed),
-      displayOrder: governed?.passengerRankUk ?? 10000 + index,
-      passengerRankUk: governed?.passengerRankUk,
-      annualPassengers: governed?.annualPassengers,
-    };
-  });
-
-const refs = airports.filter((airport) => airport.publish).map((airport) => ({
-  contractVersion: "1.0.0",
-  airportId: airport.airportId,
-  displayName: airport.displayName,
-  canonicalName: airport.canonicalName,
-  iataCode: airport.iataCode,
-  icaoCode: airport.icaoCode,
-  municipality: airport.municipality,
-  countryCode: airport.countryCode,
-  latitude: airport.latitude,
-  longitude: airport.longitude,
-  scheduledService: airport.scheduledService,
-  passengerRankUk: airport.passengerRankUk,
-  annualPassengers: airport.annualPassengers,
-  flightLinks: linksByIata.get(airport.iataCode) ?? [],
-  terminals: [], transport: [], parking: [], lounges: [], hotels: [], facilities: [],
-  sourceReferences: ["Runtime_RC6/runtime_airports", "UK18 governed passenger ranking"],
-  lastCheckedAt: generatedAt,
-}));
-
-const pages = pagesRaw.filter((row) => text(row.pageId || row.PageID)).map((row) => ({
-  pageId: text(row.pageId || row.PageID),
-  pageType: text(row.pageType || row.PageType),
-  slug: text(row.slug || row.Slug),
-  entityType: text(row.entityType || row.EntityType) || undefined,
-  entityId: text(row.entityId || row.EntityID) || undefined,
-  title: text(row.title || row.Title) || undefined,
-  heroTitle: text(row.heroTitle || row.HeroTitle) || undefined,
-  heroSummary: text(row.heroSummary || row.HeroSummary) || undefined,
-  metaTitle: text(row.metaTitle || row.MetaTitle) || undefined,
-  metaDescription: text(row.metaDescription || row.MetaDescription) || undefined,
-  canonicalUrl: text(row.canonicalUrl || row.CanonicalURL) || undefined,
-  publicationState: (text(row.publicationState || row.PublicationState) || "draft").toLowerCase(),
-  lastReviewedAt: text(row.lastReviewedAt || row.LastReviewedAt) || undefined,
-}));
-
-const sections = sectionsRaw
-  .filter((row) => text(row.pageSectionId || row.PageSectionID) && text(row.pageId || row.PageID))
-  .map((row, index) => ({
-    pageId: text(row.pageId || row.PageID),
-    sectionId: text(row.pageSectionId || row.PageSectionID),
-    sectionType: text(row.sectionType || row.SectionType),
-    heading: text(row.heading || row.Heading) || undefined,
-    intro: text(row.intro || row.Intro) || undefined,
-    dataSourceId: text(row.dataSourceId || row.DataSourceID) || undefined,
-    displayOrder: num(row.displayOrder || row.DisplayOrder) ?? index + 1,
-    visibility: text(row.status || row.Status).toLowerCase() === "hidden" ? "hidden" : "visible",
-    required: bool(row.requiredFlag || row.RequiredFlag),
-  }));
-
-function unique(rows, key, label) {
-  const seen = new Set();
-  for (const row of rows) {
-    const value = row[key];
-    if (!value) errors.push(`${label}: missing ${key}`);
-    else if (seen.has(value)) errors.push(`${label}: duplicate ${key} ${value}`);
-    else seen.add(value);
-  }
-}
-
-unique(airlines, "airlineId", "airlines");
-unique(airlines, "slug", "airlines");
-unique(rules, "ruleId", "rules");
-unique(airports, "airportId", "airports");
-
-const airlineIds = new Set(airlines.map((row) => row.airlineId));
-for (const rule of rules) {
-  if (!airlineIds.has(rule.airlineId)) errors.push(`Rule ${rule.ruleId}: unknown airlineId ${rule.airlineId}`);
-  if (!["fixed dimensions", "linear total", "weight only"].includes(rule.sizingMethod)) errors.push(`Rule ${rule.ruleId}: invalid Sizing Method`);
-  if (rule.sizingMethod !== "weight only" && !["lt", "lte"].includes(rule.limitOperator)) errors.push(`Rule ${rule.ruleId}: invalid Limit Operator`);
-}
-
-const counts = {
-  airlines: airlines.length,
-  airlineRules: rules.length,
-  airports: airports.length,
-  publishingAirports: airports.filter((airport) => airport.publish).length,
-  airportReferences: refs.length,
-};
-for (const [name, minimum] of Object.entries(contract.minimums ?? {})) {
-  if ((counts[name] ?? 0) < Number(minimum)) errors.push(`${name}: ${counts[name] ?? 0} below certified minimum ${minimum}`);
-}
-
-const manualAliases = JSON.parse(await readFile(resolve("config/publishing/airline-operational-aliases.v1.json"), "utf8"));
-const autoAliases = airlines.filter((airline) => airline.iataCode).map((airline) => ({
-  airlineId: airline.airlineId,
-  operationalCode: airline.iataCode.toUpperCase(),
-  codeType: "IATA",
-  sourceReference: "Runtime_RC6/02_Airlines",
-  lastCheckedAt: airline.lastReviewed || generatedAt.slice(0, 10),
-  publicationState: "approved",
-}));
-const aliasOwners = new Map();
-const aliases = [];
-for (const alias of [...autoAliases, ...(manualAliases.mappings || [])]) {
-  const code = text(alias.operationalCode).toUpperCase();
-  const airlineId = text(alias.airlineId);
-  if (!code || !airlineId || !alias.sourceReference || !alias.lastCheckedAt) { errors.push(`Alias ${code || "<blank>"}: incomplete governance metadata`); continue; }
-  if (!airlineIds.has(airlineId)) { errors.push(`Alias ${code}: unknown airlineId ${airlineId}`); continue; }
-  const owner = aliasOwners.get(code);
-  if (owner && owner !== airlineId) { errors.push(`Alias ${code}: conflicting airlineIds ${owner}/${airlineId}`); continue; }
-  if (owner === airlineId) continue;
-  aliasOwners.set(code, airlineId);
-  aliases.push({ ...alias, airlineId, operationalCode: code });
-}
-counts.airlineOperationalAliases = aliases.length;
-
-const outputs = {};
-outputs.aliases = await writeJson("willitfit-airline-operational-aliases.v1.json", { contractVersion: "1.0.0", generatedAt, mappings: aliases });
-outputs.pages = await writeJson("willitfit-pages.v1.json", { contractVersion: "1.0.0", generatedAt, pages, sections });
-outputs.airlines = await writeJson("willitfit-airlines.v1.json", { contractVersion: "1.0.0", generatedAt, rows: airlines });
-outputs.rules = await writeJson("willitfit-airline-rules.v1.json", { contractVersion: "2.0.0", generatedAt, rows: rules });
-outputs.airports = await writeJson("willitfit-airports.v1.json", { contractVersion: "1.0.0", generatedAt, rows: airports });
-outputs.airportReferences = await writeJson("willitfit-airport-reference.v1.json", { contractVersion: "1.0.0", generatedAt, rows: refs });
-outputs.commercial = await writeJson("willitfit-commercial.v1.json", { contractVersion: "1.0.0", generatedAt, placements: [], creatives: [] });
-
-const generationSeed = JSON.stringify({ contractVersion: contract.contractVersion, counts, hashes: Object.fromEntries(Object.entries(outputs).map(([key, value]) => [key, value.sha256])) });
-const generationId = `rc6-${createHash("sha256").update(generationSeed).digest("hex").slice(0, 16)}`;
-const report = {
-  generatedAt,
-  generationId,
-  contractVersion: contract.contractVersion,
-  status: errors.length ? "FAIL" : "PASS",
-  counts,
-  minimums: contract.minimums,
-  outputHashes: Object.fromEntries(Object.entries(outputs).map(([key, value]) => [key, value.sha256])),
-  errors,
-};
-await writeJson("snapshot-build-report.json", report);
-await writeJson("snapshot-generation-manifest.v1.json", report);
-console.log(JSON.stringify(report, null, 2));
-if (errors.length) process.exitCode = 1;
+const [airlinesRaw,rulesRaw,motherRulesRaw,airportsRaw,pagesRaw,sectionsRaw,enrichment,scope,contract]=await Promise.all([table(inputDir,"02_Airlines.json"),table(inputDir,"03_Airline_Rules.json"),table(motherDir,"03_Airline_Rules.json"),table(inputDir,"runtime_airports.json"),table(inputDir,"runtime_pages.json"),table(inputDir,"runtime_page_sections.json"),csvRows(enrichmentFile),JSON.parse(await readFile(scopeFile,"utf8")),JSON.parse(await readFile(contractFile,"utf8"))]);
+const publicRuntime=await buildPublicRuntimeTabs(inputDir),errors=[],motherRuleById=new Map(motherRulesRaw.filter(r=>text(r["Rule ID"])).map(r=>[text(r["Rule ID"]),r])),scopeMap=new Map((scope.airports??[]).map(i=>[i.iataCode,i])),linksByIata=new Map();
+for(const row of enrichment){const iata=text(row.iata||row.airport_key).toUpperCase(),url=text(row.url);if(!iata||!url)continue;const values=linksByIata.get(iata)??[];values.push({label:text(row.label)||"Official flights",url});linksByIata.set(iata,values)}
+const airlines=airlinesRaw.filter(r=>text(r["Airline ID"])&&text(r["Airline Name"])).map((r,i)=>({airlineId:text(r["Airline ID"]),airlineName:text(r["Airline Name"]),iataCode:text(r["IATA Code"])||undefined,country:text(r.Country)||undefined,slug:slugify(r.Slug||r["Airline Name"]),baggageUrl:text(r["Baggage URL"])||undefined,displayOrder:num(r["Display Order"])??i+1,publish:bool(r.Publish)||bool(r.Active),lastReviewed:text(r["Last Reviewed"])||undefined})).filter(r=>r.slug);
+const rules=rulesRaw.filter(r=>text(r["Rule ID"])&&text(r["Airline ID"])).map(r=>{const ruleId=text(r["Rule ID"]),m=motherRuleById.get(ruleId);if(!m)errors.push(`Rule ${ruleId}: missing authoritative Mother row`);return{ruleId,airlineId:text(r["Airline ID"]),fare:text(r.Fare)||undefined,bagType:text(r["Bag Type"]),lengthCm:num(r["Length cm"]),widthCm:num(r["Width cm"]),depthCm:num(r["Depth cm"]),weightKg:num(r["Weight kg"]),linearSizeCm:num(r["Linear Size cm"]),ruleWording:text(r["Rule Wording"])||undefined,sourceReference:text(r["Source Reference"])||undefined,lastChecked:text(r["Last Checked"])||undefined,sizingMethod:text(r["Sizing Method"]).toLowerCase(),limitOperator:text(r["Limit Operator"]).toLowerCase()||undefined,publish:bool(r.Publish),entitlementStatus:text(m?.["Entitlement Status"])||undefined,applicabilityConditions:text(m?.["Applicability Conditions"])||undefined,weightBasis:text(m?.["Weight Basis"])||undefined,fareDescription:text(m?.["Fare Description"])||undefined,weightStatus:text(m?.["Weight Status"])||undefined,weightGuidance:text(m?.["Weight Guidance"])||undefined}});
+const airports=airportsRaw.filter(r=>text(r.Airport_ID)&&text(r.Display_Name||r.Canonical_Name)).map((r,i)=>{const iata=text(r.IATA_Code).toUpperCase(),g=scopeMap.get(iata);return{airportId:text(r.Airport_ID),displayName:text(r.Display_Name||r.Canonical_Name),canonicalName:text(r.Canonical_Name)||undefined,slug:g?.slug||(iata?iata.toLowerCase():`${slugify(r.Display_Name||r.Canonical_Name)}-${slugify(r.Airport_ID).slice(-8)}`),iataCode:iata||undefined,icaoCode:text(r.ICAO_Code)||undefined,municipality:text(r.Municipality)||undefined,countryCode:text(r.ISO2)||undefined,latitude:num(r.Latitude),longitude:num(r.Longitude),scheduledService:bool(r.Scheduled_Service),publish:Boolean(g),displayOrder:g?.passengerRankUk??10000+i,passengerRankUk:g?.passengerRankUk,annualPassengers:g?.annualPassengers}});
+const refs=airports.filter(a=>a.publish).map(a=>({contractVersion:"1.0.0",airportId:a.airportId,displayName:a.displayName,canonicalName:a.canonicalName,iataCode:a.iataCode,icaoCode:a.icaoCode,municipality:a.municipality,countryCode:a.countryCode,latitude:a.latitude,longitude:a.longitude,scheduledService:a.scheduledService,passengerRankUk:a.passengerRankUk,annualPassengers:a.annualPassengers,flightLinks:linksByIata.get(a.iataCode)??[],terminals:[],transport:[],parking:[],lounges:[],hotels:[],facilities:[],sourceReferences:["Runtime_RC6/runtime_airports","UK18 governed passenger ranking"],lastCheckedAt:generatedAt}));
+const pages=pagesRaw.filter(r=>text(r.pageId||r.PageID)).map(r=>({pageId:text(r.pageId||r.PageID),pageType:text(r.pageType||r.PageType),slug:text(r.slug||r.Slug),entityType:text(r.entityType||r.EntityType)||undefined,entityId:text(r.entityId||r.EntityID)||undefined,title:text(r.title||r.Title)||undefined,heroTitle:text(r.heroTitle||r.HeroTitle)||undefined,heroSummary:text(r.heroSummary||r.HeroSummary)||undefined,metaTitle:text(r.metaTitle||r.MetaTitle)||undefined,metaDescription:text(r.metaDescription||r.MetaDescription)||undefined,canonicalUrl:text(r.canonicalUrl||r.CanonicalURL)||undefined,publicationState:(text(r.publicationState||r.PublicationState)||"draft").toLowerCase(),lastReviewedAt:text(r.lastReviewedAt||r.LastReviewedAt)||undefined}));
+const sections=sectionsRaw.filter(r=>text(r.pageSectionId||r.PageSectionID)&&text(r.pageId||r.PageID)).map((r,i)=>({pageId:text(r.pageId||r.PageID),sectionId:text(r.pageSectionId||r.PageSectionID),sectionType:text(r.sectionType||r.SectionType),heading:text(r.heading||r.Heading)||undefined,intro:text(r.intro||r.Intro)||undefined,dataSourceId:text(r.dataSourceId||r.DataSourceID)||undefined,displayOrder:num(r.displayOrder||r.DisplayOrder)??i+1,visibility:text(r.status||r.Status).toLowerCase()==="hidden"?"hidden":"visible",required:bool(r.requiredFlag||r.RequiredFlag)}));
+function unique(rows,key,label){const seen=new Set();for(const row of rows){const v=row[key];if(!v)errors.push(`${label}: missing ${key}`);else if(seen.has(v))errors.push(`${label}: duplicate ${key} ${v}`);else seen.add(v)}}
+unique(airlines,"airlineId","airlines");unique(airlines,"slug","airlines");unique(rules,"ruleId","rules");unique(airports,"airportId","airports");
+const airlineIds=new Set(airlines.map(r=>r.airlineId));for(const rule of rules){if(!airlineIds.has(rule.airlineId))errors.push(`Rule ${rule.ruleId}: unknown airlineId ${rule.airlineId}`);if(!["fixed dimensions","linear total","weight only"].includes(rule.sizingMethod))errors.push(`Rule ${rule.ruleId}: invalid Sizing Method`);if(rule.sizingMethod!=="weight only"&&!["lt","lte"].includes(rule.limitOperator))errors.push(`Rule ${rule.ruleId}: invalid Limit Operator`)}
+const counts={airlines:airlines.length,airlineRules:rules.length,airports:airports.length,publishingAirports:airports.filter(a=>a.publish).length,airportReferences:refs.length};for(const [name,minimum] of Object.entries(contract.minimums??{}))if((counts[name]??0)<Number(minimum))errors.push(`${name}: ${counts[name]??0} below certified minimum ${minimum}`);
+const manualAliases=JSON.parse(await readFile(resolve("config/publishing/airline-operational-aliases.v1.json"),"utf8")),autoAliases=airlines.filter(a=>a.iataCode).map(a=>({airlineId:a.airlineId,operationalCode:a.iataCode.toUpperCase(),codeType:"IATA",sourceReference:"Runtime_RC6/02_Airlines",lastCheckedAt:a.lastReviewed||generatedAt.slice(0,10),publicationState:"approved"})),aliasOwners=new Map(),aliases=[];
+for(const alias of [...autoAliases,...(manualAliases.mappings||[])]){const code=text(alias.operationalCode).toUpperCase(),airlineId=text(alias.airlineId);if(!code||!airlineId||!alias.sourceReference||!alias.lastCheckedAt){errors.push(`Alias ${code||"<blank>"}: incomplete governance metadata`);continue}if(!airlineIds.has(airlineId)){errors.push(`Alias ${code}: unknown airlineId ${airlineId}`);continue}const owner=aliasOwners.get(code);if(owner&&owner!==airlineId){errors.push(`Alias ${code}: conflicting airlineIds ${owner}/${airlineId}`);continue}if(owner===airlineId)continue;aliasOwners.set(code,airlineId);aliases.push({...alias,airlineId,operationalCode:code})}counts.airlineOperationalAliases=aliases.length;
+const outputs={};outputs.aliases=await writeJson("willitfit-airline-operational-aliases.v1.json",{contractVersion:"1.0.0",generatedAt,mappings:aliases});outputs.pages=await writeJson("willitfit-pages.v1.json",{contractVersion:"1.0.0",generatedAt,pages,sections});outputs.airlines=await writeJson("willitfit-airlines.v1.json",{contractVersion:"1.0.0",generatedAt,rows:airlines});outputs.rules=await writeJson("willitfit-airline-rules.v1.json",{contractVersion:"2.0.0",generatedAt,rows:rules});outputs.airports=await writeJson("willitfit-airports.v1.json",{contractVersion:"1.0.0",generatedAt,rows:airports});outputs.airportReferences=await writeJson("willitfit-airport-reference.v1.json",{contractVersion:"1.0.0",generatedAt,rows:refs});outputs.commercial=await writeJson("willitfit-commercial.v1.json",{contractVersion:"1.0.0",generatedAt,placements:[],creatives:[]});outputs.runtimeTabs=await writeJson("willitfit-runtime-tabs.v1.json",{contractVersion:"1.0.0",generatedAt,tabs:publicRuntime.tabs,optionalMissing:publicRuntime.optionalMissing});
+const generationSeed=JSON.stringify({contractVersion:contract.contractVersion,counts,hashes:Object.fromEntries(Object.entries(outputs).map(([k,v])=>[k,v.sha256]))}),generationId=`rc6-${createHash("sha256").update(generationSeed).digest("hex").slice(0,16)}`,status=errors.length?"FAIL":"PASS",outputHashes=Object.fromEntries(Object.entries(outputs).map(([k,v])=>[k,v.sha256])),publicManifest={generatedAt,generationId,contractVersion:contract.contractVersion,status,counts,outputHashes,publicDataOnly:true,sheetsFallbackAllowed:false};
+const sourcePaths=new Set([join(inputDir,"00_Runtime_Control.json"),join(inputDir,"02_Airlines.json"),join(inputDir,"03_Airline_Rules.json"),join(motherDir,"03_Airline_Rules.json"),join(inputDir,"runtime_airports.json"),join(inputDir,"runtime_pages.json"),join(inputDir,"runtime_page_sections.json"),scopeFile,contractFile,resolve("config/publishing/airline-operational-aliases.v1.json"),...publicRuntime.sourceFiles]);if(enrichmentFile)sourcePaths.add(enrichmentFile);const sourceHashes={};for(const path of [...sourcePaths].sort())sourceHashes[path]=await hashFile(path);const privateManifest={...publicManifest,minimums:contract.minimums,sourceHashes,optionalRuntimeTabsMissing:publicRuntime.optionalMissing,errors,privateCertification:true};
+await writeJson("snapshot-build-report.json",publicManifest);await writeJson("snapshot-generation-manifest.v1.json",publicManifest);await writePrivateJson(`private-certification-${generationId}.json`,privateManifest);console.log(JSON.stringify({...publicManifest,privateManifest:join(privateOutputDir,`private-certification-${generationId}.json`)},null,2));if(errors.length)process.exitCode=1;

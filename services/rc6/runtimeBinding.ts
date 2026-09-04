@@ -1,4 +1,4 @@
-import { getSheetRowsFromSpreadsheet } from "@/services/googleSheets";
+import { getSheetRowsFromSpreadsheet } from "@/services/googleSheetsAdmin";
 import { getRc6CheckerCatalogue, type Rc6CheckerCatalogue } from "./checker";
 import { getRc6CommercialCatalogue, type Rc6CommercialCatalogue } from "./commercial";
 import type { Rc6TabReader } from "./runtimeReader";
