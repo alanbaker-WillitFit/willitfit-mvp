@@ -151,7 +151,7 @@ export const RC6_SCHEMA_REGISTRY: Readonly<Partial<Record<Rc6DatasetName, Rc6Sch
   },
   pageSections: {
     requiredHeaders: [
-      "pageSectionId", "pageId", "marketCode", "contextType", "contextId", "sectionType", "heading", "intro", "dataSourceType", "dataSourceId",
+      "pageSectionId", "pageId", "marketCode", "sectionType", "heading", "intro", "dataSourceType", "dataSourceId",
       "displayOrder", "maxItems", "requiredFlag", "status",
     ],
   },
