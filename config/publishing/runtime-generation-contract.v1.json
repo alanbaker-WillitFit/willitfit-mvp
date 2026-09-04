@@ -6,25 +6,13 @@
     "airports": 1500,
     "publishingAirports": 18
   },
-  "notes": "Historical cohort sizes are minimum release floors, not source-code cardinality constants. Growth above these values is permitted; reductions require an explicit contract change and certification. Rule semantic release requirements are explicit: required fields must be complete for every published rule; optional enrichment is never fabricated.",
-  "ruleSemanticPolicy": {
-    "requiredEveryPublishedRule": [
-      "Entitlement Status",
-      "Applicability Conditions",
-      "Weight Basis"
-    ],
-    "optionalEnrichment": [
-      "Fare Description",
-      "Weight Status",
-      "Weight Guidance"
-    ],
-    "rationale": {
-      "Entitlement Status": "Required to state whether the allowance is included, conditional or purchased.",
-      "Applicability Conditions": "Required to bind the rule to its governed fare/class/condition.",
-      "Weight Basis": "Required to distinguish per-bag, combined-total and not-applicable weight semantics.",
-      "Fare Description": "Optional editorial enrichment; governed Fare remains the factual identifier and UI has a neutral fallback.",
-      "Weight Status": "Optional editorial enrichment; absence does not override the governed numeric weight field.",
-      "Weight Guidance": "Optional editorial enrichment; UI derives numeric guidance from governed weight data and otherwise fails conservatively to check booking."
-    }
-  }
+  "requiredRuleSemantics": [
+    "Entitlement Status",
+    "Applicability Conditions",
+    "Weight Basis",
+    "Fare Description",
+    "Weight Status",
+    "Weight Guidance"
+  ],
+  "notes": "Historical cohort sizes are minimum release floors, not source-code cardinality constants. Growth above these values is permitted; reductions require an explicit contract change and certification. Runtime remains the selective governed publication projection for slow-moving core data before immutable CURRENT/PREVIOUS build packaging. All six RC6 fare semantics are mandatory for every published rule."
 }
