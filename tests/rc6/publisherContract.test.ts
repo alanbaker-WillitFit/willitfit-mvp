@@ -6,20 +6,27 @@ const airlineRulesProjection = projectionContract.datasets["03_Airline Rules"];
 const airlineRulesSchema = RC6_SCHEMA_REGISTRY.airlineRules;
 
 describe("RC6 publisher/build contract alignment", () => {
-  it("projects every header required by the Build airline-rule reader", () => {
+  it("projects every header required by the shared airline-rule reader", () => {
     expect(airlineRulesSchema).toBeDefined();
     for (const header of airlineRulesSchema?.requiredHeaders ?? []) {
       expect(airlineRulesProjection.columns).toContain(header);
     }
   });
 
-  it("treats sizing method and limit operator as mandatory projection semantics", () => {
+  it("treats fit, entitlement and fare-enrichment fields as mandatory RC6 projection semantics", () => {
     expect(airlineRulesProjection.requiredSemanticColumns).toEqual([
       "Sizing Method",
       "Limit Operator",
+      "Entitlement Status",
+      "Applicability Conditions",
+      "Weight Basis",
+      "Fare Description",
+      "Weight Status",
+      "Weight Guidance",
     ]);
-    expect(airlineRulesSchema?.requiredHeaders).toContain("Sizing Method");
-    expect(airlineRulesSchema?.requiredHeaders).toContain("Limit Operator");
+    for (const header of airlineRulesProjection.requiredSemanticColumns) {
+      expect(airlineRulesProjection.columns).toContain(header);
+    }
   });
 
   it("locks the five currently governed strict-lt rule IDs", () => {

@@ -30,6 +30,12 @@ function ruleRow(overrides: Partial<RuntimeRow> = {}): RuntimeRow {
     Notes: "",
     "Sizing Method": "fixed dimensions",
     "Limit Operator": "lte",
+    "Entitlement Status": "Included",
+    "Applicability Conditions": "Standard",
+    "Weight Basis": "Per Bag",
+    "Fare Description": "Included baggage entitlement for Standard.",
+    "Weight Status": "Limit Stated",
+    "Weight Guidance": "Maximum 10 kg per bag.",
     ...overrides,
   };
 }

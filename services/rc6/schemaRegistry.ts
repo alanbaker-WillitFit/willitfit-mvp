@@ -25,6 +25,8 @@ export const RC6_SCHEMA_REGISTRY: Readonly<Partial<Record<Rc6DatasetName, Rc6Sch
     ],
     optionalHeaders: [
       "Wheels Included", "Handles Included", "Fits Under Seat", "Soft Bag Guidance", "Rule Wording", "Notes",
+      "Entitlement Status", "Applicability Conditions", "Weight Basis", "Fare Description", "Weight Status", "Weight Guidance",
+      "WillItFit RC4", "WillItFit RC5", "WillItFly RC1",
     ],
   },
   navigation: {

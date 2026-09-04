@@ -49,11 +49,26 @@
         "Publish",
         "Notes",
         "Sizing Method",
-        "Limit Operator"
+        "Limit Operator",
+        "Entitlement Status",
+        "Applicability Conditions",
+        "Weight Basis",
+        "WillItFit RC4",
+        "WillItFit RC5",
+        "WillItFly RC1",
+        "Fare Description",
+        "Weight Status",
+        "Weight Guidance"
       ],
       "requiredSemanticColumns": [
         "Sizing Method",
-        "Limit Operator"
+        "Limit Operator",
+        "Entitlement Status",
+        "Applicability Conditions",
+        "Weight Basis",
+        "Fare Description",
+        "Weight Status",
+        "Weight Guidance"
       ],
       "allowedSizingMethods": [
         "fixed dimensions",
@@ -70,6 +85,21 @@
         "EZY-CHK-20260801-003",
         "MAS-CHK-20260801-001",
         "MAS-CHK-20260801-002"
+      ],
+      "allowedEntitlementStatuses": [
+        "Included",
+        "Conditional",
+        "Purchased"
+      ],
+      "allowedWeightBases": [
+        "Per Bag",
+        "Not Applicable",
+        "Combined Total"
+      ],
+      "allowedWeightStatuses": [
+        "Limit Stated",
+        "Not Applicable",
+        "Basis Stated"
       ]
     }
   }
