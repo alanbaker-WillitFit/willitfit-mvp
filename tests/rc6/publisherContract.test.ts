@@ -6,7 +6,7 @@ const airlineRulesProjection = projectionContract.datasets["03_Airline Rules"];
 const airlineRulesSchema = RC6_SCHEMA_REGISTRY.airlineRules;
 
 describe("RC6 publisher/build contract alignment", () => {
-  it("projects every header required by the Build airline-rule reader", () => {
+  it("projects every header required by the shared airline-rule reader", () => {
     expect(airlineRulesSchema).toBeDefined();
     for (const header of airlineRulesSchema?.requiredHeaders ?? []) {
       expect(airlineRulesProjection.columns).toContain(header);
