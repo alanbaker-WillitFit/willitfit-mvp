@@ -13,13 +13,20 @@ describe("RC6 publisher/build contract alignment", () => {
     }
   });
 
-  it("treats sizing method and limit operator as mandatory projection semantics", () => {
+  it("treats fit, entitlement and fare-enrichment fields as mandatory projection semantics", () => {
     expect(airlineRulesProjection.requiredSemanticColumns).toEqual([
       "Sizing Method",
       "Limit Operator",
+      "Entitlement Status",
+      "Applicability Conditions",
+      "Weight Basis",
+      "Fare Description",
+      "Weight Status",
+      "Weight Guidance",
     ]);
-    expect(airlineRulesSchema?.requiredHeaders).toContain("Sizing Method");
-    expect(airlineRulesSchema?.requiredHeaders).toContain("Limit Operator");
+    for (const header of airlineRulesProjection.requiredSemanticColumns) {
+      expect(airlineRulesSchema?.requiredHeaders).toContain(header);
+    }
   });
 
   it("locks the five currently governed strict-lt rule IDs", () => {
