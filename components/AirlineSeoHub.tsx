@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Airline, TravelTip } from "@/types";
 import { airlineHasBagType } from "@/lib/dimensions";
+import { hasFareSpecificVariation } from "@/lib/allowanceSemantics";
 
 type AirlineSeoHubProps = {
   airline: Airline;
@@ -14,6 +15,8 @@ function formatDimensions(label: string, dims: Airline["cabinBag"]): string {
 export default function AirlineSeoHub({ airline, tips }: AirlineSeoHubProps) {
   const hasCabin = airlineHasBagType(airline, "cabinBag");
   const hasPersonal = airlineHasBagType(airline, "personalItem");
+  const cabinVaries = hasFareSpecificVariation(airline, "cabinBag");
+  const personalVaries = hasFareSpecificVariation(airline, "personalItem");
   const visibleTips = tips.slice(0, 6);
   const relatedSearches = [
     `${airline.airlineName} cabin bag size`,
@@ -40,13 +43,13 @@ export default function AirlineSeoHub({ airline, tips }: AirlineSeoHubProps) {
               Cabin bag size
             </dt>
             <dd className="mt-1 font-mono text-base text-navy-700">
-              {formatDimensions("", airline.cabinBag).replace(": ", "")}
+              {cabinVaries ? "Varies by fare or option" : formatDimensions("", airline.cabinBag).replace(": ", "")}
             </dd>
-            {airline.weightLimitKg && (
-              <dd className="mt-1 font-body text-sm text-navy-400">
-                Weight limit: {airline.weightLimitKg} kg
-              </dd>
-            )}
+            {cabinVaries ? (
+              <dd className="mt-1 font-body text-sm text-navy-400">Size and/or weight depends on the selected fare or option.</dd>
+            ) : airline.weightLimitKg ? (
+              <dd className="mt-1 font-body text-sm text-navy-400">Published weight limit: {airline.weightLimitKg} kg</dd>
+            ) : null}
           </div>}
 
           {hasPersonal && <div className="rounded-2xl border border-navy-100 bg-white p-4">
@@ -54,7 +57,7 @@ export default function AirlineSeoHub({ airline, tips }: AirlineSeoHubProps) {
               Personal item size
             </dt>
             <dd className="mt-1 font-mono text-base text-navy-700">
-              {formatDimensions("", airline.personalItem).replace(": ", "")}
+              {personalVaries ? "Varies by fare or option" : formatDimensions("", airline.personalItem).replace(": ", "")}
             </dd>
             <dd className="mt-1 font-body text-sm text-navy-400">
               Usually stored under the seat in front.

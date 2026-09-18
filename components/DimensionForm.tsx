@@ -5,6 +5,7 @@ import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 import { Airline, AffiliateSlot, FitResult, LabConfiguration, SpecialBaggageResult } from "@/types";
 import { checkFit, findAirlineAllowancesForBag, resolveLimit, type ReverseAirlineMatch, type ReverseFareOutcome } from "@/lib/fitCalculator";
+import { fareSupportsBagType, hasFareSpecificVariation } from "@/lib/allowanceSemantics";
 import { checkerPreset } from "@/lib/checkerPreset";
 import { useDimensionForm } from "@/hooks/useDimensionForm";
 import { cn } from "@/lib/utils";
@@ -39,26 +40,22 @@ function decimalInput(value: string): string {
 
 export function selectedWeightLimit(airline: Airline | null, bagType: typeof BAG_TYPES[number]["type"], fareClass: string | null): number | null {
   if (!airline) return null;
+  if (!fareClass && hasFareSpecificVariation(airline, bagType)) return null;
 
   const fare = fareClass
     ? airline.fareClasses.find((item) => item.fareClass.toLowerCase() === fareClass.toLowerCase())
     : null;
 
-  const fareSupportsBagType = fare
-    ? bagType === "checkedBag"
-      ? Boolean(fare.checkedBag)
-      : Boolean(fare[bagType])
-    : false;
-
-  if (fare && fareSupportsBagType) {
-    return bagType === "checkedBag"
-      ? fare.checkedWeightLimitKg ?? null
-      : fare.weightLimitKg;
+  if (fare) {
+    if (!fareSupportsBagType(fare, bagType)) return null;
+    if (bagType === "checkedBag") return fare.checkedWeightLimitKg ?? null;
+    if (bagType === "cabinBag") return fare.weightLimitKg;
+    return null;
   }
 
-  return bagType === "checkedBag"
-    ? airline.checkedWeightLimitKg ?? null
-    : airline.weightLimitKg;
+  if (bagType === "checkedBag") return airline.checkedWeightLimitKg ?? null;
+  if (bagType === "cabinBag") return airline.weightLimitKg;
+  return null;
 }
 
 export default function DimensionForm({
@@ -94,12 +91,17 @@ export default function DimensionForm({
   const resultRef = useRef<HTMLDivElement>(null);
   const fieldRefs = useRef<Record<typeof FIELDS[number]["key"], HTMLInputElement | null>>({ heightCm: null, widthCm: null, depthCm: null });
 
-  const sizingRule = airline && airlineHasBagType(airline, bagType)
+  const fareSelectionRequired = Boolean(airline && hasFareSpecificVariation(airline, bagType));
+  const selectedFare = airline && fareClass
+    ? airline.fareClasses.find((item) => item.fareClass.toLowerCase() === fareClass.toLowerCase()) ?? null
+    : null;
+  const selectedFareSupportsBag = selectedFare ? fareSupportsBagType(selectedFare, bagType) : true;
+  const sizingRule = airline && airlineHasBagType(airline, bagType) && selectedFareSupportsBag && (!fareSelectionRequired || fareClass)
     ? resolveLimit(airline, bagType, fareClass).sizingRule
     : null;
   const linearRule = sizingRule?.method === "linear-total" ? sizingRule : null;
   const weightOnlyRule = sizingRule?.method === "weight-only";
-  const weightLimitKg = selectedWeightLimit(airline, bagType, fareClass);
+  const weightLimitKg = fareSelectionRequired && !fareClass ? null : selectedWeightLimit(airline, bagType, fareClass);
   const weightSupported = weightLimitKg !== null;
   const showWeightStep = journeyMode === "airline" && (bagType === "checkedBag" || weightSupported);
   const weightRequired = bagType === "checkedBag" && weightSupported;
@@ -178,7 +180,7 @@ export default function DimensionForm({
       return;
     }
 
-    if (!airline || !airlineHasBagType(airline, bagType)) return;
+    if (!airline || !airlineHasBagType(airline, bagType) || !selectedFareSupportsBag) return;
     setReverseResults([]);
     setReverseSubmitted(false);
     setPublishedSpecialResult(null);
@@ -321,10 +323,12 @@ export default function DimensionForm({
             {journeyMode === "airline" && airline && airline.fareClasses.length > 0 && (
               <div className="wf-fare-field">
                 <label htmlFor="fareClass">Fare</label>
-                <select id="fareClass" value={fareClass ?? ""} onChange={event => { const nextFare = event.target.value || null; setFareClass(nextFare); applySelection(airline, bagType, nextFare); }}>
-                  <option value="">Minimum allowance</option>
-                  {airline.fareClasses.filter(item => item[bagType] || (bagType === "checkedBag" && item.checkedWeightLimitKg !== null)).map(item => <option key={item.fareClass}>{item.fareClass}</option>)}
+                <select id="fareClass" required={fareSelectionRequired} aria-required={fareSelectionRequired} value={fareClass ?? ""} onChange={event => { const nextFare = event.target.value || null; setFareClass(nextFare); applySelection(airline, bagType, nextFare); }}>
+                  <option value="">{fareSelectionRequired ? "Choose fare or option" : "Published allowance"}</option>
+                  {airline.fareClasses.map(item => <option key={item.fareClass}>{item.fareClass}</option>)}
                 </select>
+                {fareSelectionRequired && !fareClass ? <p className="mt-2 text-xs font-semibold text-amber-700">This airline has different published allowances by fare or option. Select the one shown on your booking before checking size or weight.</p> : null}
+                {selectedFare && !selectedFareSupportsBag ? <p className="mt-2 text-xs font-semibold text-red-700">No published {bagType === "personalItem" ? "personal-item" : bagType === "cabinBag" ? "cabin-bag" : "checked-baggage"} allowance is available for this fare or option. Check your booking before travel.</p> : null}
               </div>
             )}
 

@@ -8,6 +8,7 @@ import {
   WeightVerdict,
 } from "@/types";
 import { airlineHasBagType, hasValidDimensions } from "@/lib/dimensions";
+import { hasFareSpecificVariation } from "@/lib/allowanceSemantics";
 
 const CLOSE_FIT_THRESHOLD_CM = 2;
 
@@ -56,9 +57,9 @@ function airlineSizingRule(airline: Airline, bagType: BagType): BaggageSizingRul
 }
 
 function airlineWeightLimit(airline: Airline, bagType: BagType): number | null {
-  return bagType === "checkedBag"
-    ? airline.checkedWeightLimitKg ?? null
-    : airline.weightLimitKg;
+  if (bagType === "checkedBag") return airline.checkedWeightLimitKg ?? null;
+  if (bagType === "cabinBag") return airline.weightLimitKg;
+  return null;
 }
 
 export function resolveLimit(
@@ -66,6 +67,10 @@ export function resolveLimit(
   bagType: BagType,
   fareClass?: string | null
 ): { sizingRule: BaggageSizingRule; weightLimitKg: number | null; fareClass: string | null } {
+  if (!fareClass && hasFareSpecificVariation(airline, bagType)) {
+    throw new Error(`Select a fare or option for ${airline.airlineName} before checking this bag type.`);
+  }
+
   if (fareClass) {
     const match = airline.fareClasses.find(
       (fc) => fc.fareClass.toLowerCase() === fareClass.toLowerCase()
@@ -78,12 +83,15 @@ export function resolveLimit(
         : match[bagType] && hasValidDimensions(match[bagType])
           ? { method: "fixed-dimensions" as const, dimensions: match[bagType] }
           : null;
-      if (selectedRule) {
-        const weightLimitKg = bagType === "checkedBag"
-          ? match.checkedWeightLimitKg ?? null
-          : match.weightLimitKg;
-        return { sizingRule: selectedRule, weightLimitKg, fareClass: match.fareClass };
+      if (!selectedRule) {
+        throw new Error(`No published ${bagType} allowance is available for ${airline.airlineName} on ${match.fareClass}.`);
       }
+      const weightLimitKg = bagType === "checkedBag"
+        ? match.checkedWeightLimitKg ?? null
+        : bagType === "cabinBag"
+          ? match.weightLimitKg
+          : null;
+      return { sizingRule: selectedRule, weightLimitKg, fareClass: match.fareClass };
     }
   }
 

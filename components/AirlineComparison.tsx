@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Airline, BagType, BaggageSizingRule, Dimensions } from "@/types";
 import { resolveLimit } from "@/lib/fitCalculator";
+import { fareSupportsBagType, hasFareSpecificVariation } from "@/lib/allowanceSemantics";
 import { airlineHasBagType } from "@/lib/dimensions";
 
 function dimensions(value: Dimensions | null | undefined): string {
@@ -19,6 +20,11 @@ function ruleText(rule: BaggageSizingRule | null | undefined, weight: number | n
 
 function allowance(airline: Airline, bagType: BagType, fareClass: string | null): string {
   if (!airlineHasBagType(airline, bagType)) return "Not published";
+  if (!fareClass && hasFareSpecificVariation(airline, bagType)) return "Select fare or option";
+  if (fareClass) {
+    const fare = airline.fareClasses.find((item) => item.fareClass.toLowerCase() === fareClass.toLowerCase());
+    if (fare && !fareSupportsBagType(fare, bagType)) return "No published allowance for this fare/option";
+  }
   try {
     const resolved = resolveLimit(airline, bagType, fareClass);
     if (bagType === "checkedBag") return ruleText(resolved.sizingRule, resolved.weightLimitKg);
@@ -40,7 +46,7 @@ function AirlineColumn({ airline, fareClass, setFareClass }: { airline: Airline;
       {airline.fareClasses.length > 0 ? (
         <label className="mt-4 block text-sm font-semibold text-navy-700">Fare or option
           <select value={fareClass ?? ""} onChange={(event) => setFareClass(event.target.value || null)} className="mt-2 w-full rounded-lg border border-slate-200 bg-white p-3">
-            <option value="">Published baseline</option>
+            <option value="">Choose fare or option where allowances vary</option>
             {airline.fareClasses.map((fare) => <option key={fare.fareClass} value={fare.fareClass}>{fare.fareClass}</option>)}
           </select>
         </label>
