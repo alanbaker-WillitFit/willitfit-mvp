@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Airline } from "@/types";
 import { resolveLimit } from "@/lib/fitCalculator";
+import { hasFareSpecificVariation } from "@/lib/allowanceSemantics";
 import { ShieldCheckIcon } from "./icons";
 
 interface AllowancePreviewProps {
@@ -12,8 +13,8 @@ interface AllowancePreviewProps {
 // Shows the selected airline's published allowance up front, before the
 // person even submits the form — mirrors what they'd see on the airline's
 // own site, so there's no surprise once they hit "Check my bag". Resolves
-// to the specific fare class when one's picked, otherwise the conservative
-// minimum across all fare classes.
+// to the specific fare class when one is picked. If published allowances vary,
+// the preview fails closed until the traveller selects the fare or option on the booking.
 export default function AllowancePreview({ airline, bagType, fareClass = null }: AllowancePreviewProps) {
   const bagLabel = bagType === "cabinBag" ? "Cabin Bag" : "Personal Item";
 
@@ -28,11 +29,16 @@ export default function AllowancePreview({ airline, bagType, fareClass = null }:
     );
   }
 
-const { sizingRule, fareClass: resolvedFareClass } = resolveLimit(
-  airline,
-  bagType,
-  fareClass
-);
+if (!fareClass && hasFareSpecificVariation(airline, bagType)) {
+  return (
+    <div className="wf-card wf-card--compact bg-amber-50">
+      <p className="font-body text-xs font-semibold uppercase tracking-wide text-amber-700">Fare or option required</p>
+      <p className="mt-2 font-body text-sm text-navy-600">This airline publishes different {bagLabel.toLowerCase()} allowances. Select the fare or option shown on your booking to see the applicable size and weight.</p>
+    </div>
+  );
+}
+
+const { sizingRule, fareClass: resolvedFareClass } = resolveLimit(airline, bagType, fareClass);
 
 if (sizingRule.method !== "fixed-dimensions") {
   return null;
@@ -54,7 +60,7 @@ const limit = sizingRule.dimensions;
         </p>
       </div>
       <p className="mt-1 font-body text-xs text-navy-400">
-        {resolvedFareClass ? `${resolvedFareClass} allowance` : "Minimum allowance across fare classes"} —
+        {resolvedFareClass ? `${resolvedFareClass} allowance` : "Published allowance"} —
         including wheels and handles
       </p>
 

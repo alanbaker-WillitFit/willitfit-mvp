@@ -111,6 +111,12 @@ describe("checkFit", () => {
     expect(result.weightVerdict).toBe("not-published");
   });
 
+
+  it("does not apply the cabin-bag weight limit to a personal item", () => {
+    const result = resolveLimit(airline, "personalItem", null);
+    expect(result.weightLimitKg).toBeNull();
+  });
+
   it("uses a complete selected fare allowance", () => {
     expect(resolveLimit(airline, "cabinBag", "Priority").fareClass).toBe("Priority");
   });
@@ -122,10 +128,22 @@ describe("checkFit", () => {
     expect(result.weightLimitKg).toBe(32);
   });
 
-  it("falls back when the selected fare has no allowance for that bag type", () => {
-    const result = resolveLimit(airline, "personalItem", "Priority");
-    expect(result.fareClass).toBeNull();
-    expect(result.sizingRule).toEqual({ method: "fixed-dimensions", dimensions: airline.personalItem });
+  it("fails closed when the selected fare has no allowance for that bag type", () => {
+    expect(() => resolveLimit(airline, "personalItem", "Priority")).toThrow(
+      "No published personalItem allowance"
+    );
+  });
+
+  it("requires a fare or option when published allowances differ", () => {
+    const variable: Airline = {
+      ...airline,
+      fareClasses: [
+        { fareClass: "Basic", cabinBag: { heightCm: 45, widthCm: 35, depthCm: 18 }, personalItem: airline.personalItem, weightLimitKg: 8 },
+        { fareClass: "Plus", cabinBag: { heightCm: 56, widthCm: 45, depthCm: 25 }, personalItem: airline.personalItem, weightLimitKg: 12 },
+      ],
+    };
+    expect(() => resolveLimit(variable, "cabinBag", null)).toThrow("Select a fare or option");
+    expect(resolveLimit(variable, "cabinBag", "Plus").weightLimitKg).toBe(12);
   });
 
   it("uses a weight-only rule when checked dimensions are not published", () => {

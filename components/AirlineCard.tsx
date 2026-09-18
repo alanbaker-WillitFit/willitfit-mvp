@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { Airline } from "@/types";
 import { airlineHasBagType } from "@/lib/dimensions";
+import { hasFareSpecificVariation } from "@/lib/allowanceSemantics";
 
 function dimensions(airline: Airline, bagType: "cabinBag" | "personalItem"): string {
   if (!airlineHasBagType(airline, bagType)) return "Not published";
+  if (hasFareSpecificVariation(airline, bagType)) return "Varies by fare or option";
   const value = airline[bagType];
   return `${value.heightCm} × ${value.widthCm} × ${value.depthCm} cm`;
 }
@@ -37,9 +39,11 @@ export default function AirlineCard({ airline }: { airline: Airline }) {
         </div>
       </dl>
 
-      {airline.weightLimitKg && airlineHasBagType(airline, "cabinBag") && (
+      {airlineHasBagType(airline, "cabinBag") && (hasFareSpecificVariation(airline, "cabinBag") ? (
+        <p className="mt-3 font-body text-xs text-navy-400">Cabin weight varies by fare or option.</p>
+      ) : airline.weightLimitKg ? (
         <p className="mt-3 font-body text-xs text-navy-400">Published cabin weight limit: {airline.weightLimitKg} kg</p>
-      )}
+      ) : null)}
 
       <span className="mt-auto pt-5 font-body text-sm font-semibold text-navy-700 group-hover:text-green-600">
         Click more →

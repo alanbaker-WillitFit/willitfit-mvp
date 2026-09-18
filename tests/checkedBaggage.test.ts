@@ -51,6 +51,8 @@ function makeAirline(checkedBag: BaggageSizingRule = fixedRule): Airline {
 
 const airline = makeAirline();
 const linearAirline = makeAirline(linearLtRule);
+const baselineAirline: Airline = { ...airline, fareClasses: [] };
+const baselineLinearAirline: Airline = { ...linearAirline, fareClasses: [] };
 
 function runtimeRule(overrides: Record<string, string> = {}) {
   return adaptBaggageRuleRow({
@@ -72,8 +74,8 @@ function runtimeRule(overrides: Record<string, string> = {}) {
 }
 
 describe("selectedWeightLimit", () => {
-  it("uses the airline checked-bag baseline when no fare is selected", () => {
-    expect(selectedWeightLimit(airline, "checkedBag", null)).toBe(23);
+  it("requires a fare before exposing a weight when published checked-bag weights vary", () => {
+    expect(selectedWeightLimit(airline, "checkedBag", null)).toBeNull();
   });
 
   it("uses the selected fare checked-bag weight limit", () => {
@@ -88,8 +90,8 @@ describe("selectedWeightLimit", () => {
     expect(selectedWeightLimit(airline, "cabinBag", "Flex")).toBe(12);
   });
 
-  it("falls back to the airline baseline when the selected fare does not support the bag type", () => {
-    expect(selectedWeightLimit(airline, "personalItem", "Flex")).toBe(10);
+  it("does not borrow a cabin weight when the selected fare does not support the bag type", () => {
+    expect(selectedWeightLimit(airline, "personalItem", "Flex")).toBeNull();
   });
 
   it("returns null when no airline is selected", () => {
@@ -99,7 +101,7 @@ describe("selectedWeightLimit", () => {
 
 describe("checked baggage sizing rules", () => {
   it("preserves existing fixed-dimension orientation behaviour", () => {
-    const result = checkFit({ heightCm: 55, widthCm: 80, depthCm: 35 }, airline, "checkedBag");
+    const result = checkFit({ heightCm: 55, widthCm: 80, depthCm: 35 }, baselineAirline, "checkedBag");
     expect(result.verdict).toBe("fits");
     expect(result.sizingRule.method).toBe("fixed-dimensions");
     expect(result.orientationUsed).toEqual(fixedDimensions);
@@ -107,20 +109,20 @@ describe("checked baggage sizing rules", () => {
   });
 
   it("passes 274.9 under a strict 275 cm limit", () => {
-    const result = checkFit({ heightCm: 100, widthCm: 100, depthCm: 74.9 }, linearAirline, "checkedBag");
+    const result = checkFit({ heightCm: 100, widthCm: 100, depthCm: 74.9 }, baselineLinearAirline, "checkedBag");
     expect(result.verdict).toBe("close");
     expect(result.userLinearTotalCm).toBe(274.9);
     expect(result.linearMarginCm).toBe(0.1);
   });
 
   it("fails exactly 275 under a strict 275 cm limit", () => {
-    const result = checkFit({ heightCm: 100, widthCm: 100, depthCm: 75 }, linearAirline, "checkedBag");
+    const result = checkFit({ heightCm: 100, widthCm: 100, depthCm: 75 }, baselineLinearAirline, "checkedBag");
     expect(result.verdict).toBe("no-fit");
     expect(result.linearMarginCm).toBe(0);
   });
 
   it("fails above a strict linear limit", () => {
-    const result = checkFit({ heightCm: 100, widthCm: 100, depthCm: 76 }, linearAirline, "checkedBag");
+    const result = checkFit({ heightCm: 100, widthCm: 100, depthCm: 76 }, baselineLinearAirline, "checkedBag");
     expect(result.verdict).toBe("no-fit");
     expect(result.linearMarginCm).toBe(-1);
   });
@@ -139,15 +141,17 @@ describe("checked baggage sizing rules", () => {
   });
 
   it("keeps weight evaluation separate and lets weight failure override size pass", () => {
-    const result = checkFit({ heightCm: 80, widthCm: 55, depthCm: 35 }, linearAirline, "checkedBag", null, 24);
+    const result = checkFit({ heightCm: 80, widthCm: 55, depthCm: 35 }, baselineLinearAirline, "checkedBag", null, 24);
     expect(result.userLinearTotalCm).toBe(170);
     expect(result.weightVerdict).toBe("no-fit");
     expect(result.verdict).toBe("no-fit");
   });
 
   it("does not preload a linear total into a dimension field", () => {
-    expect(checkerPreset(linearAirline, "checkedBag")).toBeNull();
-    expect(checkerPreset(airline, "checkedBag")).toEqual(fixedDimensions);
+    expect(checkerPreset(baselineLinearAirline, "checkedBag")).toBeNull();
+    expect(checkerPreset(baselineAirline, "checkedBag")).toEqual(fixedDimensions);
+    expect(checkerPreset(airline, "checkedBag")).toBeNull();
+    expect(checkerPreset(airline, "checkedBag", "Standard")).toEqual(fixedDimensions);
   });
 
   it("uses a fare-specific linear rule instead of the fixed baseline", () => {
@@ -156,8 +160,8 @@ describe("checked baggage sizing rules", () => {
   });
 
   it("leaves cabin and personal-item fixed-dimension behaviour unchanged", () => {
-    expect(checkFit({ heightCm: 55, widthCm: 40, depthCm: 20 }, airline, "cabinBag").verdict).toBe("fits");
-    expect(checkFit({ heightCm: 40, widthCm: 25, depthCm: 20 }, airline, "personalItem").verdict).toBe("fits");
+    expect(checkFit({ heightCm: 55, widthCm: 40, depthCm: 20 }, baselineAirline, "cabinBag").verdict).toBe("fits");
+    expect(checkFit({ heightCm: 40, widthCm: 25, depthCm: 20 }, baselineAirline, "personalItem").verdict).toBe("fits");
   });
 });
 

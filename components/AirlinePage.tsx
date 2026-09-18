@@ -9,6 +9,7 @@ import AirlineGuidance from "@/components/AirlineGuidance";
 import { safeJsonLd } from "@/lib/jsonLd";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { airlineHasBagType } from "@/lib/dimensions";
+import { hasFareSpecificVariation } from "@/lib/allowanceSemantics";
 import { getRuntimeContent } from "@/services/runtimeContent";
 import { getAffiliateSlots } from "@/services/runtimeAffiliates";
 import { getLabConfigurations } from "@/services/labConfig";
@@ -54,6 +55,9 @@ export default async function AirlinePage({
   const hasCabin = airlineHasBagType(current, "cabinBag");
   const hasPersonal = airlineHasBagType(current, "personalItem");
   const hasChecked = airlineHasBagType(current, "checkedBag");
+  const personalVaries = hasFareSpecificVariation(current, "personalItem");
+  const cabinVaries = hasFareSpecificVariation(current, "cabinBag");
+  const checkedVaries = hasFareSpecificVariation(current, "checkedBag");
   const availableFareClasses = current.fareClasses.filter(
     (fare) => fare.cabinBag || fare.personalItem || fare.checkedBag || fare.checkedWeightLimitKg !== null
   );
@@ -114,7 +118,7 @@ export default async function AirlinePage({
         <div className="wf-card wf-card--compact flex min-h-[180px] flex-col p-5">
           <h2 className="font-heading text-base font-semibold text-navy-700">Personal item</h2>
           {hasPersonal ? (
-            <p className="mt-2 font-mono text-lg text-navy-700">{formatDimensions(current.personalItem)}</p>
+            <p className="mt-2 font-mono text-lg text-navy-700">{personalVaries ? "Varies by fare or option" : formatDimensions(current.personalItem)}</p>
           ) : (
             <div className="mt-2 text-sm text-navy-500">
               <strong>{notices.find((item) => item.section === "personalItem-unavailable")?.title}</strong>
@@ -127,8 +131,8 @@ export default async function AirlinePage({
           <h2 className="font-heading text-base font-semibold text-navy-700">Cabin bag</h2>
           {hasCabin ? (
             <>
-              <p className="mt-2 font-mono text-lg text-navy-700">{formatDimensions(current.cabinBag)}</p>
-              {current.weightLimitKg ? <p className="mt-1 font-body text-sm text-navy-400">Max weight: {current.weightLimitKg} kg</p> : <p className="mt-1 font-body text-sm text-navy-400">No published universal weight limit.</p>}
+              <p className="mt-2 font-mono text-lg text-navy-700">{cabinVaries ? "Varies by fare or option" : formatDimensions(current.cabinBag)}</p>
+              {cabinVaries ? <p className="mt-1 font-body text-sm text-navy-400">Size and/or weight depends on the fare or option shown on your booking.</p> : current.weightLimitKg ? <p className="mt-1 font-body text-sm text-navy-400">Published weight limit: {current.weightLimitKg} kg</p> : <p className="mt-1 font-body text-sm text-navy-400">No published universal weight limit.</p>}
             </>
           ) : (
             <div className="mt-2 text-sm text-navy-500">
@@ -142,8 +146,8 @@ export default async function AirlinePage({
           <h2 className="font-heading text-base font-semibold text-navy-700">Checked baggage</h2>
           {hasChecked ? (
             <>
-              <p className="mt-2 font-mono text-lg text-navy-700">{formatCheckedRule(current.checkedBag, current.checkedWeightLimitKg)}</p>
-              {current.checkedWeightLimitKg ? <p className="mt-1 font-body text-sm text-navy-400">Max weight: {current.checkedWeightLimitKg} kg</p> : <p className="mt-1 font-body text-sm text-navy-400">Weight varies by fare, route or booking.</p>}
+              <p className="mt-2 font-mono text-lg text-navy-700">{checkedVaries ? "Varies by fare or option" : formatCheckedRule(current.checkedBag, current.checkedWeightLimitKg)}</p>
+              {checkedVaries ? <p className="mt-1 font-body text-sm text-navy-400">Size and/or weight depends on the fare or option shown on your booking.</p> : current.checkedWeightLimitKg ? <p className="mt-1 font-body text-sm text-navy-400">Published weight limit: {current.checkedWeightLimitKg} kg</p> : <p className="mt-1 font-body text-sm text-navy-400">Weight varies by route or booking.</p>}
             </>
           ) : (
             <p className="mt-2 font-body text-sm leading-6 text-navy-500">No eligible published checked-baggage rule is currently available. Check your booking before travel.</p>
