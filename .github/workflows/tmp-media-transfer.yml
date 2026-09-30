@@ -1,0 +1,17 @@
+name: tmp-media-transfer
+on:
+  push:
+    branches:
+      - tmp/remotion-overlay-transfer-20260930
+  workflow_dispatch:
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: remotion-overlay
+          path: _tmp_media_render/overlay.mp4
+          if-no-files-found: error
+          retention-days: 1
