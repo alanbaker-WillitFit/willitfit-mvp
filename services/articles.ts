@@ -21,6 +21,16 @@ interface ArticleHeader {
   displayOrder: number;
   active: boolean;
   published: boolean;
+  standfirst: string;
+  keyTakeaways: string[];
+  travellerAction: string;
+  authorName: string;
+  lastReviewed: string;
+  nextReviewDue: string;
+  officialSourceUrl: string;
+  additionalReferences: string;
+  publicationReason: string;
+  heroImage: string;
 }
 
 export interface Article {
@@ -30,6 +40,16 @@ export interface Article {
   category: string;
   publishedDate: string;
   sections: RuntimeContentRecord[];
+  standfirst?: string;
+  keyTakeaways?: string[];
+  travellerAction?: string;
+  authorName?: string;
+  lastReviewed?: string;
+  nextReviewDue?: string;
+  officialSourceUrl?: string;
+  additionalReferences?: string;
+  publicationReason?: string;
+  heroImage?: string;
 }
 
 function clean(value: unknown): string {
@@ -47,6 +67,37 @@ function value(row: RuntimeRow, ...names: string[]): string {
 function numberValue(input: unknown, fallback = 999): number {
   const parsed = Number(clean(input));
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function splitLines(input: unknown): string[] {
+  return clean(input).split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+}
+
+function heroImageFor(row: RuntimeRow): string {
+  const text = `${value(row, "Category")} ${value(row, "Topic")} ${value(row, "Headline")}`.toLowerCase();
+  const explicit = value(row, "Card Image Reference");
+  if (explicit) return explicit.startsWith("/") ? explicit : `/${explicit}`;
+  if (text.includes("power bank") || text.includes("battery")) return "/assets/travel-essentials/categories/power-banks.png";
+  if (text.includes("packing") || text.includes("pack")) return "/assets/travel-essentials/categories/packing-cubes.png";
+  if (text.includes("weight") || text.includes("oversized")) return "/assets/travel-essentials/categories/luggage-scales.png";
+  return "/assets/hero/airport-luggage.png";
+}
+
+function publicationGate(row: RuntimeRow): { ok: boolean; reason: string } {
+  const active = runtimeBoolean(value(row, "Active"));
+  if (!active || !runtimePublished(row)) return { ok: false, reason: "not approved/published" };
+
+  const type = value(row, "Article Type").toLowerCase();
+  const category = value(row, "Category").toLowerCase();
+  const sensitivity = value(row, "Change Sensitivity").toLowerCase();
+  const reflective = type.includes("reflection") || category.includes("reflection") || category.includes("humanity");
+  if (reflective) return { ok: true, reason: "approved reflective/editorial content" };
+
+  if (value(row, "Official Source URL") && (value(row, "Additional References") || value(row, "Source Publisher"))) {
+    return { ok: true, reason: "approved factual content with direct source evidence" };
+  }
+  if (sensitivity === "low") return { ok: true, reason: "approved low-sensitivity editorial content" };
+  return { ok: false, reason: "factual/high-sensitivity content requires stronger direct-source evidence" };
 }
 
 export function normaliseArticleSlug(value: string): string {
@@ -122,6 +173,7 @@ export function buildGovernedArticles(content: RuntimeContentRecord[]): Article[
 }
 
 function mapArticleHeader(row: RuntimeRow): ArticleHeader {
+  const gate = publicationGate(row);
   return {
     articleId: value(row, "Article ID"),
     slug: normaliseArticleSlug(value(row, "Slug")),
@@ -132,6 +184,16 @@ function mapArticleHeader(row: RuntimeRow): ArticleHeader {
     displayOrder: numberValue(value(row, "Display Order")),
     active: value(row, "Active") ? runtimeBoolean(value(row, "Active")) : false,
     published: runtimePublished(row),
+    standfirst: value(row, "Standfirst"),
+    keyTakeaways: splitLines(value(row, "Key Takeaways")),
+    travellerAction: value(row, "Traveller Action"),
+    authorName: value(row, "Author Name") || "WillItFit",
+    lastReviewed: value(row, "Last Reviewed"),
+    nextReviewDue: value(row, "Next Review Due"),
+    officialSourceUrl: value(row, "Official Source URL"),
+    additionalReferences: value(row, "Additional References"),
+    publicationReason: gate.reason,
+    heroImage: heroImageFor(row),
   };
 }
 
@@ -160,6 +222,7 @@ export function buildArticlesFromRuntimeRows(
   sectionRows: RuntimeRow[]
 ): Article[] {
   const headers = articleRows
+    .filter((row) => publicationGate(row).ok)
     .map(mapArticleHeader)
     .filter((header) =>
       header.articleId &&
@@ -186,10 +249,20 @@ export function buildArticlesFromRuntimeRows(
         category: header.category,
         publishedDate: header.publishedDate,
         sections: articleSections,
+        standfirst: header.standfirst,
+        keyTakeaways: header.keyTakeaways,
+        travellerAction: header.travellerAction,
+        authorName: header.authorName,
+        lastReviewed: header.lastReviewed,
+        nextReviewDue: header.nextReviewDue,
+        officialSourceUrl: header.officialSourceUrl,
+        additionalReferences: header.additionalReferences,
+        publicationReason: header.publicationReason,
+        heroImage: header.heroImage,
         displayOrder: header.displayOrder,
       };
     })
-    .filter((article): article is Article & { displayOrder: number } => article !== null)
+    .filter((article) => article !== null)
     .sort((a, b) => a.displayOrder - b.displayOrder || a.title.localeCompare(b.title))
     .map(({ displayOrder: _displayOrder, ...article }) => article);
 }
