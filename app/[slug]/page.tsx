@@ -31,8 +31,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   if (airline) {
-    const title = `${airline.airlineName} cabin bag size guide`;
-    const description = `Check ${airline.airlineName} cabin bag and personal item sizes, then use the free WillitFit bag checker to see if your luggage fits before you fly.`;
+    const hasSizeAllowance = airline.hasCabinBag || airline.hasPersonalItem;
+    const title = hasSizeAllowance ? `${airline.airlineName} cabin bag size guide` : `${airline.airlineName} baggage guide`;
+    const description = hasSizeAllowance
+      ? `Check ${airline.airlineName} cabin bag and personal item sizes, then use the free WillitFit bag checker to see if your luggage fits before you fly.`
+      : `Check the currently published ${airline.airlineName} baggage information held by WillitFit, including checked-bag weight where available.`;
     const canonical = siteUrl(`/${airline.slug}`);
 
     return {

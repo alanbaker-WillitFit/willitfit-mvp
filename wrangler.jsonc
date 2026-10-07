@@ -7,5 +7,13 @@
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
+  },
+  "env": {
+    "dev": {
+      "name": "willitfit-mvp-rc6-dev",
+      "vars": {
+        "NEXT_PRIVATE_MINIMAL_MODE": "1"
+      }
+    }
   }
 }

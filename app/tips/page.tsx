@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/tips" },
   title: "Travel tips",
   description: "Packing and baggage tips to help your bag clear airline checks every time.",
 };

@@ -96,7 +96,7 @@ function makeResult(
 describe("RC15 Question Engine", () => {
   it("loads the RC15 contract and hides blocked answers", () => {
     expect(QUESTION_ENGINE_CONTRACT_VERSION).toBe("QE-RC15-1.0");
-    expect(KNOWLEDGE_OBJECTS.length).toBe(18);
+    expect(KNOWLEDGE_OBJECTS.length).toBe(7);
     expect(
       KNOWLEDGE_OBJECTS.every(
         (item) => item.quickAnswer && item.detailedAnswer

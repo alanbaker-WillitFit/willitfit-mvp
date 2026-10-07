@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { GovernedNavigationItem } from "@/services/navigation";
+import NavDropdown from "./NavDropdown";
 import BrandWordmark from "./BrandWordmark";
 
 interface HeaderProps {
@@ -11,8 +12,9 @@ interface HeaderProps {
 }
 
 const LINKS = [
-  ["WillitFit", "/"], ["Airlines", "/airlines"], ["Size Guides", "/size-guides"], ["Ask WillitFit", "/ask"],
-  ["Articles", "/articles"], ["Travel Essentials", "/products"], ["About", "/about"], ["FAQs / People often ask", "/ask"],
+  ["WillitFit", "/"], ["Airlines", "/airlines"], ["Baggage", "/baggage"], ["Size Guides", "/size-guides"],
+  ["Articles", "/articles"], ["Ask WillitFit", "/ask"], ["Compare", "/compare"],
+  ["Travel Essentials", "/products"], ["Our Data", "/data"], ["About", "/about"],
 ] as const;
 
 function Brand() {
@@ -45,7 +47,7 @@ function GovernedLink({ item, onNavigate }: { item: GovernedNavigationItem; onNa
   );
 }
 
-export default function Header({ navigationItems }: HeaderProps) {
+export default function Header({ tipCategories, navigationItems }: HeaderProps) {
   const [open, setOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
 
@@ -72,9 +74,9 @@ export default function Header({ navigationItems }: HeaderProps) {
         <Link href="/" aria-label="WillitFit home" onClick={() => setOpen(false)}><Brand /></Link>
         <nav aria-label="Primary navigation" className="wf-desktop-nav">
           <Link href="/" aria-current="page"><BrandWordmark /></Link>
-          {LINKS.slice(1, 4).map(([label, href]) => <Link key={label} href={href}>{label}</Link>)}
-          <Link href="/tips">Travel Tips</Link>
-          {LINKS.slice(4).map(([label, href]) => <Link key={label} href={href}>{label}</Link>)}
+          {LINKS.slice(1, 6).map(([label, href]) => <Link key={label} href={href}>{label}</Link>)}
+          <NavDropdown label="Travel Tips" baseHref="/tips" categories={tipCategories} />
+          {LINKS.slice(6).map(([label, href]) => <Link key={label} href={href}>{label}</Link>)}
           {navigationItems.map((item) => <GovernedLink key={item.id} item={item} />)}
         </nav>
         <button ref={menuButton} type="button" className="wf-menu-button" aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open} aria-controls="mobile-navigation" onClick={() => setOpen(value => !value)}>
@@ -84,9 +86,9 @@ export default function Header({ navigationItems }: HeaderProps) {
       {open && (
         <nav id="mobile-navigation" className="wf-mobile-menu" aria-label="Mobile navigation">
           <Link href="/" onClick={() => setOpen(false)}><BrandWordmark /></Link>
-          {LINKS.slice(1, 4).map(([label, href]) => <Link key={label} href={href} onClick={() => setOpen(false)}>{label}</Link>)}
+          {LINKS.slice(1, 6).map(([label, href]) => <Link key={label} href={href} onClick={() => setOpen(false)}>{label}</Link>)}
           <Link href="/tips" onClick={() => setOpen(false)}>Travel Tips</Link>
-          {LINKS.slice(4).map(([label, href]) => <Link key={label} href={href} onClick={() => setOpen(false)}>{label}</Link>)}
+          {LINKS.slice(6).map(([label, href]) => <Link key={label} href={href} onClick={() => setOpen(false)}>{label}</Link>)}
           {navigationItems.map((item) => <GovernedLink key={item.id} item={item} onNavigate={() => setOpen(false)} />)}
         </nav>
       )}

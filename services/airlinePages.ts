@@ -1,6 +1,6 @@
 import { cache } from "react";
 import type { Airline } from "@/types";
-import { getCachedAirlines } from "./airlines";
+import { getCachedAirlines, getCachedAirlineReferences } from "./airlines";
 import { getTipsForAirline } from "./tips";
 
 export interface AirlinePageData {
@@ -37,17 +37,17 @@ export function selectRelatedAirlines(current: Airline, airlines: Airline[], lim
 }
 
 async function loadAirlinePageData(slug: string): Promise<AirlinePageData> {
-  const { airlines, source } = await getCachedAirlines();
-  const airline = airlines.find((item) => item.slug === slug) ?? null;
-  if (!airline) return { airline: null, airlines, relatedAirlines: [], tips: [], source };
+  const [references, checker] = await Promise.all([getCachedAirlineReferences(), getCachedAirlines()]);
+  const airline = references.airlines.find((item) => item.slug === slug) ?? null;
+  if (!airline) return { airline: null, airlines: checker.airlines, relatedAirlines: [], tips: [], source: references.source };
 
   const { tips } = await getTipsForAirline(airline.airlineName, 6);
   return {
     airline,
-    airlines,
-    relatedAirlines: selectRelatedAirlines(airline, airlines),
+    airlines: checker.airlines,
+    relatedAirlines: selectRelatedAirlines(airline, checker.airlines),
     tips,
-    source,
+    source: references.source,
   };
 }
 

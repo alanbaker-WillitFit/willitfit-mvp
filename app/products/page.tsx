@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { siteUrl } from "@/lib/utils";
 import TravelEssentials from "@/components/TravelEssentials";
 import { getAffiliateSlots } from "@/services/runtimeAffiliates";
 
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
+  alternates: { canonical: siteUrl("/products") },
   title: "Travel essentials",
   description: "Practical travel products picked to help your bag pass the sizer and your trip go smoothly.",
 };
@@ -18,7 +20,7 @@ export default async function ProductsIndexPage() {
         Explore governed recommendations for smarter travel. Empty positions remain clearly labelled placeholders.
       </p>
       <div className="mt-8"><TravelEssentials heading={false} slots={slots} /></div>
-      <p className="wf-runtime-source">Runtime source: {source === "sheet" ? "Google Sheets" : "validated local placeholders"}.</p>
+      <p className="wf-runtime-source">Runtime source: {source === "sheet" ? "certified release snapshot" : "validated local placeholders"}.</p>
     </section>
   );
 }

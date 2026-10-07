@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import DimensionForm from "@/components/DimensionForm";
@@ -15,6 +16,7 @@ import { getSpecialBaggageResults } from "@/services/specialBaggage";
 import { getHomeTravelAlert } from "@/services/travelAlerts";
 
 export const revalidate = 3600;
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 const NEXT_STEPS = [
   ["Check Another Bag", "/#checker", "Start a new baggage check.", "cabin"],
@@ -127,7 +129,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
         <section className="wf-top-airlines" aria-labelledby="top-airlines-heading">
           <div><PlaneIcon /><span><h2 id="top-airlines-heading">Top airlines</h2><p>Check supported baggage rules</p></span></div>
-          <nav aria-label="Top airlines">{priorityAirlines.map(airline => <Link key={airline.airlineId} href={`/airlines/${airline.slug}`}>{airline.airlineName}</Link>)}<Link href="/airlines">View all →</Link></nav>
+          <nav aria-label="Top airlines">{priorityAirlines.map(airline => <Link key={airline.airlineId} href={`/${airline.slug}`}>{airline.airlineName}</Link>)}<Link href="/airlines">View all →</Link></nav>
         </section>
 
         <section className="wf-trust-strip" aria-label="WillitFit trust commitments">
@@ -135,7 +137,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <div><GlobeIcon /><span><strong>Trusted by travellers</strong><small>Traveller-first guidance</small></span></div>
           <div><LockIcon /><span><strong>No personal data</strong><small>No sign-up required</small></span></div>
         </section>
-            <p className="wf-runtime-source">Runtime source: {source === "sheet" ? "Google Sheets" : "validated local fallback"}.</p>
+            <p className="wf-runtime-source">Runtime source: {source === "sheet" ? "certified release snapshot" : "validated local fallback"}.</p>
           </main>
           <aside className="wf-affiliate-rail" aria-label="Travel Essentials categories">
             <TravelEssentials variant="rail" slots={affiliateSlots} />
