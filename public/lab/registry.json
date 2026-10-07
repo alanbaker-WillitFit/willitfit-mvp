@@ -1,0 +1,1 @@
+{"schema_version":"1.0","site":"willitfit","hidden":true,"indexable":false,"trigger":{"event":"willit:lab","local_storage_key":"willit.lab.enabled","keyboard_when_enabled":"Alt+Shift+L"},"games":[{"game_id":"airport-one-tap","version":"rc0.4","path":"/lab/index.html","offline_capable":true,"cache_policy":"service-worker"}]}

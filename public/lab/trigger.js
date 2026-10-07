@@ -1,0 +1,1 @@
+(()=>{const KEY='willit.lab.enabled';function openLab(){if(location.pathname.startsWith('/lab'))return;location.assign('/lab/index.html')}window.addEventListener('willit:lab',openLab);try{if(localStorage.getItem(KEY)==='1')window.addEventListener('keydown',e=>{if(e.altKey&&e.shiftKey&&e.code==='KeyL')openLab()})}catch{}})();
