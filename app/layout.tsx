@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import "@/styles/rc5-ku-refinements.css";
 import "@/styles/rc5-final-launch-prep.css";
@@ -43,6 +44,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-FMPH04KLYY"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-FMPH04KLYY');
+          `}
+        </Script>
         <script src="/lab/trigger.js" defer></script>
         <a href="#main-content" className="wf-skip-link">Skip to main content</a>
         <script
