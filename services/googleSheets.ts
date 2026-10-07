@@ -1,5 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { validateSheetHeaders } from "./sheetSchemas";
+import { getCertifiedSnapshotRows } from "./certifiedSnapshot";
 
 type SheetRow = Record<string, string>;
 
@@ -409,12 +410,28 @@ export async function getSheetRowsFromSpreadsheet<T extends Record<string, strin
 export async function getSheetRows<T extends Record<string, string>>(
   tabName: string
 ): Promise<T[] | null> {
+  const snapshot = getCertifiedSnapshotRows(tabName);
+  if (snapshot !== undefined) {
+    sheetDiagnostics.set(tabName, {
+      tabName, state: "fresh", rowCount: snapshot.length, fetchedAt: new Date().toISOString(),
+      error: null, schemaValid: true, missingHeaders: [], duplicateHeaders: [],
+    });
+    return snapshot as T[];
+  }
+
+  if (getEnvValue(["ALLOW_LIVE_SHEETS"]) !== "true") {
+    sheetDiagnostics.set(tabName, {
+      tabName, state: "empty", rowCount: 0, fetchedAt: new Date().toISOString(),
+      error: null, schemaValid: true, missingHeaders: [], duplicateHeaders: [],
+    });
+    return null;
+  }
+
   const spreadsheetId = getEnvValue(DEFAULT_SPREADSHEET_ENV_NAMES);
   if (!spreadsheetId) {
     console.error("[googleSheets] Missing Google spreadsheet ID environment variable");
     return null;
   }
-
   return getSheetRowsFromSpreadsheet<T>(tabName, spreadsheetId);
 }
 

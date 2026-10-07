@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { getTipBySlug } from "@/services/tips";
 import { breadcrumbSchema } from "@/lib/schema";
 import { safeJsonLd } from "@/lib/jsonLd";
+import { siteUrl } from "@/lib/utils";
+import { getAirlineReferences } from "@/services/airlines";
 import Breadcrumbs from "@/components/Breadcrumbs";
 
 
@@ -15,15 +17,20 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const { tip } = await getTipBySlug(slug);
+  const [{ tip }, { airlines }] = await Promise.all([getTipBySlug(slug), getAirlineReferences()]);
 
   if (!tip) {
     return {};
   }
 
+  const airline = airlines.find((item) => item.airlineId === tip.focusAirline);
+  const title = airline ? `${tip.title} - ${airline.airlineName}` : tip.title;
+  const descriptionBase = airline ? `${airline.airlineName}: ${tip.content}` : tip.content;
   return {
-    title: tip.title,
-    description: tip.content.slice(0, 155),
+    title,
+    description: descriptionBase.slice(0, 155),
+    alternates: { canonical: siteUrl(`/tips/${tip.slug}`) },
+    robots: { index: true, follow: true },
   };
 }
 

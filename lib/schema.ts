@@ -58,8 +58,10 @@ export function airlineWebPageSchema(airline: Airline) {
   return {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: `${airline.airlineName} cabin bag size guide`,
-    description: `Check ${airline.airlineName} cabin bag and personal item sizes before you fly.`,
+    name: airline.hasCabinBag || airline.hasPersonalItem ? `${airline.airlineName} cabin bag size guide` : `${airline.airlineName} baggage guide`,
+    description: airline.hasCabinBag || airline.hasPersonalItem
+      ? `Check ${airline.airlineName} cabin bag and personal item sizes before you fly.`
+      : `Published ${airline.airlineName} baggage information, including checked-bag weight where available.`,
     url,
     isPartOf: { "@type": "WebSite", name: "WillItFit", url: siteUrl() },
     about: { "@type": "Organization", name: airline.airlineName },
@@ -74,5 +76,32 @@ export function organizationSchema() {
     name: "WillItFit",
     url: siteUrl(),
     slogan: "Know Before You Go",
+  };
+}
+
+export function knowledgeAnswerSchema(item: {
+  primaryQuestion: string;
+  quickAnswer: string;
+  detailedAnswer: string;
+  slug: string;
+  reviewedDate: string;
+  sourceLabel: string;
+}) {
+  const url = siteUrl(`/ask/${item.slug}`);
+  return {
+    "@type": "WebPage",
+    name: item.primaryQuestion,
+    url,
+    dateModified: item.reviewedDate || undefined,
+    isPartOf: { "@type": "WebSite", name: "WillItFit", url: siteUrl() },
+    mainEntity: {
+      "@type": "Question",
+      name: item.primaryQuestion,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.detailedAnswer || item.quickAnswer,
+        citation: item.sourceLabel || undefined,
+      },
+    },
   };
 }

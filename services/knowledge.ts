@@ -1,4 +1,5 @@
 import questionEngine from "@/data/question-engine.json";
+import certifiedFaqs from "@/data/certified/05_FAQs.json";
 import type { Dimensions, FitResult } from "@/types";
 
 export type KnowledgeObject = {
@@ -56,11 +57,19 @@ function splitIds(value: unknown): string[] {
   return text(value).split("|").map((item) => item.trim()).filter((item) => /^Q-\d{4}$/.test(item));
 }
 
+const CERTIFIED_FAQ_IDS = new Set((certifiedFaqs as unknown[][]).slice(1).map((row) => text(row?.[0])).filter(Boolean));
+
 function isBlocked(answer: AnswerRow): boolean {
-  return text(answer.Publish_Eligibility).toLowerCase() === "blocked" ||
-    text(answer.Answer_Readiness).toLowerCase() === "authoring required" ||
-    !text(answer.Quick_Answer) ||
-    !text(answer.Detailed_Answer);
+  const eligibility = text(answer.Publish_Eligibility).toLowerCase();
+  const readiness = text(answer.Answer_Readiness).toLowerCase();
+  const evidence = text(answer.Evidence_Status).toLowerCase();
+  const explicitlyEligible = eligibility === "eligible";
+  const ready = readiness === "ready";
+  const verified = ["verified", "validated", "approved"].includes(evidence);
+  const sourceType = text(answer.Answer_Source_Type).toLowerCase();
+  const sourceId = text(answer.Answer_Source_ID);
+  const sourceBacked = sourceType !== "authored faq" || CERTIFIED_FAQ_IDS.has(sourceId);
+  return !explicitlyEligible || !ready || !verified || !sourceBacked || !text(answer.Quick_Answer) || !text(answer.Detailed_Answer);
 }
 
 function toKnowledge(answer: AnswerRow): KnowledgeObject {

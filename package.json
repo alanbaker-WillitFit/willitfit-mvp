@@ -15,6 +15,7 @@
     "verify": "npm run type-check && npm run lint && npm test && npm run build",
     "build:cloudflare": "opennextjs-cloudflare build",
     "deploy:dry-run": "opennextjs-cloudflare build && wrangler deploy --dry-run",
+    "deploy:dev": "opennextjs-cloudflare build && wrangler deploy --env dev",
     "validate-build-content": "node archive/workbook-automation/content-automation/validate-build-content.mjs",
     "validate:content": "npm run validate-build-content",
     "check-airline-policies": "node archive/workbook-automation/content-automation/check-airline-policies.mjs",

@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import AskWillItFitSearch from "@/components/AskWillItFitSearch";
 import { KNOWLEDGE_OBJECTS, getKnowledgeBySlug, getRelatedKnowledge } from "@/services/knowledge";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { siteUrl } from "@/lib/utils";
+import { knowledgeAnswerSchema, breadcrumbSchema } from "@/lib/schema";
+import { safeJsonLd } from "@/lib/jsonLd";
 
 export function generateStaticParams() {
   return KNOWLEDGE_OBJECTS.map((item) => ({ slug: item.slug }));
@@ -13,7 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const item = getKnowledgeBySlug(slug);
   if (!item) return {};
-  return { title: item.primaryQuestion, description: item.quickAnswer };
+  return { title: item.primaryQuestion, description: item.quickAnswer, alternates: { canonical: siteUrl(`/ask/${item.slug}`) }, robots: { index: true, follow: true } };
 }
 
 export default async function KnowledgeAnswerPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -24,6 +27,7 @@ export default async function KnowledgeAnswerPage({ params }: { params: Promise<
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd({ "@context": "https://schema.org", "@graph": [knowledgeAnswerSchema(item), breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Ask WillitFit", path: "/ask" }, { name: item.primaryQuestion, path: `/ask/${item.slug}` }])] }) }} />
       <section className="bg-navy-700">
         <div className="wf-container py-10 sm:py-12">
           <div className="[&_a]:text-green-400 [&_span]:text-navy-200">

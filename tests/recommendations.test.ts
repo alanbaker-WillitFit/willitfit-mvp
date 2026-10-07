@@ -43,7 +43,7 @@ const baseRows = {
   intents: [
     {
       Intent_ID: "AFF-INT-003",
-      Question_ID: "Q-0009",
+      Question_ID: "Q-0012",
       Priority: "10",
       Disclosure_Rule: "Affiliate disclosure",
       Status: "Mapped",
@@ -84,10 +84,9 @@ const baseRows = {
 };
 
 describe("commercial recommendation engine", () => {
-  it("selects an eligible governed replacement", () => {
+  it("fails closed when the commercial intent depends on an unverified answer", () => {
     const decision = buildRecommendationDecision(result, baseRows);
-    expect(decision?.intentId).toBe("AFF-INT-003");
-    expect(decision?.products).toHaveLength(1);
+    expect(decision).toBeNull();
   });
 
   it("fails closed when the product is not live", () => {

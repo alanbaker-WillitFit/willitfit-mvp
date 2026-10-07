@@ -43,6 +43,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body>
+        <script src="/lab/trigger.js" defer></script>
         <a href="#main-content" className="wf-skip-link">Skip to main content</a>
         <script
           type="application/ld+json"

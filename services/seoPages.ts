@@ -1,4 +1,4 @@
-import { SeoPage } from "@/types";
+import { SeoPage, FaqItem } from "@/types";
 import { cache } from "react";
 import { slugify } from "./googleSheets";
 import { readFirstAvailableRuntimeTab, runtimePublished } from "./runtimeContent";
@@ -19,6 +19,22 @@ function value(row: SeoPageRow, ...names: string[]): string {
   return "";
 }
 
+
+function parseFaq(raw: string, slug: string): FaqItem[] {
+  if (!raw.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => item && typeof item.question === "string" && typeof item.answer === "string")
+      .map((item) => ({ question: item.question.trim(), answer: item.answer.trim() }))
+      .filter((item) => item.question && item.answer);
+  } catch {
+    console.error(`[seoPages] malformed FAQJSON for ${slug || "unknown slug"}`);
+    return [];
+  }
+}
+
 function mapRow(row: SeoPageRow): SeoPage {
   const pageSlug = slugify(value(row, "Slug", "Page Slug", "PageSlug"));
   return {
@@ -27,7 +43,7 @@ function mapRow(row: SeoPageRow): SeoPage {
     metaDescription: value(row, "Meta Description", "MetaDescription"),
     h1: value(row, "H1"),
     bodyContent: value(row, "Intro Copy", "Body Content", "BodyContent"),
-    faq: [],
+    faq: parseFaq(value(row, "FAQJSON", "FAQ JSON"), pageSlug),
     status: runtimePublished(row) ? "Live" : "Draft",
   };
 }

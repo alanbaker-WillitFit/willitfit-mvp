@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { siteUrl } from "@/lib/utils";
 import { getAboutContent } from "@/services/about";
 
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
+  alternates: { canonical: siteUrl("/about") },
   title: "Our data",
   description: "How WillItFit sources and maintains airline baggage allowance data.",
 };

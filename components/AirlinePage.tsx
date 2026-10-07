@@ -15,6 +15,9 @@ import { getLabConfigurations } from "@/services/labConfig";
 import { getAirlinePageDetails } from "@/services/airlinePageDetails";
 import { getAviationCurrent, getPublishingAirports } from "@/services/publishingData";
 import PublishingCommercialSlot from "@/components/PublishingCommercialSlot";
+import AirlineRuleEvidence from "@/components/AirlineRuleEvidence";
+import { getAirlineRuleDetails } from "@/services/airlineRuleDetails";
+import { getRulesForAirline, sizePageKey } from "@/services/baggageKnowledge";
 
 interface AirlinePageProps {
   airline: Airline;
@@ -42,18 +45,23 @@ export default async function AirlinePage({
   tips,
   source,
 }: AirlinePageProps) {
-  const [{ content: notices }, { slots: affiliateSlots }, labConfigs, pageDetails, aviation, publishingAirports] = await Promise.all([
+  const [{ content: notices }, { slots: affiliateSlots }, labConfigs, pageDetails, aviation, publishingAirports, ruleDetails] = await Promise.all([
     getRuntimeContent({ module: "Notices", page: "checker" }),
     getAffiliateSlots(),
     getLabConfigurations(),
     getAirlinePageDetails(current.airlineId),
     getAviationCurrent(),
     getPublishingAirports(),
+    getAirlineRuleDetails(current.airlineId),
   ]);
   const faq = airlineFaq(current);
   const hasCabin = airlineHasBagType(current, "cabinBag");
   const hasPersonal = airlineHasBagType(current, "personalItem");
-  const hasChecked = airlineHasBagType(current, "checkedBag");
+  const hasChecked = airlineHasBagType(current, "checkedBag") || Boolean(current.hasCheckedBag || current.checkedWeightLimitKg);
+  const hasSizeAllowance = hasCabin || hasPersonal;
+  const enrichedRules = getRulesForAirline(current.airlineId);
+  const cabinSizeRule = enrichedRules.find((rule) => rule.bagType.toLowerCase().includes("cabin") && sizePageKey(rule));
+  const personalSizeRule = enrichedRules.find((rule) => /personal|underseat|handbag/i.test(rule.bagType) && sizePageKey(rule));
   const availableFareClasses = current.fareClasses.filter(
     (fare) => fare.cabinBag || fare.personalItem || fare.checkedBag || fare.checkedWeightLimitKg !== null
   );
@@ -90,11 +98,17 @@ export default async function AirlinePage({
       <div className="wf-layout-airline grid gap-8 lg:items-start">
         <div>
           <p className="font-body text-sm font-semibold uppercase tracking-wide text-green-600">Airline baggage guide</p>
-          <h1 className="mt-3 font-heading text-3xl font-semibold text-navy-700">{current.airlineName} baggage allowance guide</h1>
+          <h1 className="mt-3 font-heading text-3xl font-semibold text-navy-700">{current.airlineName} {hasSizeAllowance ? "baggage allowance guide" : "baggage guide"}</h1>
           <p className="mt-3 font-body text-navy-500">
-            Compare {current.airlineName}&apos;s personal-item, cabin and checked-baggage rules, review fare options,
-            then test your own measurements before you reach the airport.
+            {hasSizeAllowance ? (<>Compare {current.airlineName}&apos;s personal-item, cabin and checked-baggage rules, review fare options, then test your own measurements before you reach the airport.</>) : (<>Review the currently published {current.airlineName} baggage information held by WillItFit. Dimensional cabin or personal-item data is not currently published, so the checker stays unavailable for this airline.</>)}
           </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-navy-600">{ruleDetails.length} published rules</span>
+            {current.fareClasses.length > 0 && <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-navy-600">{current.fareClasses.length} fares/options</span>}
+            {current.hasCabinBag && <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">Cabin</span>}
+            {current.hasPersonalItem && <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">Personal item</span>}
+            {(current.hasCheckedBag || current.checkedWeightLimitKg) && <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">Checked baggage</span>}
+          </div>
         </div>
 
         <aside className="wf-card wf-card--compact p-5">
@@ -108,6 +122,12 @@ export default async function AirlinePage({
             ) : "Check the airline's official baggage policy before travel."}
           </p>
         </aside>
+      </div>
+
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Link href={`/airlines/${current.slug}/baggage`} className="wf-btn-cta px-5 py-2.5 text-sm">Full baggage & fare details</Link>
+        {cabinSizeRule ? <Link href={`/sizes/${sizePageKey(cabinSizeRule)}`} className="wf-btn-secondary px-4 py-2.5 text-sm">Compare this cabin size</Link> : null}
+        {personalSizeRule ? <Link href={`/sizes/${sizePageKey(personalSizeRule)}`} className="wf-btn-secondary px-4 py-2.5 text-sm">Compare this personal-item size</Link> : null}
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -231,10 +251,14 @@ export default async function AirlinePage({
 
       <div className="mt-6"><PublishingCommercialSlot pageType="airline" entityId={current.airlineId} slotId="AIRLINE_AFTER_DELAYS" /></div>
 
-      <div className="mt-10">
-        <h2 className="font-heading text-xl font-semibold text-navy-700">Check your bag against {current.airlineName}</h2>
-        <div className="mt-4"><DimensionForm airlines={airlines} initialAirline={current} notices={notices} affiliateSlots={affiliateSlots} labConfigs={labConfigs} /></div>
-      </div>
+      {hasSizeAllowance && (
+        <div className="mt-10">
+          <h2 className="font-heading text-xl font-semibold text-navy-700">Check your bag against {current.airlineName}</h2>
+          <div className="mt-4"><DimensionForm airlines={airlines} initialAirline={current} notices={notices} affiliateSlots={affiliateSlots} labConfigs={labConfigs} /></div>
+        </div>
+      )}
+
+      <AirlineRuleEvidence airline={current} rules={ruleDetails} />
 
       <AirlineGuidance airline={current} tips={tips} />
       <AirlineSeoHub airline={current} tips={tips} />

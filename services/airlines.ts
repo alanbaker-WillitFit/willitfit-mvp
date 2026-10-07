@@ -309,7 +309,7 @@ export function mapRuntimeAirline(airline: AirlineRow, baggageRows: BaggageRuleR
   };
 }
 
-export async function getAirlines(): Promise<{ airlines: Airline[]; source: "sheet" | "fallback" }> {
+export async function getAirlineReferences(): Promise<{ airlines: Airline[]; source: "sheet" | "fallback" }> {
   const [airlineRead, baggageRead] = await Promise.all([
     readFirstAvailableRuntimeTab<RuntimeRow>(AIRLINE_TABS),
     readFirstAvailableRuntimeTab<RuntimeRow>(BAGGAGE_RULE_TABS),
@@ -337,19 +337,29 @@ export async function getAirlines(): Promise<{ airlines: Airline[]; source: "she
   const airlines = liveRows
     .filter((a) => !duplicateIds.has(a.AirlineID.trim()) && !duplicateSlugs.has(slugify(a.Slug || a.AirlineName)))
     .map((a) => mapRuntimeAirline(a, baggageRows))
-    .filter((a) => a.slug && (a.hasCabinBag || a.hasPersonalItem || a.hasCheckedBag));
+    .filter((a) => a.slug && baggageRows.some((rule) => rule.AirlineID.trim() === a.airlineId && isLiveRule(rule)));
 
   return { airlines: sortAirlinesByPriority(airlines), source: "sheet" };
+}
+
+export const getCachedAirlineReferences = cache(getAirlineReferences);
+
+export async function getAirlines(): Promise<{ airlines: Airline[]; source: "sheet" | "fallback" }> {
+  const loaded = await getCachedAirlineReferences();
+  return {
+    airlines: loaded.airlines.filter((a) => a.hasCabinBag || a.hasPersonalItem || a.hasCheckedBag),
+    source: loaded.source,
+  };
 }
 
 export const getCachedAirlines = cache(getAirlines);
 
 export async function getAirlineBySlug(slug: string): Promise<{ airline: Airline | null; source: "sheet" | "fallback" }> {
-  const { airlines, source } = await getCachedAirlines();
+  const { airlines, source } = await getCachedAirlineReferences();
   return { airline: airlines.find((a) => a.slug === slug) ?? null, source };
 }
 
 export async function getAllAirlineSlugs(): Promise<string[]> {
-  const { airlines } = await getCachedAirlines();
+  const { airlines } = await getCachedAirlineReferences();
   return Array.from(new Set(airlines.map((a) => a.slug)));
 }

@@ -10,6 +10,7 @@ import { getOpenQuestions } from "@/services/askWillItFit";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/ask" },
   title: "FAQs / People often ask | WillItFit",
   description: "Browse reviewed questions people often ask, search WillItFit's travel knowledge, or submit a question privately for moderation.",
 };
