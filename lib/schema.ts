@@ -32,15 +32,15 @@ export function airlineFaq(airline: Airline): FaqItem[] {
   return [
     ...(airlineHasBagType(airline, "cabinBag") ? [{
       question: `What is ${airline.airlineName}'s cabin bag size limit?`,
-      answer: `${airline.airlineName} allows cabin bags up to ${airline.cabinBag.heightCm} × ${airline.cabinBag.widthCm} × ${airline.cabinBag.depthCm} cm.`,
+      answer: `The reference cabin bag size for ${airline.airlineName} is ${airline.cabinBag.heightCm} × ${airline.cabinBag.widthCm} × ${airline.cabinBag.depthCm} cm. This does not mean every booking includes that bag: check your fare or purchased baggage option and the official airline policy before travel.`,
     }] : []),
     ...(airlineHasBagType(airline, "personalItem") ? [{
       question: `What is ${airline.airlineName}'s personal item size limit?`,
-      answer: `${airline.airlineName} allows a personal item up to ${airline.personalItem.heightCm} × ${airline.personalItem.widthCm} × ${airline.personalItem.depthCm} cm.`,
+      answer: `The reference personal item size for ${airline.airlineName} is ${airline.personalItem.heightCm} × ${airline.personalItem.widthCm} × ${airline.personalItem.depthCm} cm. Confirm the quantity and entitlement for your booking against the official airline policy.`,
     }] : []),
     ...(airline.weightLimitKg && airlineHasBagType(airline, "cabinBag") ? [{
       question: `Is there a weight limit for cabin bags on ${airline.airlineName}?`,
-      answer: `The reference allowance lists a cabin bag weight limit of ${airline.weightLimitKg} kg. Confirm the limit shown on your booking before travel.`,
+      answer: `The reference allowance for ${airline.airlineName} lists a cabin bag weight limit of ${airline.weightLimitKg} kg. Fare, route or booked baggage options may differ; confirm the applicable limit with the airline before travel.`,
     }] : []),
     ...(airline.fareClasses.length > 1 ? [{
       question: `Does ${airline.airlineName}'s baggage allowance change by fare?`,
