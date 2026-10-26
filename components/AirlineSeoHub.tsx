@@ -15,12 +15,7 @@ export default function AirlineSeoHub({ airline, tips }: AirlineSeoHubProps) {
   const hasCabin = airlineHasBagType(airline, "cabinBag");
   const hasPersonal = airlineHasBagType(airline, "personalItem");
   const visibleTips = tips.slice(0, 6);
-  const relatedSearches = [
-    `${airline.airlineName} cabin bag size`,
-    `${airline.airlineName} personal item size`,
-    `${airline.airlineName} baggage allowance`,
-    `${airline.airlineName} underseat bag`,
-  ];
+
 
   return (
     <div className="mt-10 space-y-10">
@@ -113,26 +108,6 @@ export default function AirlineSeoHub({ airline, tips }: AirlineSeoHubProps) {
           </div>
         </section>
       )}
-
-      <section className="wf-card p-6">
-        <h2 className="font-heading text-xl font-semibold text-navy-700">
-          Common {airline.airlineName} searches
-        </h2>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {relatedSearches.map((search) => (
-            <span
-              key={search}
-              className="rounded-full border border-navy-100 bg-white px-3 py-1 font-body text-sm text-navy-500"
-            >
-              {search}
-            </span>
-          ))}
-        </div>
-        <p className="mt-4 font-body text-sm text-navy-400">
-          These terms are included naturally to help travellers and search engines
-          understand the page topic without keyword stuffing.
-        </p>
-      </section>
 
       <section className="rounded-3xl bg-navy-700 p-6 text-white">
         <h2 className="font-heading text-xl font-semibold">
